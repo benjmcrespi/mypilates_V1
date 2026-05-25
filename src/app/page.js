@@ -15,7 +15,6 @@ export default function Home() {
         .order('date_time', { ascending: true });
 
       if (!error && data) {
-        // Filter out past classes so the schedule stays fresh
         const freshClasses = data.filter(c => new Date(c.date_time) >= new Date());
         setClasses(freshClasses);
       }
