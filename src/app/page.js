@@ -1,118 +1,115 @@
+"use client";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
+
 export default function Home() {
+  const [classes, setClasses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('date_time', { ascending: true });
+
+      if (!error && data) {
+        // Filter out past classes so the schedule stays fresh
+        const freshClasses = data.filter(c => new Date(c.date_time) >= new Date());
+        setClasses(freshClasses);
+      }
+      setIsLoading(false);
+    };
+
+    fetchClasses();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#FAF9F6] selection:bg-[#E8E6E1]">
-      {/* Main Background: Custom Cream */}
-      
-      {/* NAVIGATION BAR */}
-      <nav className="flex justify-between items-center py-6 px-8 max-w-7xl mx-auto">
-        <div className="text-xl font-extrabold tracking-tighter text-[#2C2A28]">
-          MyPilates
-        </div>
-        <div className="hidden md:flex space-x-8 text-sm font-medium text-[#7A7571]">
-          <span className="hover:text-[#2C2A28] cursor-pointer transition-colors">Classes</span>
-          <span className="hover:text-[#2C2A28] cursor-pointer transition-colors">Instructors</span>
-          <span className="hover:text-[#2C2A28] cursor-pointer transition-colors">About</span>
-        </div>
-        <div className="flex space-x-4">
-          <button className="text-sm font-medium text-[#7A7571] hover:text-[#2C2A28] transition-colors">
-            Sign In
-          </button>
+    <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] font-sans">
+      {/* GLOBAL NAVBAR */}
+      <nav className="border-b border-[#E8E6E1] bg-white/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <Link href="/" className="text-xl font-bold tracking-tight text-[#2C2A28]">
+            MyPilates<span className="text-[#7A7571] font-light">.ca</span>
+          </Link>
+          <div className="flex items-center space-x-6">
+            <Link href="/dashboard" className="text-sm font-medium text-[#7A7571] hover:text-[#2C2A28] transition-colors">
+              Instructor Dashboard
+            </Link>
+            <Link href="/login" className="bg-[#2C2A28] text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-[#4A4744] transition-colors">
+              Sign In
+            </Link>
+          </div>
         </div>
       </nav>
 
       {/* HERO SECTION */}
-      <section className="pt-24 pb-32 px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-[#2C2A28] mb-6 max-w-4xl">
-          The new standard for independent Pilates.
+      <header className="max-w-4xl mx-auto text-center py-20 px-6">
+        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#2C2A28] mb-6">
+          Find Your Next Movement.
         </h1>
-        <p className="text-lg md:text-xl text-[#7A7571] mb-10 max-w-2xl">
-          Discover premium Reformer and Mat classes hosted by top independent instructors. Book directly. Move beautifully.
+        <p className="text-lg text-[#7A7571] max-w-xl mx-auto mb-8">
+          A beautifully clean, real-time schedule hub for independent Pilates instructors in Vancouver.
         </p>
-        <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 w-full justify-center">
-          {/* Primary CTA */}
-          <Link href="/classes" className="bg-[#2C2A28] text-[#FAF9F6] px-8 py-4 rounded-lg text-sm font-medium hover:bg-black transition-colors w-full sm:w-auto flex items-center justify-center">
-            Find a Class
-          </Link>
-          {/* Secondary CTA */}
-          <button className="bg-[#F3F0EA] text-[#2C2A28] border border-[#E8E6E1] px-8 py-4 rounded-lg text-sm font-medium hover:bg-[#E8E6E1] transition-colors w-full sm:w-auto">
-            For Instructors
-          </button>
-        </div>
-      </section>
+      </header>
 
-      {/* WHY MYPILATES SECTION */}
-      <section className="bg-[#F3F0EA] py-24 px-8 border-y border-[#E8E6E1]">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-[#2C2A28]">Why MyPilates?</h2>
-            <p className="text-[#7A7571] mt-2">Built for the modern movement community.</p>
+      {/* LIVE SCHEDULE FEED */}
+      <main className="max-w-4xl mx-auto px-6 pb-24">
+        <div className="flex justify-between items-center mb-8 border-b border-[#E8E6E1] pb-4">
+          <h2 className="text-xl font-bold text-[#2C2A28]">Upcoming Live Schedule</h2>
+          <span className="text-xs font-semibold bg-[#E8E6E1] text-[#7A7571] px-2.5 py-1 rounded-full uppercase tracking-wider">
+            {classes.length} Active Classes
+          </span>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-12 text-[#7A7571] animate-pulse">Loading live schedule...</div>
+        ) : classes.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl border border-[#E8E6E1] p-8">
+            <p className="text-[#7A7571] font-medium">No classes scheduled for this week yet.</p>
+            <p className="text-sm text-[#A39E99] mt-1">Check back soon or contact your instructor!</p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            {/* Feature 1 */}
-            <div className="flex flex-col items-center text-center">
-              <div className="h-12 w-12 bg-[#2C2A28] text-[#FAF9F6] rounded-full flex items-center justify-center mb-6">
-                1
+        ) : (
+          <div className="space-y-4">
+            {classes.map((c) => (
+              <div key={c.id} className="bg-white border border-[#E8E6E1] rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <div className="flex items-center space-x-2 mb-1.5">
+                    <span className="text-xs font-semibold bg-[#F3F0EA] text-[#7A7571] px-2 py-0.5 rounded">
+                      {c.class_type}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-[#2C2A28]">{c.class_name}</h3>
+                  <p className="text-sm text-[#7A7571] mt-1 flex items-center">
+                    📍 <span className="underline ml-1 font-medium">{c.studio_name}</span>
+                  </p>
+                </div>
+                
+                <div className="flex items-center justify-between sm:justify-end gap-6 pt-4 sm:pt-0 border-t sm:border-0 border-[#F3F0EA]">
+                  <div className="sm:text-right">
+                    <p className="text-sm font-bold text-[#2C2A28]">
+                      {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </p>
+                    <p className="text-xs text-[#7A7571] font-medium mt-0.5">
+                      {new Date(c.date_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  
+                  <a 
+                    href={c.booking_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-[#2C2A28] text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-[#4A4744] transition-colors text-center shadow-sm"
+                  >
+                    Book Now
+                  </a>
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-[#2C2A28] mb-2">Curated Instructors</h3>
-              <p className="text-[#7A7571] text-sm leading-relaxed">
-                We only feature highly certified, independent professionals so you guarantee a premium experience every session.
-              </p>
-            </div>
-            {/* Feature 2 */}
-            <div className="flex flex-col items-center text-center">
-              <div className="h-12 w-12 bg-[#2C2A28] text-[#FAF9F6] rounded-full flex items-center justify-center mb-6">
-                2
-              </div>
-              <h3 className="text-xl font-semibold text-[#2C2A28] mb-2">Seamless Booking</h3>
-              <p className="text-[#7A7571] text-sm leading-relaxed">
-                Filter by class type, find the schedule that fits your life, and book directly with the instructor in seconds.
-              </p>
-            </div>
-            {/* Feature 3 */}
-            <div className="flex flex-col items-center text-center">
-              <div className="h-12 w-12 bg-[#2C2A28] text-[#FAF9F6] rounded-full flex items-center justify-center mb-6">
-                3
-              </div>
-              <h3 className="text-xl font-semibold text-[#2C2A28] mb-2">Empowering Creators</h3>
-              <p className="text-[#7A7571] text-sm leading-relaxed">
-                By bypassing the mega-studios, your booking directly supports the independent instructors leading your class.
-              </p>
-            </div>
+            ))}
           </div>
-        </div>
-      </section>
-
-      {/* ABOUT US SECTION */}
-      <section className="py-24 px-8 max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-16">
-        {/* Image Placeholder: Darker warm tone */}
-        <div className="w-full md:w-1/2 bg-[#E8E6E1] aspect-square rounded-2xl flex items-center justify-center border border-[#DCD9D3]">
-          <span className="text-[#96908B] font-medium">[ Studio Image Placeholder ]</span>
-        </div>
-        <div className="w-full md:w-1/2">
-          <h2 className="text-3xl font-bold text-[#2C2A28] mb-6">The Vision</h2>
-          <p className="text-[#7A7571] mb-4 leading-relaxed text-sm">
-            Born on the West Side, MyPilates was built to solve a simple problem: it was too hard for incredible independent instructors to manage their own schedules, and too hard for students to discover them outside of massive corporate studios.
-          </p>
-          <p className="text-[#7A7571] leading-relaxed text-sm">
-            We are creating a centralized hub where the community can thrive on its own terms. Whether you are looking for an intense Reformer Elevate session or a restorative Mat Sculpt, everything you need is right here.
-          </p>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-[#E8E6E1] py-12 px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm text-[#96908B]">
-          <p>© 2026 MyPilates. All rights reserved.</p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            <span className="hover:text-[#2C2A28] cursor-pointer transition-colors">Terms</span>
-            <span className="hover:text-[#2C2A28] cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-[#2C2A28] cursor-pointer transition-colors">Contact</span>
-          </div>
-        </div>
-      </footer>
-
+        )}
+      </main>
     </div>
   );
 }

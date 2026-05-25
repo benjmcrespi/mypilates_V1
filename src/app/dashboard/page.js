@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-// 1. THE UPDATED STUDIO LIST
-// I added Google Maps search links that will automatically pull up the studios
+// 1. THE MASTER STUDIO LIST
 const STUDIOS = [
   { name: "Altea Active West 6", url: "https://maps.google.com/?q=Altea+Active+West+6+Vancouver" },
-  { name: "InSoul Pilates", url: "https://maps.google.com/?q=InSoul+Pilates+Vancouver" },
+  { name: "InSoul Pilates", url: "https://maps.google.com/?q=InSoul+Pilates+Vancouver" }
 ];
 
 export default function Dashboard() {
@@ -67,7 +67,6 @@ export default function Dashboard() {
           instructor_id: user.id,
           class_type: classData.classType,
           class_name: classData.className,
-          // 2. THE TIMEZONE FIX: This permanently locks the time to the creator's local timezone
           date_time: new Date(classData.dateTime).toISOString(),
           booking_url: classData.bookingUrl,
           studio_name: classData.studioName,
@@ -99,17 +98,27 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         
+        {/* THE FIXED HEADER ARCHITECTURE */}
         <div className="mb-8 flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Studio Dashboard</h1>
             <p className="text-gray-500 mt-1">Manage your schedule and publish new classes.</p>
           </div>
-          <button 
-            onClick={() => { supabase.auth.signOut(); router.push('/login'); }}
-            className="text-sm font-medium text-gray-500 hover:text-black transition-colors"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center space-x-4">
+            <Link 
+              href="/" 
+              className="text-sm font-medium text-gray-500 hover:text-black transition-colors"
+            >
+              View Live Site
+            </Link>
+            <span className="text-gray-300">|</span>
+            <button 
+              onClick={() => { supabase.auth.signOut(); router.push('/login'); }}
+              className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
