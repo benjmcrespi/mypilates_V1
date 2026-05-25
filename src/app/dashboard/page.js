@@ -13,10 +13,9 @@ export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [activeTab, setActiveTab] = useState('schedule'); // 'schedule', 'add', 'settings'
+  const [activeTab, setActiveTab] = useState('schedule');
   const [isChecking, setIsChecking] = useState(true);
   
-  // Forms State
   const [classData, setClassData] = useState({
     classType: 'Reformer Pilates',
     className: '',
@@ -32,6 +31,7 @@ export default function Dashboard() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
 
   useEffect(() => {
@@ -44,7 +44,6 @@ export default function Dashboard() {
       
       setUser(session.user);
 
-      // Fetch Profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -59,7 +58,6 @@ export default function Dashboard() {
         });
       }
 
-      // Fetch Classes
       const { data: classesData } = await supabase
         .from('classes')
         .select('*')
@@ -93,7 +91,7 @@ export default function Dashboard() {
 
     if (!error) {
       alert("Success! Class published.");
-      window.location.reload(); // Quick refresh to show new class
+      window.location.reload();
     } else {
       alert("Error: " + error.message);
     }
@@ -120,13 +118,40 @@ export default function Dashboard() {
     setIsSaving(false);
   };
 
+  const handleSync = async () => {
+    if (!settingsData.calendar_url) return alert("Please save a calendar URL in settings first!");
+    setIsSyncing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          calendarUrl: settingsData.calendar_url, 
+          instructorId: user.id 
+        })
+      });
+      
+      const result = await res.json();
+      if (result.error) throw new Error(result.error);
+      
+      alert(`Sync complete! Checked ${result.count || 0} upcoming classes.`);
+      window.location.reload();
+    } catch (err) {
+      alert("Error syncing: " + err.message);
+    }
+    setIsSyncing(false);
+  };
+
   if (isChecking) return <div className="min-h-screen bg-[#FAF9F6]"></div>;
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         
-        {/* HEADER */}
         <div className="mb-8 flex justify-between items-end border-b border-[#E8E6E1] pb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Welcome, {profile?.full_name?.split(' ')[0] || 'Instructor'}</h1>
@@ -146,7 +171,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* TABS */}
         <div className="flex space-x-8 mb-8 border-b border-[#E8E6E1]">
           <button 
             onClick={() => setActiveTab('schedule')}
@@ -168,7 +192,6 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* TAB 1: LIVE SCHEDULE */}
         {activeTab === 'schedule' && (
           <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
@@ -190,7 +213,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* TAB 2: ADD & DRAFTS */}
         {activeTab === 'add' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
@@ -232,15 +254,38 @@ export default function Dashboard() {
 
             <div className="bg-[#F3F0EA] rounded-xl shadow-sm border border-[#E8E6E1] p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
-              <p className="text-sm text-[#7A7571] mb-4">When your iCal sync runs, un-published classes will appear here for you to categorize and publish.</p>
-              <div className="bg-white/50 border border-[#E8E6E1] border-dashed rounded-lg p-8 text-center text-[#7A7571] text-sm">
-                No pending drafts. You're all caught up!
-              </div>
+              <p className="text-sm text-[#7A7571] mb-4">Pull the latest classes directly from your linked calendar.</p>
+              
+              {/* THE MISSING BUTTON IS HERE! */}
+              <button 
+                onClick={handleSync}
+                disabled={isSyncing || !settingsData.calendar_url}
+                className="w-full bg-white border border-[#E8E6E1] text-[#2C2A28] font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
+              </button>
+
+              {myClasses.filter(c => c.status === 'draft').length === 0 ? (
+                <div className="bg-white/50 border border-[#E8E6E1] border-dashed rounded-lg p-8 text-center text-[#7A7571] text-sm font-medium">
+                  No pending drafts. You're all caught up!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {myClasses.filter(c => c.status === 'draft').map(c => (
+                    <div key={c.id} className="bg-white p-3 rounded-lg border border-[#E8E6E1] text-sm flex justify-between items-center shadow-sm">
+                      <div>
+                        <p className="font-bold">{c.class_name}</p>
+                        <p className="text-[#7A7571] text-xs">{new Date(c.date_time).toLocaleDateString()} @ {c.studio_name}</p>
+                      </div>
+                      <span className="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">Draft</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* TAB 3: SETTINGS */}
         {activeTab === 'settings' && (
           <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Instructor Profile & Sync</h2>
