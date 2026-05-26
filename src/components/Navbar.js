@@ -39,7 +39,7 @@ export default function Navbar() {
         
         {/* THE BRAND: Always takes you home */}
         <Link href="/" className="text-xl font-bold tracking-tight text-[#2C2A28] hover:opacity-70 transition-opacity">
-          Hannah Jane Pilates
+          MyPilates.ca
         </Link>
 
         {/* DYNAMIC LINKS: Changes based on who is looking */}

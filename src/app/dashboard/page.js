@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Autocomplete from 'react-google-autocomplete';
 
 const STUDIOS = [
   { name: "Altea Active West 6", url: "https://maps.google.com/?q=Altea+Active+West+6+Vancouver" },
@@ -35,6 +36,26 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
+  const studioInputRef = useRef(null);
+
+  const handleToggleWaitlist = async (id, currentStatus) => {
+    // 1. Instantly update the UI so the toggle feels lightning fast
+    setMyClasses(prevClasses => 
+      prevClasses.map(c => 
+        c.id === id ? { ...c, is_waitlisted: !currentStatus } : c
+      )
+    );
+
+    // 2. Quietly update the database in the background
+    const { error } = await supabase
+      .from('classes')
+      .update({ is_waitlisted: !currentStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error("Error updating waitlist:", error);
+    }
+  };
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -110,7 +131,8 @@ export default function Dashboard() {
   const handleClassSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-
+// FORCE OVERRIDE: Check if the Google Input has a value and prioritize it
+  const finalStudioName = studioInputRef.current?.value || classData.studioName;
     if (editingDraftId) {
       const { error } = await supabase
         .from('classes')
@@ -119,7 +141,7 @@ export default function Dashboard() {
           class_name: classData.className,
           date_time: new Date(classData.dateTime).toISOString(),
           booking_url: classData.bookingUrl,
-          studio_name: classData.studioName,
+          studio_name: finalStudioName, // Use the forced value
           location_url: classData.locationUrl,
           status: 'published' 
         })
@@ -197,26 +219,71 @@ export default function Dashboard() {
           <button onClick={() => setActiveTab('settings')} className={`pb-3 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#2C2A28] text-[#2C2A28]' : 'text-[#7A7571] hover:text-[#2C2A28]'}`}>Instructor Settings</button>
         </div>
 
-        {activeTab === 'schedule' && (
-          <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
-            <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
-            {myClasses.filter(c => c.status === 'published').length === 0 ? (
-              <p className="text-[#7A7571]">You have no upcoming classes. Head to the Add tab to publish one!</p>
-            ) : (
-              <div className="space-y-4">
-                {myClasses.filter(c => c.status === 'published').map(c => (
-                  <div key={c.id} className="flex justify-between items-center p-4 bg-[#FAF9F6] rounded-lg border border-[#E8E6E1]">
-                    <div>
-                      <h3 className="font-bold">{c.class_name} <span className="text-xs font-normal bg-white px-2 py-0.5 rounded border ml-2">{c.class_type}</span></h3>
-                      <p className="text-sm text-[#7A7571] mt-1">{new Date(c.date_time).toLocaleString()} @ {c.studio_name}</p>
+{activeTab === 'schedule' && (
+                <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
+                  <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
+                  
+                  {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).length === 0 ? (
+                    <p className="text-[#7A7571] text-center p-8 bg-white rounded-xl border border-[#E8E6E1]">No live classes currently published.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).map((c) => (
+                        <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-xl border border-[#E8E6E1] shadow-sm transition-all hover:shadow-md">
+                          <div className="mb-4 sm:mb-0">
+                            <div className="flex items-center space-x-3 mb-1">
+                              <h4 className="font-bold text-lg text-[#2C2A28]">{c.class_name}</h4>
+                              <span className="text-xs font-medium bg-[#F3F0EA] px-2 py-0.5 rounded border border-[#E8E6E1]">{c.class_type}</span>
+                            </div>
+                            <p className="text-sm text-[#7A7571]">
+                              {new Date(c.date_time).toLocaleDateString()} • {new Date(c.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} @ {c.studio_name}
+                            </p>
+                          </div>
+                          
+                          {/* NEW CONTROLS: Waitlist Toggle & Edit Button */}
+                          <div className="flex items-center space-x-4 w-full sm:w-auto border-t sm:border-t-0 border-[#E8E6E1] pt-3 sm:pt-0">
+                            
+                            {/* FIX: Added the onClick handler right here! */}
+                            <div 
+                              onClick={() => handleToggleWaitlist(c.id, c.is_waitlisted)}
+                              className="flex items-center space-x-2 cursor-pointer group"
+                            >
+                              <div className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${c.is_waitlisted ? 'bg-[#2C2A28]' : 'bg-[#E8E6E1]'}`}>
+                                <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${c.is_waitlisted ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                              </div>
+                              <span className="text-sm font-medium text-[#7A7571] group-hover:text-[#2C2A28] transition-colors">Waitlisted</span>
+                            </div>
+                            
+                            <span className="text-[#E8E6E1] hidden sm:inline">|</span>
+                            
+                            <button 
+                              onClick={() => {
+                                // 1. Tell the form which class we are updating
+                                setEditingDraftId(c.id); 
+                                
+                                // 2. Pre-fill the modal with the live class data
+                                setClassData({
+                                  classType: c.class_type,
+                                  className: c.class_name,
+                                  dateTime: c.date_time.slice(0, 16), // Formats cleanly for HTML datetime inputs
+                                  bookingUrl: c.booking_url || '',
+                                  studioName: c.studio_name || '',
+                                  locationUrl: c.location_url || ''
+                                });
+
+                                // 3. Open the modal
+                                setActiveTab('add');
+                              }}
+                              className="text-sm font-medium text-[#2C2A28] bg-white border border-[#E8E6E1] hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors active:scale-95"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-xs font-semibold text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">Published</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+                </div>
+              )}
 
         {activeTab === 'add' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -231,40 +298,94 @@ export default function Dashboard() {
               </div>
               
               <form onSubmit={handleClassSubmit} className="space-y-5">
+                {/* 1. Class Name */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Specific Class Name</label>
-                  <input type="text" value={classData.className} onChange={e => setClassData({...classData, className: e.target.value})} required className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50" />
+                  <input 
+                    type="text" 
+                    value={classData.className} 
+                    onChange={e => setClassData({...classData, className: e.target.value})} 
+                    required 
+                    className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
+                  />
                 </div>
+
+                {/* 2. Category & Studio */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Category & Studio</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <select value={classData.classType} onChange={e => setClassData({...classData, classType: e.target.value})} required className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50">
+                    <select 
+                      value={classData.classType} 
+                      onChange={e => setClassData({...classData, classType: e.target.value})} 
+                      required 
+                      className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
+                    >
                       <option value="" disabled>Select Category...</option>
                       <option value="Reformer Pilates">Reformer Pilates</option>
                       <option value="Mat Pilates">Mat Pilates</option>
                       <option value="Yoga">Yoga</option>
                     </select>
-                    <select value={classData.studioName} onChange={e => {
-                      const studio = STUDIOS.find(s => s.name === e.target.value);
-                      setClassData({...classData, studioName: studio.name, locationUrl: studio.url});
-                    }} className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50">
-                      {STUDIOS.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                    </select>
+
+                    <div className="relative">
+                      <Autocomplete
+  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+  options={{ types: ["establishment"] }}
+  libraries={["places"]}
+  ref={studioInputRef} // <--- Add the ref here
+  onPlaceSelected={(place) => {
+    if (place && place.name) {
+      setClassData(prev => ({
+        ...prev,
+        studioName: place.name,
+        locationUrl: place.url || prev.locationUrl 
+      }));
+    }
+  }}
+  defaultValue={classData.studioName}
+  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
+  placeholder="Search on Google Maps..."
+/>
+                      {classData.locationUrl && (
+                        <span className="absolute -bottom-5 left-1 text-[10px] text-green-600 font-bold">✓ Location Linked</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* 3. Date & Time */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Date & Time</label>
-                  <input type="datetime-local" value={classData.dateTime} onChange={e => setClassData({...classData, dateTime: e.target.value})} required className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50" />
+                  <input 
+                    type="datetime-local" 
+                    value={classData.dateTime} 
+                    onChange={e => setClassData({...classData, dateTime: e.target.value})} 
+                    required 
+                    className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
+                  />
                 </div>
+
+                {/* 4. Checkout Link */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Checkout Link</label>
-                  <input type="url" placeholder="https://..." value={classData.bookingUrl} onChange={e => setClassData({...classData, bookingUrl: e.target.value})} required className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50" />
+                  <input 
+                    type="url" 
+                    placeholder="https://..." 
+                    value={classData.bookingUrl} 
+                    onChange={e => setClassData({...classData, bookingUrl: e.target.value})} 
+                    className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
+                  />
                 </div>
-                <button type="submit" disabled={isSaving} className={`w-full text-white font-medium py-3 rounded-lg mt-2 transition-colors ${editingDraftId ? 'bg-yellow-500 hover:bg-yellow-600 text-black' : 'bg-[#2C2A28] hover:bg-[#4A4744]'}`}>
+
+                {/* Submit Button */}
+                <button 
+                  type="submit" 
+                  disabled={isSaving} 
+                  className="w-full bg-[#2C2A28] text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-black disabled:opacity-50"
+                >
                   {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : "Publish Class")}
                 </button>
               </form>
-            </div>
+              </div>
 
             <div className="bg-[#F3F0EA] rounded-xl shadow-sm border border-[#E8E6E1] p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
@@ -274,18 +395,20 @@ export default function Dashboard() {
                 {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
               </button>
 
-              {myClasses.filter(c => c.status === 'draft').length === 0 ? (
+              {myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date()).length === 0 ? (
                 <div className="bg-white/50 border border-[#E8E6E1] border-dashed rounded-lg p-8 text-center text-[#7A7571] text-sm font-medium">
                   No pending drafts. You're all caught up!
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                  {myClasses.filter(c => c.status === 'draft').map(c => (
+                  {myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date()).map((c) => (
                     <div key={c.id} className="bg-white p-4 rounded-lg border border-[#E8E6E1] text-sm flex justify-between items-center shadow-sm">
                       <div className="pr-4">
                         <p className="font-bold">{c.class_name}</p>
-                        <p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">{new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})} @ {c.studio_name.replace(/\\,/g, ',').replace(/\\n/gi, ', ')}</p>
-                      </div>
+<p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">
+  {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})} 
+  @ {c.studio_name}
+</p>                      </div>
                       <button 
                         onClick={() => handleEditDraft(c)}
                         className="shrink-0 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors"

@@ -50,7 +50,7 @@ export default function SignUp() {
 
       <div className="sm:mx-auto w-full max-w-md text-center px-4">
         <h2 className="text-3xl font-bold tracking-tight text-[#2C2A28]">
-          Apply as an Instructor
+          Instructor Sign Up
         </h2>
         <p className="mt-2 text-sm text-[#7A7571]">
           Join the premier hub for independent Pilates instructors.

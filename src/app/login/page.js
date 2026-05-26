@@ -116,7 +116,7 @@ export default function Login() {
           <div className="mt-6 text-center text-sm text-[#7A7571]">
             Don't have an instructor account?{' '}
             <Link href="/signup" className="font-medium text-[#2C2A28] hover:underline">
-              Apply here
+              Sign Up
             </Link>
           </div>
 
