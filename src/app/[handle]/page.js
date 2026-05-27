@@ -102,8 +102,16 @@ export default function InstructorProfile() {
                     </span>
                   </div>
                   <p className="text-[#7A7571] text-sm sm:text-base">
-                    {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} <span className="mx-1">•</span> {new Date(c.date_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </p>
+  {new Date(c.date_time).toLocaleDateString('en-US', { 
+    weekday: 'long', month: 'long', day: 'numeric',
+    timeZone: 'America/Vancouver'
+  })} 
+  <span className="mx-1">•</span> 
+  {new Date(c.date_time).toLocaleTimeString('en-US', { 
+    hour: 'numeric', minute: '2-digit',
+    timeZone: 'America/Vancouver'
+  })}
+</p>
                   
                   <a 
                     href={c.studios?.location_url || c.location_url || '#'} 
@@ -156,11 +164,15 @@ export default function InstructorProfile() {
               </p>
               <div className="mt-4 p-4 bg-white border border-[#E8E6E1] rounded-lg text-center shadow-sm">
                 <span className="block text-black font-bold text-lg sm:text-xl">
-                  {new Date(bookingClass.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                </span>
+{new Date(bookingClass.date_time).toLocaleDateString('en-US', { 
+  weekday: 'short', month: 'short', day: 'numeric',
+  timeZone: 'America/Vancouver'
+})}                </span>
                 <span className="block text-[#7A7571] text-sm font-medium mt-1">
-                  @ {new Date(bookingClass.date_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                </span>
+{new Date(bookingClass.date_time).toLocaleTimeString('en-US', { 
+  hour: 'numeric', minute: '2-digit',
+  timeZone: 'America/Vancouver'
+})}                </span>
               </div>
             </div>
 

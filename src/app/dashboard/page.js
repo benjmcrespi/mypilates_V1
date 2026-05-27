@@ -5,17 +5,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Autocomplete from 'react-google-autocomplete';
 
-const STUDIOS = [
-  { name: "Altea Active West 6", url: "https://maps.google.com/?q=Altea+Active+West+6+Vancouver" },
-  { name: "InSoul Pilates", url: "https://maps.google.com/?q=InSoul+Pilates+Vancouver" }
-];
-
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('schedule');
   const [isChecking, setIsChecking] = useState(true);
+  const [savedStudios, setSavedStudios] = useState([]);
+const [newStudioName, setNewStudioName] = useState('');
+const [newStudioUrl, setNewStudioUrl] = useState('');
+const settingsStudioRef = useRef(null); // Dedicated ref for the settings autocomplete
   
   const [editingDraftId, setEditingDraftId] = useState(null);
   
@@ -24,8 +23,8 @@ export default function Dashboard() {
     className: '',
     dateTime: '',
     bookingUrl: '',
-    studioName: STUDIOS[0].name,
-    locationUrl: STUDIOS[0].url 
+    studioName: '',
+    locationUrl: '' 
   });
   
   const [settingsData, setSettingsData] = useState({
@@ -36,7 +35,6 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
-  const studioInputRef = useRef(null);
 
   const handleToggleWaitlist = async (id, currentStatus) => {
     // 1. Instantly update the UI so the toggle feels lightning fast
@@ -65,7 +63,7 @@ export default function Dashboard() {
         return;
       }
       setUser(session.user);
-
+fetchSavedStudios();
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -94,8 +92,7 @@ export default function Dashboard() {
   }, [router]);
 
   const handleEditDraft = (draft) => {
-    let matchedStudio = STUDIOS[0];
-    const messyLocation = (draft.studio_name || "").toLowerCase();
+let matchedStudio = { name: '', url: '' };    const messyLocation = (draft.studio_name || "").toLowerCase();
     
     if (messyLocation.includes("insoul")) {
       matchedStudio = STUDIOS.find(s => s.name === "InSoul Pilates");
@@ -123,11 +120,53 @@ export default function Dashboard() {
   const cancelEdit = () => {
     setEditingDraftId(null);
     setClassData({
-      classType: '', className: '', dateTime: '', bookingUrl: '', 
-      studioName: STUDIOS[0].name, locationUrl: STUDIOS[0].url 
+      classType: '', className: '', dateTime: '', bookingUrl: '',
+      studioName: '', locationUrl: '' 
     });
   };
+const fetchSavedStudios = async () => {
+  // 1. Get the current logged-in instructor
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return;
 
+  // 2. Fetch only THEIR studios
+  const { data, error } = await supabase
+    .from('studios')
+    .select('*')
+    .eq('instructor_id', user.id);
+
+  if (data) setSavedStudios(data);
+};
+
+// Make sure to call fetchSavedStudios() inside your main useEffect
+// so it loads when the dashboard mounts!
+
+const handleAddSavedStudio = async () => {
+  if (!newStudioName) return;
+  setIsSaving(true);
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from('studios')
+    .insert([{
+      name: newStudioName,
+      location_url: newStudioUrl,
+      instructor_id: user.id
+    }]);
+
+  if (error) {
+    console.error("Error saving studio:", error);
+  } else {
+    setSuccessMessage('Studio added to your profile!');
+    setTimeout(() => setSuccessMessage(''), 3000);
+    setNewStudioName('');
+    setNewStudioUrl('');
+    if (settingsStudioRef.current) settingsStudioRef.current.value = ''; // Clear the input
+    fetchSavedStudios(); // Refresh the list
+  }
+  setIsSaving(false);
+};
   const handleClassSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -235,7 +274,7 @@ export default function Dashboard() {
                               <span className="text-xs font-medium bg-[#F3F0EA] px-2 py-0.5 rounded border border-[#E8E6E1]">{c.class_type}</span>
                             </div>
                             <p className="text-sm text-[#7A7571]">
-                              {new Date(c.date_time).toLocaleDateString()} • {new Date(c.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} @ {c.studio_name}
+                              {new Date(c.date_time).toLocaleDateString()} • {new Date(c.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'America/Vancouver'})} @ {c.studio_name}
                             </p>
                           </div>
                           
@@ -326,29 +365,33 @@ export default function Dashboard() {
                       <option value="Yoga">Yoga</option>
                     </select>
 
-                    <div className="relative">
-                      <Autocomplete
-  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-  options={{ types: ["establishment"] }}
-  libraries={["places"]}
-  ref={studioInputRef} // <--- Add the ref here
-  onPlaceSelected={(place) => {
-    if (place && place.name) {
-      setClassData(prev => ({
-        ...prev,
-        studioName: place.name,
-        locationUrl: place.url || prev.locationUrl 
-      }));
-    }
-  }}
-  defaultValue={classData.studioName}
-  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
-  placeholder="Search on Google Maps..."
-/>
-                      {classData.locationUrl && (
-                        <span className="absolute -bottom-5 left-1 text-[10px] text-green-600 font-bold">✓ Location Linked</span>
-                      )}
-                    </div>
+                    <div>
+          <select
+            value={classData.studioName}
+            onChange={(e) => {
+              if (e.target.value === 'custom') {
+                // Future setup for handling custom locations
+                setClassData({ ...classData, studioName: 'custom', locationUrl: '' });
+                return;
+              }
+              const selectedStudio = savedStudios.find(s => s.name === e.target.value);
+              setClassData({
+                ...classData,
+                studioName: selectedStudio?.name || '',
+                locationUrl: selectedStudio?.location_url || ''
+              });
+            }}
+            className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6] appearance-none"
+          >
+            <option value="" disabled>Select a Studio...</option>
+            {savedStudios.map((studio) => (
+              <option key={studio.id} value={studio.name}>
+                {studio.name}
+              </option>
+            ))}
+            <option value="custom">+ Add One Time Location</option>
+          </select>
+        </div>
                   </div>
                 </div>
 
@@ -406,7 +449,7 @@ export default function Dashboard() {
                       <div className="pr-4">
                         <p className="font-bold">{c.class_name}</p>
 <p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">
-  {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})} 
+  {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric',timeZone: 'America/Vancouver'})} 
   @ {c.studio_name}
 </p>                      </div>
                       <button 
@@ -441,6 +484,57 @@ export default function Dashboard() {
                 {isSaving ? "Saving..." : "Save Settings"}
               </button>
             </form>
+{/* --- NEW STUDIOS SECTION --- */}
+        <div className="mt-10 pt-8 border-t border-[#E8E6E1]">
+          <h2 className="text-xl font-bold mb-6">My Saved Studios</h2>
+          
+          {/* List of currently saved studios */}
+          <div className="mb-8 space-y-3">
+            {savedStudios.length === 0 ? (
+              <p className="text-sm text-[#7A7571]">You haven't saved any studios yet.</p>
+            ) : (
+              savedStudios.map(studio => (
+                <div key={studio.id} className="flex justify-between items-center p-3 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg">
+                  <span className="font-medium">{studio.name}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Add a new studio */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Autocomplete
+                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                  options={{ types: ["establishment"] }}
+                  libraries={["places"]}
+                  ref={settingsStudioRef}
+                  onPlaceSelected={(place) => {
+                    if (place && place.name) {
+                      setNewStudioName(place.name);
+                      setNewStudioUrl(place.url || '');
+                    }
+                  }}
+                  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-3 outline-none focus:border-black bg-[#FAF9F6] text-sm"
+                  placeholder="Search on Google Maps..."
+                />
+              </div>
+              <button 
+                type="button"
+                onClick={handleAddSavedStudio}
+                disabled={!newStudioName || isSaving}
+                className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
+              >
+                {isSaving ? 'Saving...' : 'Save Studio'}
+              </button>
+            </div>
+          </div>
+        </div>
+        {/* --- END NEW STUDIOS SECTION --- */}
+
+
           </div>
         )}
 
