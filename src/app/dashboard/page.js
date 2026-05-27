@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import Autocomplete from 'react-google-autocomplete';
 
 export default function Dashboard() {
@@ -11,12 +10,15 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('schedule');
   const [isChecking, setIsChecking] = useState(true);
+  
+  // Studios State
   const [savedStudios, setSavedStudios] = useState([]);
-const [newStudioName, setNewStudioName] = useState('');
-const [newStudioUrl, setNewStudioUrl] = useState('');
-const settingsStudioRef = useRef(null); // Dedicated ref for the settings autocomplete
+  const [newStudioName, setNewStudioName] = useState('');
+  const [newStudioUrl, setNewStudioUrl] = useState('');
+  const settingsStudioRef = useRef(null); 
   
   const [editingDraftId, setEditingDraftId] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(''); // NEW: Replaces alerts!
   
   const [classData, setClassData] = useState({
     classType: '', 
@@ -36,23 +38,24 @@ const settingsStudioRef = useRef(null); // Dedicated ref for the settings autoco
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
 
-  const handleToggleWaitlist = async (id, currentStatus) => {
-    // 1. Instantly update the UI so the toggle feels lightning fast
-    setMyClasses(prevClasses => 
-      prevClasses.map(c => 
-        c.id === id ? { ...c, is_waitlisted: !currentStatus } : c
-      )
-    );
-
-    // 2. Quietly update the database in the background
-    const { error } = await supabase
+  // Fetch classes function (extracted so we can call it without reloading the page)
+  const fetchMyClasses = async (userId) => {
+    const { data } = await supabase
       .from('classes')
-      .update({ is_waitlisted: !currentStatus })
-      .eq('id', id);
+      .select('*')
+      .eq('instructor_id', userId)
+      .order('date_time', { ascending: true });
+    if (data) setMyClasses(data);
+  };
 
-    if (error) {
-      console.error("Error updating waitlist:", error);
-    }
+  const fetchSavedStudios = async () => {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return;
+    const { data } = await supabase
+      .from('studios')
+      .select('*')
+      .eq('instructor_id', user.id);
+    if (data) setSavedStudios(data);
   };
 
   useEffect(() => {
@@ -63,7 +66,11 @@ const settingsStudioRef = useRef(null); // Dedicated ref for the settings autoco
         return;
       }
       setUser(session.user);
-fetchSavedStudios();
+      
+      // Load everything dynamically
+      fetchSavedStudios();
+      fetchMyClasses(session.user.id);
+
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -77,29 +84,33 @@ fetchSavedStudios();
           calendar_url: profileData.calendar_url || ''
         });
       }
-
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('instructor_id', session.user.id)
-        .order('date_time', { ascending: true });
-
-      if (classesData) setMyClasses(classesData);
       setIsChecking(false);
     };
     
     loadDashboard();
   }, [router]);
 
-  const handleEditDraft = (draft) => {
-let matchedStudio = { name: '', url: '' };    const messyLocation = (draft.studio_name || "").toLowerCase();
-    
-    if (messyLocation.includes("insoul")) {
-      matchedStudio = STUDIOS.find(s => s.name === "InSoul Pilates");
-    } else if (messyLocation.includes("altea")) {
-      matchedStudio = STUDIOS.find(s => s.name === "Altea Active West 6");
-    }
+  const handleToggleWaitlist = async (id, currentStatus) => {
+    setMyClasses(prevClasses => 
+      prevClasses.map(c => 
+        c.id === id ? { ...c, is_waitlisted: !currentStatus } : c
+      )
+    );
+    const { error } = await supabase
+      .from('classes')
+      .update({ is_waitlisted: !currentStatus })
+      .eq('id', id);
+    if (error) console.error("Error updating waitlist:", error);
+  };
 
+  const handleEditDraft = (draft) => {
+    // Fuzzy matching against their dynamically saved studios instead of hardcoded ones!
+    const messyLocation = (draft.studio_name || "").toLowerCase();
+    const matchedStudio = savedStudios.find(s => 
+      messyLocation.includes(s.name.toLowerCase().split(' ')[0])
+    ) || { name: '', location_url: '' };
+
+    // Properly adjust UTC to local Vancouver time for the datetime input
     const d = new Date(draft.date_time);
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
@@ -108,9 +119,9 @@ let matchedStudio = { name: '', url: '' };    const messyLocation = (draft.studi
       classType: '', 
       className: draft.class_name,
       dateTime: localISOTime,
-      bookingUrl: '', 
+      bookingUrl: draft.booking_url || '', // FIXED: Ensure URL isn't wiped out
       studioName: matchedStudio.name,
-      locationUrl: matchedStudio.url
+      locationUrl: matchedStudio.location_url || ''
     });
     
     setEditingDraftId(draft.id);
@@ -124,54 +135,37 @@ let matchedStudio = { name: '', url: '' };    const messyLocation = (draft.studi
       studioName: '', locationUrl: '' 
     });
   };
-const fetchSavedStudios = async () => {
-  // 1. Get the current logged-in instructor
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return;
 
-  // 2. Fetch only THEIR studios
-  const { data, error } = await supabase
-    .from('studios')
-    .select('*')
-    .eq('instructor_id', user.id);
+  const handleAddSavedStudio = async () => {
+    // Prioritize the official Google name, fallback to manual typing
+    const finalName = newStudioName || settingsStudioRef.current?.value;
+    
+    if (!finalName) return;
+    setIsSaving(true);
+    
+    const { error } = await supabase
+      .from('studios')
+      .insert([{
+        name: finalName,
+        location_url: newStudioUrl,
+        instructor_id: user.id
+      }]);
 
-  if (data) setSavedStudios(data);
-};
+    if (!error) {
+      setSuccessMessage('Studio successfully added to your profile!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setNewStudioName('');
+      setNewStudioUrl('');
+      if (settingsStudioRef.current) settingsStudioRef.current.value = ''; 
+      fetchSavedStudios(); 
+    }
+    setIsSaving(false);
+  };
 
-// Make sure to call fetchSavedStudios() inside your main useEffect
-// so it loads when the dashboard mounts!
-
-const handleAddSavedStudio = async () => {
-  if (!newStudioName) return;
-  setIsSaving(true);
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const { error } = await supabase
-    .from('studios')
-    .insert([{
-      name: newStudioName,
-      location_url: newStudioUrl,
-      instructor_id: user.id
-    }]);
-
-  if (error) {
-    console.error("Error saving studio:", error);
-  } else {
-    setSuccessMessage('Studio added to your profile!');
-    setTimeout(() => setSuccessMessage(''), 3000);
-    setNewStudioName('');
-    setNewStudioUrl('');
-    if (settingsStudioRef.current) settingsStudioRef.current.value = ''; // Clear the input
-    fetchSavedStudios(); // Refresh the list
-  }
-  setIsSaving(false);
-};
   const handleClassSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-// FORCE OVERRIDE: Check if the Google Input has a value and prioritize it
-  const finalStudioName = studioInputRef.current?.value || classData.studioName;
+
     if (editingDraftId) {
       const { error } = await supabase
         .from('classes')
@@ -180,15 +174,17 @@ const handleAddSavedStudio = async () => {
           class_name: classData.className,
           date_time: new Date(classData.dateTime).toISOString(),
           booking_url: classData.bookingUrl,
-          studio_name: finalStudioName, // Use the forced value
+          studio_name: classData.studioName,
           location_url: classData.locationUrl,
           status: 'published' 
         })
         .eq('id', editingDraftId);
 
       if (!error) {
-        alert("Success! Draft published to live schedule.");
-        window.location.reload();
+        setSuccessMessage("Success! Class published to live schedule.");
+        setTimeout(() => setSuccessMessage(''), 3000);
+        cancelEdit(); // Reset form
+        fetchMyClasses(user.id); // Refresh state cleanly
       } else {
         alert("Error: " + error.message);
       }
@@ -207,8 +203,10 @@ const handleAddSavedStudio = async () => {
         }]);
 
       if (!error) {
-        alert("Success! Class published manually.");
-        window.location.reload();
+        setSuccessMessage("Success! Class published manually.");
+        setTimeout(() => setSuccessMessage(''), 3000);
+        cancelEdit(); 
+        fetchMyClasses(user.id); 
       } else {
         alert("Error: " + error.message);
       }
@@ -220,8 +218,10 @@ const handleAddSavedStudio = async () => {
     e.preventDefault();
     setIsSaving(true);
     const { error } = await supabase.from('profiles').update({ bio: settingsData.bio, calendar_url: settingsData.calendar_url }).eq('id', user.id);
-    if (!error) alert("Settings saved successfully!");
-    else alert("Error saving settings.");
+    if (!error) {
+      setSuccessMessage("Settings saved successfully!");
+      setTimeout(() => setSuccessMessage(''), 3000);
+    }
     setIsSaving(false);
   };
 
@@ -237,8 +237,9 @@ const handleAddSavedStudio = async () => {
       });
       const result = await res.json();
       if (result.error) throw new Error(result.error);
-      alert(`Sync complete! Checked ${result.count || 0} upcoming classes.`);
-      window.location.reload();
+      setSuccessMessage(`Sync complete! Checked ${result.count || 0} upcoming classes.`);
+      setTimeout(() => setSuccessMessage(''), 4000);
+      fetchMyClasses(user.id); 
     } catch (err) {
       alert("Error syncing: " + err.message);
     }
@@ -251,6 +252,12 @@ const handleAddSavedStudio = async () => {
     <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
       
+        {/* NEW INLINE SUCCESS MESSAGE */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-[#EAF5ED] text-[#1D5E34] border border-[#BCE1C7] rounded-xl text-sm font-medium shadow-sm transition-all animate-fade-in">
+            {successMessage}
+          </div>
+        )}
 
         <div className="flex space-x-8 mb-8 border-b border-[#E8E6E1]">
           <button onClick={() => setActiveTab('schedule')} className={`pb-3 text-sm font-semibold transition-colors ${activeTab === 'schedule' ? 'border-b-2 border-[#2C2A28] text-[#2C2A28]' : 'text-[#7A7571] hover:text-[#2C2A28]'}`}>Live Schedule</button>
@@ -258,71 +265,68 @@ const handleAddSavedStudio = async () => {
           <button onClick={() => setActiveTab('settings')} className={`pb-3 text-sm font-semibold transition-colors ${activeTab === 'settings' ? 'border-b-2 border-[#2C2A28] text-[#2C2A28]' : 'text-[#7A7571] hover:text-[#2C2A28]'}`}>Instructor Settings</button>
         </div>
 
-{activeTab === 'schedule' && (
-                <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
-                  <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
-                  
-                  {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).length === 0 ? (
-                    <p className="text-[#7A7571] text-center p-8 bg-white rounded-xl border border-[#E8E6E1]">No live classes currently published.</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).map((c) => (
-                        <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-xl border border-[#E8E6E1] shadow-sm transition-all hover:shadow-md">
-                          <div className="mb-4 sm:mb-0">
-                            <div className="flex items-center space-x-3 mb-1">
-                              <h4 className="font-bold text-lg text-[#2C2A28]">{c.class_name}</h4>
-                              <span className="text-xs font-medium bg-[#F3F0EA] px-2 py-0.5 rounded border border-[#E8E6E1]">{c.class_type}</span>
-                            </div>
-                            <p className="text-sm text-[#7A7571]">
-                              {new Date(c.date_time).toLocaleDateString()} • {new Date(c.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'America/Vancouver'})} @ {c.studio_name}
-                            </p>
-                          </div>
-                          
-                          {/* NEW CONTROLS: Waitlist Toggle & Edit Button */}
-                          <div className="flex items-center space-x-4 w-full sm:w-auto border-t sm:border-t-0 border-[#E8E6E1] pt-3 sm:pt-0">
-                            
-                            {/* FIX: Added the onClick handler right here! */}
-                            <div 
-                              onClick={() => handleToggleWaitlist(c.id, c.is_waitlisted)}
-                              className="flex items-center space-x-2 cursor-pointer group"
-                            >
-                              <div className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${c.is_waitlisted ? 'bg-[#2C2A28]' : 'bg-[#E8E6E1]'}`}>
-                                <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${c.is_waitlisted ? 'translate-x-4' : 'translate-x-0'}`}></div>
-                              </div>
-                              <span className="text-sm font-medium text-[#7A7571] group-hover:text-[#2C2A28] transition-colors">Waitlisted</span>
-                            </div>
-                            
-                            <span className="text-[#E8E6E1] hidden sm:inline">|</span>
-                            
-                            <button 
-                              onClick={() => {
-                                // 1. Tell the form which class we are updating
-                                setEditingDraftId(c.id); 
-                                
-                                // 2. Pre-fill the modal with the live class data
-                                setClassData({
-                                  classType: c.class_type,
-                                  className: c.class_name,
-                                  dateTime: c.date_time.slice(0, 16), // Formats cleanly for HTML datetime inputs
-                                  bookingUrl: c.booking_url || '',
-                                  studioName: c.studio_name || '',
-                                  locationUrl: c.location_url || ''
-                                });
-
-                                // 3. Open the modal
-                                setActiveTab('add');
-                              }}
-                              className="text-sm font-medium text-[#2C2A28] bg-white border border-[#E8E6E1] hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors active:scale-95"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+        {activeTab === 'schedule' && (
+          <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
+            <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
+            
+            {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).length === 0 ? (
+              <p className="text-[#7A7571] text-center p-8 bg-white rounded-xl border border-[#E8E6E1]">No live classes currently published.</p>
+            ) : (
+              <div className="space-y-4">
+                {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).map((c) => (
+                  <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-xl border border-[#E8E6E1] shadow-sm transition-all hover:shadow-md">
+                    <div className="mb-4 sm:mb-0">
+                      <div className="flex items-center space-x-3 mb-1">
+                        <h4 className="font-bold text-lg text-[#2C2A28]">{c.class_name}</h4>
+                        <span className="text-xs font-medium bg-[#F3F0EA] px-2 py-0.5 rounded border border-[#E8E6E1]">{c.class_type}</span>
+                      </div>
+                      <p className="text-sm text-[#7A7571]">
+                        {new Date(c.date_time).toLocaleDateString('en-US', { timeZone: 'America/Vancouver' })} • {new Date(c.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'America/Vancouver'})} @ {c.studio_name}
+                      </p>
                     </div>
-                  )}
-                </div>
-              )}
+                    
+                    <div className="flex items-center space-x-4 w-full sm:w-auto border-t sm:border-t-0 border-[#E8E6E1] pt-3 sm:pt-0">
+                      <div 
+                        onClick={() => handleToggleWaitlist(c.id, c.is_waitlisted)}
+                        className="flex items-center space-x-2 cursor-pointer group"
+                      >
+                        <div className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors ${c.is_waitlisted ? 'bg-[#2C2A28]' : 'bg-[#E8E6E1]'}`}>
+                          <div className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform ${c.is_waitlisted ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                        </div>
+                        <span className="text-sm font-medium text-[#7A7571] group-hover:text-[#2C2A28] transition-colors">Waitlisted</span>
+                      </div>
+                      
+                      <span className="text-[#E8E6E1] hidden sm:inline">|</span>
+                      
+                      <button 
+                        onClick={() => {
+                          setEditingDraftId(c.id); 
+                          const d = new Date(c.date_time);
+                          const tzOffset = d.getTimezoneOffset() * 60000;
+                          const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
+                          
+                          setClassData({
+                            classType: c.class_type,
+                            className: c.class_name,
+                            dateTime: localISOTime, 
+                            bookingUrl: c.booking_url || '',
+                            studioName: c.studio_name || '',
+                            locationUrl: c.location_url || ''
+                          });
+                          setActiveTab('add');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className="text-sm font-medium text-[#2C2A28] bg-white border border-[#E8E6E1] hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors active:scale-95"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === 'add' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -337,7 +341,6 @@ const handleAddSavedStudio = async () => {
               </div>
               
               <form onSubmit={handleClassSubmit} className="space-y-5">
-                {/* 1. Class Name */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Specific Class Name</label>
                   <input 
@@ -349,7 +352,6 @@ const handleAddSavedStudio = async () => {
                   />
                 </div>
 
-                {/* 2. Category & Studio */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Category & Studio</label>
                   <div className="grid grid-cols-2 gap-4">
@@ -366,36 +368,32 @@ const handleAddSavedStudio = async () => {
                     </select>
 
                     <div>
-          <select
-            value={classData.studioName}
-            onChange={(e) => {
-              if (e.target.value === 'custom') {
-                // Future setup for handling custom locations
-                setClassData({ ...classData, studioName: 'custom', locationUrl: '' });
-                return;
-              }
-              const selectedStudio = savedStudios.find(s => s.name === e.target.value);
-              setClassData({
-                ...classData,
-                studioName: selectedStudio?.name || '',
-                locationUrl: selectedStudio?.location_url || ''
-              });
-            }}
-            className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6] appearance-none"
-          >
-            <option value="" disabled>Select a Studio...</option>
-            {savedStudios.map((studio) => (
-              <option key={studio.id} value={studio.name}>
-                {studio.name}
-              </option>
-            ))}
-            <option value="custom">+ Add One Time Location</option>
-          </select>
-        </div>
+                      <select
+                        value={classData.studioName}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            setClassData({ ...classData, studioName: 'custom', locationUrl: '' });
+                            return;
+                          }
+                          const selectedStudio = savedStudios.find(s => s.name === e.target.value);
+                          setClassData({
+                            ...classData,
+                            studioName: selectedStudio?.name || '',
+                            locationUrl: selectedStudio?.location_url || ''
+                          });
+                        }}
+                        className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6] appearance-none"
+                      >
+                        <option value="" disabled>Select a Studio...</option>
+                        {savedStudios.map((studio) => (
+                          <option key={studio.id} value={studio.name}>{studio.name}</option>
+                        ))}
+                        <option value="custom">+ Add One Time Location</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* 3. Date & Time */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Date & Time</label>
                   <input 
@@ -407,7 +405,6 @@ const handleAddSavedStudio = async () => {
                   />
                 </div>
 
-                {/* 4. Checkout Link */}
                 <div>
                   <label className="block text-sm font-medium mb-1">Checkout Link</label>
                   <input 
@@ -419,7 +416,6 @@ const handleAddSavedStudio = async () => {
                   />
                 </div>
 
-                {/* Submit Button */}
                 <button 
                   type="submit" 
                   disabled={isSaving} 
@@ -428,7 +424,7 @@ const handleAddSavedStudio = async () => {
                   {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : "Publish Class")}
                 </button>
               </form>
-              </div>
+            </div>
 
             <div className="bg-[#F3F0EA] rounded-xl shadow-sm border border-[#E8E6E1] p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
@@ -448,10 +444,11 @@ const handleAddSavedStudio = async () => {
                     <div key={c.id} className="bg-white p-4 rounded-lg border border-[#E8E6E1] text-sm flex justify-between items-center shadow-sm">
                       <div className="pr-4">
                         <p className="font-bold">{c.class_name}</p>
-<p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">
-  {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric',timeZone: 'America/Vancouver'})} 
-  @ {c.studio_name}
-</p>                      </div>
+                        <p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">
+                          {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric',timeZone: 'America/Vancouver'})} 
+                          @ {c.studio_name}
+                        </p>                      
+                      </div>
                       <button 
                         onClick={() => handleEditDraft(c)}
                         className="shrink-0 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors"
@@ -484,57 +481,60 @@ const handleAddSavedStudio = async () => {
                 {isSaving ? "Saving..." : "Save Settings"}
               </button>
             </form>
-{/* --- NEW STUDIOS SECTION --- */}
-        <div className="mt-10 pt-8 border-t border-[#E8E6E1]">
-          <h2 className="text-xl font-bold mb-6">My Saved Studios</h2>
-          
-          {/* List of currently saved studios */}
-          <div className="mb-8 space-y-3">
-            {savedStudios.length === 0 ? (
-              <p className="text-sm text-[#7A7571]">You haven't saved any studios yet.</p>
-            ) : (
-              savedStudios.map(studio => (
-                <div key={studio.id} className="flex justify-between items-center p-3 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg">
-                  <span className="font-medium">{studio.name}</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Add a new studio */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Autocomplete
-                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-                  options={{ types: ["establishment"] }}
-                  libraries={["places"]}
-                  ref={settingsStudioRef}
-                  onPlaceSelected={(place) => {
-                    if (place && place.name) {
-                      setNewStudioName(place.name);
-                      setNewStudioUrl(place.url || '');
-                    }
-                  }}
-                  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-3 outline-none focus:border-black bg-[#FAF9F6] text-sm"
-                  placeholder="Search on Google Maps..."
-                />
+            
+            <div className="mt-10 pt-8 border-t border-[#E8E6E1]">
+              <h2 className="text-xl font-bold mb-6">My Saved Studios</h2>
+              <div className="mb-8 space-y-3">
+                {savedStudios.length === 0 ? (
+                  <p className="text-sm text-[#7A7571]">You haven't saved any studios yet.</p>
+                ) : (
+                  savedStudios.map(studio => (
+                    <div key={studio.id} className="flex justify-between items-center p-3 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg">
+                      <span className="font-medium">{studio.name}</span>
+                    </div>
+                  ))
+                )}
               </div>
-              <button 
-                type="button"
-                onClick={handleAddSavedStudio}
-                disabled={!newStudioName || isSaving}
-                className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
-              >
-                {isSaving ? 'Saving...' : 'Save Studio'}
-              </button>
+              <div>
+                <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
+                <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Autocomplete
+                      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                      options={{ 
+                        types: ["establishment"],
+                        fields: ["name", "url"] // Forces Google to return the Maps link!
+                      }}
+                      libraries={["places"]}
+                      ref={settingsStudioRef}
+                      onKeyUp={() => {
+                        // Clears background state if they backspace and type manually
+                        setNewStudioName('');
+                        setNewStudioUrl('');
+                      }}
+                      onPlaceSelected={(place) => {
+                        if (place && place.name) {
+                          setNewStudioName(place.name);
+                          setNewStudioUrl(place.url || '');
+                          // Forces the input box to show the clean, official name
+                          if (settingsStudioRef.current) settingsStudioRef.current.value = place.name;
+                        }
+                      }}
+                      className="w-full border border-[#E8E6E1] rounded-lg px-4 py-3 outline-none focus:border-black bg-[#FAF9F6] text-sm"
+                      placeholder="Search on Google Maps..."
+                    />
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={handleAddSavedStudio}
+                      disabled={isSaving}
+                      className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
+                    >
+                      {isSaving ? 'Saving...' : 'Save Studio'}
+                    </button>
+                  </div>
+              </div>
             </div>
-          </div>
-        </div>
-        {/* --- END NEW STUDIOS SECTION --- */}
-
-
           </div>
         )}
 
