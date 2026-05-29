@@ -162,6 +162,47 @@ export default function Dashboard() {
     setIsSaving(false);
   };
 
+  const handleDeleteStudio = async (studioId) => {
+    // Safety check so they don't accidentally click it
+    if (!window.confirm("Are you sure you want to remove this studio? This won't affect classes you've already published there.")) return;
+    
+    setIsSaving(true);
+    const { error } = await supabase
+      .from('studios')
+      .delete()
+      .eq('id', studioId);
+
+    if (!error) {
+      setSuccessMessage('Studio removed from your profile!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchSavedStudios(); // instantly refresh the UI list
+    } else {
+      alert("Error: " + error.message);
+    }
+    setIsSaving(false);
+  };
+
+  // --- NEW: UNIVERSAL DELETE CLASS FUNCTION ---
+  const handleDeleteClass = async (classId) => {
+    if (!window.confirm("Are you sure you want to delete this class? This cannot be undone.")) return;
+    
+    setIsSaving(true);
+    const { error } = await supabase
+      .from('classes')
+      .delete()
+      .eq('id', classId);
+
+    if (!error) {
+      setSuccessMessage('Class removed successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchMyClasses(user.id); 
+      if (editingDraftId === classId) cancelEdit(); 
+    } else {
+      alert("Error: " + error.message);
+    }
+    setIsSaving(false);
+  };
+
   const handleClassSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
@@ -298,6 +339,14 @@ export default function Dashboard() {
                       
                       <span className="text-[#E8E6E1] hidden sm:inline">|</span>
                       
+                      {/* NEW: LIVE SCHEDULE DELETE BUTTON */}
+                      <button 
+                        onClick={() => handleDeleteClass(c.id)}
+                        className="text-sm font-medium text-red-600 bg-white border border-[#E8E6E1] hover:bg-red-50 px-4 py-2 rounded-lg transition-colors active:scale-95"
+                      >
+                        Delete
+                      </button>
+
                       <button 
                         onClick={() => {
                           setEditingDraftId(c.id); 
@@ -449,12 +498,22 @@ export default function Dashboard() {
                           @ {c.studio_name}
                         </p>                      
                       </div>
-                      <button 
-                        onClick={() => handleEditDraft(c)}
-                        className="shrink-0 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors"
-                      >
-                        Edit
-                      </button>
+                      
+                      {/* NEW: DRAFTS DELETE BUTTON */}
+                      <div className="flex gap-2 shrink-0">
+                        <button 
+                          onClick={() => handleDeleteClass(c.id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button 
+                          onClick={() => handleEditDraft(c)}
+                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors"
+                        >
+                          Edit
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -489,8 +548,15 @@ export default function Dashboard() {
                   <p className="text-sm text-[#7A7571]">You haven't saved any studios yet.</p>
                 ) : (
                   savedStudios.map(studio => (
-                    <div key={studio.id} className="flex justify-between items-center p-3 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg">
+                    <div key={studio.id} className="flex justify-between items-center p-3 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg group">
                       <span className="font-medium">{studio.name}</span>
+                      <button 
+                        onClick={() => handleDeleteStudio(studio.id)}
+                        className="text-[#7A7571] hover:text-red-500 opacity-50 group-hover:opacity-100 transition-all px-2 py-1 text-sm font-bold"
+                        title="Remove studio"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))
                 )}
