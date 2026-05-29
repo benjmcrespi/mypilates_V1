@@ -258,8 +258,7 @@ export default function Dashboard() {
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    const { error } = await supabase.from('profiles').update({ bio: settingsData.bio, calendar_url: settingsData.calendar_url }).eq('id', user.id);
-    if (!error) {
+const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: settingsData.bio, calendar_url: settingsData.calendar_url });    if (!error) {
       setSuccessMessage("Settings saved successfully!");
       setTimeout(() => setSuccessMessage(''), 3000);
     }
