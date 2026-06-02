@@ -482,6 +482,7 @@ export default function Dashboard() {
                     placeholder="https://..."
                     value={classData.bookingUrl}
                     onChange={e => setClassData({ ...classData, bookingUrl: e.target.value })}
+                    required
                     className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
                   />
                 </div>
