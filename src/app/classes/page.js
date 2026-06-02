@@ -20,6 +20,7 @@ export default function Classes() {
         *,
         profiles (full_name)
       `)
+      .eq('status', 'published')
       .order('date_time', { ascending: true });
 
     if (error) {

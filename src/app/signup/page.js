@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function SignUp() {
   const router = useRouter();
   const [fullName, setFullName] = useState('');
+  const [handle, setHandle] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -14,34 +15,65 @@ export default function SignUp() {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const formatHandle = (value) =>
+    value.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 30);
+
   const handleSignUp = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
     setSuccessMsg('');
 
+    if (handle.length < 3) {
+      setErrorMsg('Your public URL must be at least 3 characters.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Check handle availability
+    const { data: existing } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('handle', handle)
+      .maybeSingle();
+
+    if (existing) {
+      setErrorMsg('That URL is already taken. Please choose a different one.');
+      setIsLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-        }
+        data: { full_name: fullName, handle }
       }
     });
 
     if (error) {
       setErrorMsg(error.message);
-    } else {
-      setSuccessMsg("Account created! You can now log in to your workspace.");
-      setTimeout(() => router.push('/login'), 3000);
+      setIsLoading(false);
+      return;
     }
+
+    // Save profile row immediately so the handle is reserved
+    if (data.user) {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        full_name: fullName,
+        handle,
+      });
+    }
+
+    setSuccessMsg("Account created! You can now log in to your workspace.");
+    setTimeout(() => router.push('/login'), 3000);
     setIsLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      
+
       <div className="absolute top-6 left-6">
         <Link href="/" className="text-sm font-medium text-[#7A7571] hover:text-[#2C2A28] transition-colors flex items-center space-x-1">
           <span>←</span> <span>Back to Live Schedule</span>
@@ -59,7 +91,7 @@ export default function SignUp() {
 
       <div className="mt-8 sm:mx-auto w-full max-w-md px-4">
         <div className="bg-white py-8 px-6 shadow-sm border border-[#E8E6E1] rounded-xl sm:px-10">
-          
+
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
               {errorMsg}
@@ -84,6 +116,29 @@ export default function SignUp() {
                 placeholder="Hannah Jane"
                 className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black outline-none bg-[#FAF9F6]/50"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[#2C2A28] mb-1">
+                Your Public URL
+              </label>
+              <div className="flex items-center border border-[#E8E6E1] rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black bg-[#FAF9F6]/50">
+                <span className="pl-4 pr-2 text-sm text-[#A3A09E] whitespace-nowrap select-none">
+                  mypilates.ca/
+                </span>
+                <input
+                  type="text"
+                  required
+                  value={handle}
+                  onChange={(e) => setHandle(formatHandle(e.target.value))}
+                  placeholder="hannahjane"
+                  minLength={3}
+                  className="flex-1 py-2.5 pr-4 outline-none bg-transparent text-sm"
+                />
+              </div>
+              <p className="mt-1 text-xs text-[#A3A09E]">
+                Letters, numbers, and underscores only. This cannot be changed later.
+              </p>
             </div>
 
             <div>

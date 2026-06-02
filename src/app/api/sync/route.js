@@ -20,7 +20,7 @@ function parseICSDate(icsDate) {
 
 export async function POST(req) {
   try {
-    const { calendarUrl, instructorId } = await req.json();
+    const { calendarUrl, instructorId, studioName } = await req.json();
     const authHeader = req.headers.get('Authorization');
 
     const supabase = createClient(
@@ -67,7 +67,7 @@ export async function POST(req) {
                 instructor_id: instructorId,
                 class_name: currentEvent.summary || 'Imported Class',
                 date_time: eventDate.toISOString(),
-                studio_name: currentEvent.location || 'Studio TBD',
+                studio_name: studioName || currentEvent.location || 'Studio TBD',
                 external_uid: currentEvent.uid || `auto-${Date.now()}-${Math.random()}`,
                 status: 'draft',
                 class_type: 'TBD',
@@ -78,9 +78,8 @@ export async function POST(req) {
         }
       } else if (inEvent) {
          if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8).trim();
-else if (line.startsWith('LOCATION:')) {
-         currentEvent.location = line.substring(9).trim().replace(/\\,/g, ',').replace(/\\n/gi, ', ');
-      }         else if (line.startsWith('UID:')) currentEvent.uid = line.substring(4).trim();
+         else if (line.startsWith('LOCATION:')) currentEvent.location = line.substring(9).trim().replace(/\\,/g, ',').replace(/\\n/gi, ', ');
+         else if (line.startsWith('UID:')) currentEvent.uid = line.substring(4).trim();
          else if (line.startsWith('DTSTART')) {
             const parts = line.split(':');
             if (parts.length > 1) currentEvent.start = parts[1].trim();

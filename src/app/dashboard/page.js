@@ -18,7 +18,7 @@ export default function Dashboard() {
   const settingsStudioRef = useRef(null); 
   
   const [editingDraftId, setEditingDraftId] = useState(null);
-  const [successMessage, setSuccessMessage] = useState(''); // NEW: Replaces alerts!
+  const [successMessage, setSuccessMessage] = useState('');
   
   const [classData, setClassData] = useState({
     classType: '', 
@@ -30,15 +30,13 @@ export default function Dashboard() {
   });
   
   const [settingsData, setSettingsData] = useState({
-    bio: '',
-    calendar_url: ''
+    bio: ''
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
 
-  // Fetch classes function (extracted so we can call it without reloading the page)
   const fetchMyClasses = async (userId) => {
     const { data } = await supabase
       .from('classes')
@@ -67,7 +65,6 @@ export default function Dashboard() {
       }
       setUser(session.user);
       
-      // Load everything dynamically
       fetchSavedStudios();
       fetchMyClasses(session.user.id);
 
@@ -79,10 +76,7 @@ export default function Dashboard() {
         
       if (profileData) {
         setProfile(profileData);
-        setSettingsData({
-          bio: profileData.bio || '',
-          calendar_url: profileData.calendar_url || ''
-        });
+        setSettingsData({ bio: profileData.bio || '' });
       }
       setIsChecking(false);
     };
@@ -104,13 +98,11 @@ export default function Dashboard() {
   };
 
   const handleEditDraft = (draft) => {
-    // Fuzzy matching against their dynamically saved studios instead of hardcoded ones!
     const messyLocation = (draft.studio_name || "").toLowerCase();
     const matchedStudio = savedStudios.find(s => 
       messyLocation.includes(s.name.toLowerCase().split(' ')[0])
     ) || { name: '', location_url: '' };
 
-    // Properly adjust UTC to local Vancouver time for the datetime input
     const d = new Date(draft.date_time);
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
@@ -119,7 +111,7 @@ export default function Dashboard() {
       classType: '', 
       className: draft.class_name,
       dateTime: localISOTime,
-      bookingUrl: draft.booking_url || '', // FIXED: Ensure URL isn't wiped out
+      bookingUrl: draft.booking_url || '', 
       studioName: matchedStudio.name,
       locationUrl: matchedStudio.location_url || ''
     });
@@ -137,9 +129,7 @@ export default function Dashboard() {
   };
 
   const handleAddSavedStudio = async () => {
-    // Prioritize the official Google name, fallback to manual typing
     const finalName = newStudioName || settingsStudioRef.current?.value;
-    
     if (!finalName) return;
     setIsSaving(true);
     
@@ -163,42 +153,46 @@ export default function Dashboard() {
   };
 
   const handleDeleteStudio = async (studioId) => {
-    // Safety check so they don't accidentally click it
     if (!window.confirm("Are you sure you want to remove this studio? This won't affect classes you've already published there.")) return;
-    
     setIsSaving(true);
-    const { error } = await supabase
-      .from('studios')
-      .delete()
-      .eq('id', studioId);
+    const { error } = await supabase.from('studios').delete().eq('id', studioId);
 
     if (!error) {
       setSuccessMessage('Studio removed from your profile!');
       setTimeout(() => setSuccessMessage(''), 3000);
-      fetchSavedStudios(); // instantly refresh the UI list
+      fetchSavedStudios(); 
     } else {
       alert("Error: " + error.message);
     }
     setIsSaving(false);
   };
 
-  // --- NEW: UNIVERSAL DELETE CLASS FUNCTION ---
+  // NEW FUNCTION: Auto-saves the calendar URL for a specific studio
+  const handleUpdateStudioCalendar = async (studioId, newUrl) => {
+    const { error } = await supabase
+      .from('studios')
+      .update({ calendar_url: newUrl })
+      .eq('id', studioId);
+
+    if (!error) {
+      setSuccessMessage('Studio calendar link saved!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      fetchSavedStudios(); // Refresh the list in the background
+    } else {
+      alert("Error saving link: " + error.message);
+    }
+  };
+
   const handleDeleteClass = async (classId) => {
     if (!window.confirm("Are you sure you want to delete this class? This cannot be undone.")) return;
-    
     setIsSaving(true);
-    const { error } = await supabase
-      .from('classes')
-      .delete()
-      .eq('id', classId);
+    const { error } = await supabase.from('classes').delete().eq('id', classId);
 
     if (!error) {
       setSuccessMessage('Class removed successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       fetchMyClasses(user.id); 
       if (editingDraftId === classId) cancelEdit(); 
-    } else {
-      alert("Error: " + error.message);
     }
     setIsSaving(false);
   };
@@ -224,10 +218,8 @@ export default function Dashboard() {
       if (!error) {
         setSuccessMessage("Success! Class published to live schedule.");
         setTimeout(() => setSuccessMessage(''), 3000);
-        cancelEdit(); // Reset form
-        fetchMyClasses(user.id); // Refresh state cleanly
-      } else {
-        alert("Error: " + error.message);
+        cancelEdit(); 
+        fetchMyClasses(user.id); 
       }
     } else {
       const { error } = await supabase
@@ -248,8 +240,6 @@ export default function Dashboard() {
         setTimeout(() => setSuccessMessage(''), 3000);
         cancelEdit(); 
         fetchMyClasses(user.id); 
-      } else {
-        alert("Error: " + error.message);
       }
     }
     setIsSaving(false);
@@ -258,26 +248,41 @@ export default function Dashboard() {
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: settingsData.bio, calendar_url: settingsData.calendar_url });    if (!error) {
-      setSuccessMessage("Settings saved successfully!");
+    const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: settingsData.bio });
+    if (!error) {
+      setSuccessMessage("Profile bio saved successfully!");
       setTimeout(() => setSuccessMessage(''), 3000);
     }
     setIsSaving(false);
   };
 
+  // UPDATED SYNC FUNCTION: Loops through all studios that have a calendar link
   const handleSync = async () => {
-    if (!settingsData.calendar_url) return alert("Please save a calendar URL in settings first!");
+    const studiosWithLinks = savedStudios.filter(s => s.calendar_url);
+    if (studiosWithLinks.length === 0) return alert("Please add at least one calendar link to a saved studio in your settings!");
+
     setIsSyncing(true);
+    let totalCount = 0;
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ calendarUrl: settingsData.calendar_url, instructorId: user.id })
-      });
-      const result = await res.json();
-      if (result.error) throw new Error(result.error);
-      setSuccessMessage(`Sync complete! Checked ${result.count || 0} upcoming classes.`);
+      
+      // Fetch each calendar sequentially
+      for (const studio of studiosWithLinks) {
+        const res = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ 
+            calendarUrl: studio.calendar_url, 
+            instructorId: user.id,
+            studioName: studio.name // Passing the specific studio to the backend!
+          })
+        });
+        const result = await res.json();
+        if (result.count) totalCount += result.count;
+      }
+
+      setSuccessMessage(`Sync complete! Pulled ${totalCount} upcoming classes.`);
       setTimeout(() => setSuccessMessage(''), 4000);
       fetchMyClasses(user.id); 
     } catch (err) {
@@ -292,7 +297,6 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
     <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
       
-        {/* NEW INLINE SUCCESS MESSAGE */}
         {successMessage && (
           <div className="mb-6 p-4 bg-[#EAF5ED] text-[#1D5E34] border border-[#BCE1C7] rounded-xl text-sm font-medium shadow-sm transition-all animate-fade-in">
             {successMessage}
@@ -338,7 +342,6 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
                       
                       <span className="text-[#E8E6E1] hidden sm:inline">|</span>
                       
-                      {/* NEW: LIVE SCHEDULE DELETE BUTTON */}
                       <button 
                         onClick={() => handleDeleteClass(c.id)}
                         className="text-sm font-medium text-red-600 bg-white border border-[#E8E6E1] hover:bg-red-50 px-4 py-2 rounded-lg transition-colors active:scale-95"
@@ -478,7 +481,7 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
               <p className="text-sm text-[#7A7571] mb-4">Pull the latest classes directly from your linked calendar.</p>
               
-              <button onClick={handleSync} disabled={isSyncing || !settingsData.calendar_url} className="w-full bg-white border border-[#E8E6E1] text-[#2C2A28] font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
+              <button onClick={handleSync} disabled={isSyncing} className="w-full bg-white border border-[#E8E6E1] text-[#2C2A28] font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
                 {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
               </button>
 
@@ -494,11 +497,10 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
                         <p className="font-bold">{c.class_name}</p>
                         <p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">
                           {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric',timeZone: 'America/Vancouver'})} 
-                          @ {c.studio_name}
+                          @ {c.studio_name || 'Pending Studio'}
                         </p>                      
                       </div>
                       
-                      {/* NEW: DRAFTS DELETE BUTTON */}
                       <div className="flex gap-2 shrink-0">
                         <button 
                           onClick={() => handleDeleteClass(c.id)}
@@ -523,39 +525,52 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
 
         {activeTab === 'settings' && (
           <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6 max-w-2xl">
-            <h2 className="text-xl font-bold mb-6">Instructor Profile & Sync</h2>
+            <h2 className="text-xl font-bold mb-6">Instructor Profile</h2>
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Public Bio</label>
                 <textarea rows="4" value={settingsData.bio} onChange={e => setSettingsData({...settingsData, bio: e.target.value})} placeholder="Tell students about your teaching style..." className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50"></textarea>
               </div>
-              <div className="pt-4 border-t border-[#E8E6E1]">
-                <h3 className="font-bold text-lg mb-2">Automated Calendar Sync</h3>
-                <p className="text-sm text-[#7A7571] mb-4">Paste your Mindbody or Apple/Google .ics link here. We will check it daily for new classes.</p>
-                <label className="block text-sm font-medium mb-1">iCal URL (.ics)</label>
-                <input type="url" value={settingsData.calendar_url} onChange={e => setSettingsData({...settingsData, calendar_url: e.target.value})} placeholder="https://calendar.google.com/.../basic.ics" className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50" />
-              </div>
+              
               <button type="submit" disabled={isSaving} className="w-full bg-[#2C2A28] text-white font-medium py-3 rounded-lg mt-4 hover:bg-[#4A4744]">
-                {isSaving ? "Saving..." : "Save Settings"}
+                {isSaving ? "Saving..." : "Save Bio"}
               </button>
             </form>
             
             <div className="mt-10 pt-8 border-t border-[#E8E6E1]">
-              <h2 className="text-xl font-bold mb-6">My Saved Studios</h2>
-              <div className="mb-8 space-y-3">
+              <h2 className="text-xl font-bold mb-6">My Saved Studios & Calendars</h2>
+              <div className="mb-8 space-y-4">
                 {savedStudios.length === 0 ? (
                   <p className="text-sm text-[#7A7571]">You haven't saved any studios yet.</p>
                 ) : (
                   savedStudios.map(studio => (
-                    <div key={studio.id} className="flex justify-between items-center p-3 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg group">
-                      <span className="font-medium">{studio.name}</span>
-                      <button 
-                        onClick={() => handleDeleteStudio(studio.id)}
-                        className="text-[#7A7571] hover:text-red-500 opacity-50 group-hover:opacity-100 transition-all px-2 py-1 text-sm font-bold"
-                        title="Remove studio"
-                      >
-                        ✕
-                      </button>
+                    <div key={studio.id} className="p-5 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="font-bold text-lg">{studio.name}</span>
+                        <button 
+                          onClick={() => handleDeleteStudio(studio.id)}
+                          className="text-[#7A7571] hover:text-red-500 transition-all px-2 py-1 text-xs font-bold uppercase tracking-wider"
+                          title="Remove studio"
+                        >
+                          ✕ Remove
+                        </button>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7571] mb-2 uppercase tracking-wider">Studio iCal Link</label>
+                        <input 
+                          type="url" 
+                          placeholder="Paste specific studio .ics link here..." 
+                          defaultValue={studio.calendar_url || ''}
+                          onBlur={(e) => {
+                            if (e.target.value !== (studio.calendar_url || '')) {
+                              handleUpdateStudioCalendar(studio.id, e.target.value);
+                            }
+                          }}
+                          className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 outline-none focus:border-black bg-white text-sm" 
+                        />
+                        <p className="text-[11px] text-[#A3A09E] mt-1.5">Link auto-saves when you click outside the box.</p>
+                      </div>
                     </div>
                   ))
                 )}
@@ -568,12 +583,11 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
                       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
                       options={{ 
                         types: ["establishment"],
-                        fields: ["name", "url"] // Forces Google to return the Maps link!
+                        fields: ["name", "url"]
                       }}
                       libraries={["places"]}
                       ref={settingsStudioRef}
                       onKeyUp={() => {
-                        // Clears background state if they backspace and type manually
                         setNewStudioName('');
                         setNewStudioUrl('');
                       }}
@@ -581,11 +595,10 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
                         if (place && place.name) {
                           setNewStudioName(place.name);
                           setNewStudioUrl(place.url || '');
-                          // Forces the input box to show the clean, official name
                           if (settingsStudioRef.current) settingsStudioRef.current.value = place.name;
                         }
                       }}
-                      className="w-full border border-[#E8E6E1] rounded-lg px-4 py-3 outline-none focus:border-black bg-[#FAF9F6] text-sm"
+                      className="w-full border border-[#E8E6E1] rounded-lg px-4 py-3 outline-none focus:border-black bg-white text-sm shadow-sm"
                       placeholder="Search on Google Maps..."
                     />
                     </div>
@@ -593,7 +606,7 @@ const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: set
                       type="button"
                       onClick={handleAddSavedStudio}
                       disabled={isSaving}
-                      className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap"
+                      className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap shadow-sm"
                     >
                       {isSaving ? 'Saving...' : 'Save Studio'}
                     </button>
