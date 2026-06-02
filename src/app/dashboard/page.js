@@ -4,33 +4,49 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Autocomplete from 'react-google-autocomplete';
 
+const CLASS_TYPES = ['Mat Pilates', 'Reformer Pilates', 'Stretch and Mobility', 'Yoga'];
+
+const TIMEZONES = [
+  { value: 'America/Vancouver',   label: 'Pacific Time (Vancouver)' },
+  { value: 'America/Edmonton',    label: 'Mountain Time (Edmonton)' },
+  { value: 'America/Winnipeg',    label: 'Central Time (Winnipeg)' },
+  { value: 'America/Toronto',     label: 'Eastern Time (Toronto)' },
+  { value: 'America/Halifax',     label: 'Atlantic Time (Halifax)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (Los Angeles)' },
+  { value: 'America/Denver',      label: 'Mountain Time (Denver)' },
+  { value: 'America/Chicago',     label: 'Central Time (Chicago)' },
+  { value: 'America/New_York',    label: 'Eastern Time (New York)' },
+  { value: 'Europe/London',       label: 'GMT (London)' },
+  { value: 'Australia/Sydney',    label: 'AEDT (Sydney)' },
+];
+
 export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [activeTab, setActiveTab] = useState('schedule');
   const [isChecking, setIsChecking] = useState(true);
-  
-  // Studios State
+
   const [savedStudios, setSavedStudios] = useState([]);
   const [newStudioName, setNewStudioName] = useState('');
   const [newStudioUrl, setNewStudioUrl] = useState('');
-  const settingsStudioRef = useRef(null); 
-  
+  const settingsStudioRef = useRef(null);
+
   const [editingDraftId, setEditingDraftId] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   const [classData, setClassData] = useState({
-    classType: '', 
+    classType: '',
     className: '',
     dateTime: '',
     bookingUrl: '',
     studioName: '',
-    locationUrl: '' 
+    locationUrl: ''
   });
-  
+
   const [settingsData, setSettingsData] = useState({
-    bio: ''
+    bio: '',
+    timezone: 'America/Vancouver'
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -64,7 +80,7 @@ export default function Dashboard() {
         return;
       }
       setUser(session.user);
-      
+
       fetchSavedStudios();
       fetchMyClasses(session.user.id);
 
@@ -73,20 +89,23 @@ export default function Dashboard() {
         .select('*')
         .eq('id', session.user.id)
         .single();
-        
+
       if (profileData) {
         setProfile(profileData);
-        setSettingsData({ bio: profileData.bio || '' });
+        setSettingsData({
+          bio: profileData.bio || '',
+          timezone: profileData.timezone || 'America/Vancouver'
+        });
       }
       setIsChecking(false);
     };
-    
+
     loadDashboard();
   }, [router]);
 
   const handleToggleWaitlist = async (id, currentStatus) => {
-    setMyClasses(prevClasses => 
-      prevClasses.map(c => 
+    setMyClasses(prevClasses =>
+      prevClasses.map(c =>
         c.id === id ? { ...c, is_waitlisted: !currentStatus } : c
       )
     );
@@ -99,7 +118,7 @@ export default function Dashboard() {
 
   const handleEditDraft = (draft) => {
     const messyLocation = (draft.studio_name || "").toLowerCase();
-    const matchedStudio = savedStudios.find(s => 
+    const matchedStudio = savedStudios.find(s =>
       messyLocation.includes(s.name.toLowerCase().split(' ')[0])
     ) || { name: '', location_url: '' };
 
@@ -108,14 +127,14 @@ export default function Dashboard() {
     const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
 
     setClassData({
-      classType: '', 
+      classType: draft.class_type !== 'TBD' ? draft.class_type : '',
       className: draft.class_name,
       dateTime: localISOTime,
-      bookingUrl: draft.booking_url || '', 
+      bookingUrl: draft.booking_url || '',
       studioName: matchedStudio.name,
       locationUrl: matchedStudio.location_url || ''
     });
-    
+
     setEditingDraftId(draft.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -124,15 +143,30 @@ export default function Dashboard() {
     setEditingDraftId(null);
     setClassData({
       classType: '', className: '', dateTime: '', bookingUrl: '',
-      studioName: '', locationUrl: '' 
+      studioName: '', locationUrl: ''
     });
+  };
+
+  const handleUpdateStudio = async (studioId, updates) => {
+    const { error } = await supabase
+      .from('studios')
+      .update(updates)
+      .eq('id', studioId);
+
+    if (!error) {
+      setSavedStudios(prev => prev.map(s => s.id === studioId ? { ...s, ...updates } : s));
+      setSuccessMessage('Studio settings saved!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      alert("Error saving: " + error.message);
+    }
   };
 
   const handleAddSavedStudio = async () => {
     const finalName = newStudioName || settingsStudioRef.current?.value;
     if (!finalName) return;
     setIsSaving(true);
-    
+
     const { error } = await supabase
       .from('studios')
       .insert([{
@@ -146,8 +180,8 @@ export default function Dashboard() {
       setTimeout(() => setSuccessMessage(''), 3000);
       setNewStudioName('');
       setNewStudioUrl('');
-      if (settingsStudioRef.current) settingsStudioRef.current.value = ''; 
-      fetchSavedStudios(); 
+      if (settingsStudioRef.current) settingsStudioRef.current.value = '';
+      fetchSavedStudios();
     }
     setIsSaving(false);
   };
@@ -160,27 +194,11 @@ export default function Dashboard() {
     if (!error) {
       setSuccessMessage('Studio removed from your profile!');
       setTimeout(() => setSuccessMessage(''), 3000);
-      fetchSavedStudios(); 
+      fetchSavedStudios();
     } else {
       alert("Error: " + error.message);
     }
     setIsSaving(false);
-  };
-
-  // NEW FUNCTION: Auto-saves the calendar URL for a specific studio
-  const handleUpdateStudioCalendar = async (studioId, newUrl) => {
-    const { error } = await supabase
-      .from('studios')
-      .update({ calendar_url: newUrl })
-      .eq('id', studioId);
-
-    if (!error) {
-      setSuccessMessage('Studio calendar link saved!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      fetchSavedStudios(); // Refresh the list in the background
-    } else {
-      alert("Error saving link: " + error.message);
-    }
   };
 
   const handleDeleteClass = async (classId) => {
@@ -191,8 +209,8 @@ export default function Dashboard() {
     if (!error) {
       setSuccessMessage('Class removed successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
-      fetchMyClasses(user.id); 
-      if (editingDraftId === classId) cancelEdit(); 
+      fetchMyClasses(user.id);
+      if (editingDraftId === classId) cancelEdit();
     }
     setIsSaving(false);
   };
@@ -211,15 +229,15 @@ export default function Dashboard() {
           booking_url: classData.bookingUrl,
           studio_name: classData.studioName,
           location_url: classData.locationUrl,
-          status: 'published' 
+          status: 'published'
         })
         .eq('id', editingDraftId);
 
       if (!error) {
         setSuccessMessage("Success! Class published to live schedule.");
         setTimeout(() => setSuccessMessage(''), 3000);
-        cancelEdit(); 
-        fetchMyClasses(user.id); 
+        cancelEdit();
+        fetchMyClasses(user.id);
       }
     } else {
       const { error } = await supabase
@@ -238,8 +256,8 @@ export default function Dashboard() {
       if (!error) {
         setSuccessMessage("Success! Class published manually.");
         setTimeout(() => setSuccessMessage(''), 3000);
-        cancelEdit(); 
-        fetchMyClasses(user.id); 
+        cancelEdit();
+        fetchMyClasses(user.id);
       }
     }
     setIsSaving(false);
@@ -248,34 +266,38 @@ export default function Dashboard() {
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    const { error } = await supabase.from('profiles').upsert({ id: user.id, bio: settingsData.bio });
+    const { error } = await supabase.from('profiles').upsert({
+      id: user.id,
+      bio: settingsData.bio,
+      timezone: settingsData.timezone
+    });
     if (!error) {
-      setSuccessMessage("Profile bio saved successfully!");
+      setSuccessMessage("Profile saved successfully!");
       setTimeout(() => setSuccessMessage(''), 3000);
     }
     setIsSaving(false);
   };
 
-  // UPDATED SYNC FUNCTION: Loops through all studios that have a calendar link
   const handleSync = async () => {
     const studiosWithLinks = savedStudios.filter(s => s.calendar_url);
-    if (studiosWithLinks.length === 0) return alert("Please add at least one calendar link to a saved studio in your settings!");
+    if (studiosWithLinks.length === 0) return alert("Please add at least one iCal link to a saved studio in your settings!");
 
     setIsSyncing(true);
     let totalCount = 0;
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // Fetch each calendar sequentially
+
       for (const studio of studiosWithLinks) {
         const res = await fetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-          body: JSON.stringify({ 
-            calendarUrl: studio.calendar_url, 
+          body: JSON.stringify({
+            calendarUrl: studio.calendar_url,
             instructorId: user.id,
-            studioName: studio.name // Passing the specific studio to the backend!
+            studioName: studio.name,
+            defaultBookingUrl: studio.default_booking_url || '',
+            defaultClassType: studio.default_class_type || ''
           })
         });
         const result = await res.json();
@@ -284,19 +306,21 @@ export default function Dashboard() {
 
       setSuccessMessage(`Sync complete! Pulled ${totalCount} upcoming classes.`);
       setTimeout(() => setSuccessMessage(''), 4000);
-      fetchMyClasses(user.id); 
+      fetchMyClasses(user.id);
     } catch (err) {
       alert("Error syncing: " + err.message);
     }
     setIsSyncing(false);
   };
 
+  const tz = settingsData.timezone || 'America/Vancouver';
+
   if (isChecking) return <div className="min-h-screen bg-[#FAF9F6]"></div>;
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-      
+
         {successMessage && (
           <div className="mb-6 p-4 bg-[#EAF5ED] text-[#1D5E34] border border-[#BCE1C7] rounded-xl text-sm font-medium shadow-sm transition-all animate-fade-in">
             {successMessage}
@@ -312,7 +336,7 @@ export default function Dashboard() {
         {activeTab === 'schedule' && (
           <div className="bg-white rounded-xl shadow-sm border border-[#E8E6E1] p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
-            
+
             {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).length === 0 ? (
               <p className="text-[#7A7571] text-center p-8 bg-white rounded-xl border border-[#E8E6E1]">No live classes currently published.</p>
             ) : (
@@ -325,12 +349,12 @@ export default function Dashboard() {
                         <span className="text-xs font-medium bg-[#F3F0EA] px-2 py-0.5 rounded border border-[#E8E6E1]">{c.class_type}</span>
                       </div>
                       <p className="text-sm text-[#7A7571]">
-                        {new Date(c.date_time).toLocaleDateString('en-US', { timeZone: 'America/Vancouver' })} • {new Date(c.date_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'America/Vancouver'})} @ {c.studio_name}
+                        {new Date(c.date_time).toLocaleDateString('en-US', { timeZone: tz })} • {new Date(c.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: tz })} @ {c.studio_name}
                       </p>
                     </div>
-                    
+
                     <div className="flex items-center space-x-4 w-full sm:w-auto border-t sm:border-t-0 border-[#E8E6E1] pt-3 sm:pt-0">
-                      <div 
+                      <div
                         onClick={() => handleToggleWaitlist(c.id, c.is_waitlisted)}
                         className="flex items-center space-x-2 cursor-pointer group"
                       >
@@ -339,27 +363,26 @@ export default function Dashboard() {
                         </div>
                         <span className="text-sm font-medium text-[#7A7571] group-hover:text-[#2C2A28] transition-colors">Waitlisted</span>
                       </div>
-                      
+
                       <span className="text-[#E8E6E1] hidden sm:inline">|</span>
-                      
-                      <button 
+
+                      <button
                         onClick={() => handleDeleteClass(c.id)}
                         className="text-sm font-medium text-red-600 bg-white border border-[#E8E6E1] hover:bg-red-50 px-4 py-2 rounded-lg transition-colors active:scale-95"
                       >
                         Delete
                       </button>
 
-                      <button 
+                      <button
                         onClick={() => {
-                          setEditingDraftId(c.id); 
+                          setEditingDraftId(c.id);
                           const d = new Date(c.date_time);
                           const tzOffset = d.getTimezoneOffset() * 60000;
                           const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
-                          
                           setClassData({
                             classType: c.class_type,
                             className: c.class_name,
-                            dateTime: localISOTime, 
+                            dateTime: localISOTime,
                             bookingUrl: c.booking_url || '',
                             studioName: c.studio_name || '',
                             locationUrl: c.location_url || ''
@@ -390,15 +413,15 @@ export default function Dashboard() {
                   <button type="button" onClick={cancelEdit} className="text-sm font-medium text-red-500 hover:underline">Cancel</button>
                 )}
               </div>
-              
+
               <form onSubmit={handleClassSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium mb-1">Specific Class Name</label>
-                  <input 
-                    type="text" 
-                    value={classData.className} 
-                    onChange={e => setClassData({...classData, className: e.target.value})} 
-                    required 
+                  <input
+                    type="text"
+                    value={classData.className}
+                    onChange={e => setClassData({ ...classData, className: e.target.value })}
+                    required
                     className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
                   />
                 </div>
@@ -406,70 +429,66 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Category & Studio</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <select 
-                      value={classData.classType} 
-                      onChange={e => setClassData({...classData, classType: e.target.value})} 
-                      required 
+                    <select
+                      value={classData.classType}
+                      onChange={e => setClassData({ ...classData, classType: e.target.value })}
+                      required
                       className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
                     >
                       <option value="" disabled>Select Category...</option>
-                      <option value="Reformer Pilates">Reformer Pilates</option>
-                      <option value="Mat Pilates">Mat Pilates</option>
-                      <option value="Yoga">Yoga</option>
+                      {CLASS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
 
-                    <div>
-                      <select
-                        value={classData.studioName}
-                        onChange={(e) => {
-                          if (e.target.value === 'custom') {
-                            setClassData({ ...classData, studioName: 'custom', locationUrl: '' });
-                            return;
-                          }
-                          const selectedStudio = savedStudios.find(s => s.name === e.target.value);
-                          setClassData({
-                            ...classData,
-                            studioName: selectedStudio?.name || '',
-                            locationUrl: selectedStudio?.location_url || ''
-                          });
-                        }}
-                        className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6] appearance-none"
-                      >
-                        <option value="" disabled>Select a Studio...</option>
-                        {savedStudios.map((studio) => (
-                          <option key={studio.id} value={studio.name}>{studio.name}</option>
-                        ))}
-                        <option value="custom">+ Add One Time Location</option>
-                      </select>
-                    </div>
+                    <select
+                      value={classData.studioName}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setClassData({ ...classData, studioName: 'custom', locationUrl: '' });
+                          return;
+                        }
+                        const selectedStudio = savedStudios.find(s => s.name === e.target.value);
+                        setClassData({
+                          ...classData,
+                          studioName: selectedStudio?.name || '',
+                          locationUrl: selectedStudio?.location_url || ''
+                        });
+                      }}
+                      className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6] appearance-none"
+                    >
+                      <option value="" disabled>Select a Studio...</option>
+                      {savedStudios.map((studio) => (
+                        <option key={studio.id} value={studio.name}>{studio.name}</option>
+                      ))}
+                      <option value="custom">+ Add One Time Location</option>
+                    </select>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Date & Time</label>
-                  <input 
-                    type="datetime-local" 
-                    value={classData.dateTime} 
-                    onChange={e => setClassData({...classData, dateTime: e.target.value})} 
-                    required 
+                  <input
+                    type="datetime-local"
+                    value={classData.dateTime}
+                    onChange={e => setClassData({ ...classData, dateTime: e.target.value })}
+                    required
                     className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-1">Checkout Link</label>
-                  <input 
-                    type="url" 
-                    placeholder="https://..." 
-                    value={classData.bookingUrl} 
-                    onChange={e => setClassData({...classData, bookingUrl: e.target.value})} 
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={classData.bookingUrl}
+                    onChange={e => setClassData({ ...classData, bookingUrl: e.target.value })}
                     className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
                   />
                 </div>
 
-                <button 
-                  type="submit" 
-                  disabled={isSaving} 
+                <button
+                  type="submit"
+                  disabled={isSaving}
                   className="w-full bg-[#2C2A28] text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-black disabled:opacity-50"
                 >
                   {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : "Publish Class")}
@@ -479,8 +498,8 @@ export default function Dashboard() {
 
             <div className="bg-[#F3F0EA] rounded-xl shadow-sm border border-[#E8E6E1] p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
-              <p className="text-sm text-[#7A7571] mb-4">Pull the latest classes directly from your linked calendar.</p>
-              
+              <p className="text-sm text-[#7A7571] mb-4">Pull the latest classes directly from your linked calendars.</p>
+
               <button onClick={handleSync} disabled={isSyncing} className="w-full bg-white border border-[#E8E6E1] text-[#2C2A28] font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50">
                 {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
               </button>
@@ -496,19 +515,19 @@ export default function Dashboard() {
                       <div className="pr-4">
                         <p className="font-bold">{c.class_name}</p>
                         <p className="text-[#7A7571] text-xs mt-0.5 line-clamp-1">
-                          {new Date(c.date_time).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric',timeZone: 'America/Vancouver'})} 
+                          {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })}
                           @ {c.studio_name || 'Pending Studio'}
-                        </p>                      
+                        </p>
                       </div>
-                      
+
                       <div className="flex gap-2 shrink-0">
-                        <button 
+                        <button
                           onClick={() => handleDeleteClass(c.id)}
                           className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors"
                         >
                           Delete
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleEditDraft(c)}
                           className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors"
                         >
@@ -529,14 +548,34 @@ export default function Dashboard() {
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium mb-1">Public Bio</label>
-                <textarea rows="4" value={settingsData.bio} onChange={e => setSettingsData({...settingsData, bio: e.target.value})} placeholder="Tell students about your teaching style..." className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50"></textarea>
+                <textarea
+                  rows="4"
+                  value={settingsData.bio}
+                  onChange={e => setSettingsData({ ...settingsData, bio: e.target.value })}
+                  placeholder="Tell students about your teaching style..."
+                  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]/50"
+                />
               </div>
-              
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Your Timezone</label>
+                <select
+                  value={settingsData.timezone}
+                  onChange={e => setSettingsData({ ...settingsData, timezone: e.target.value })}
+                  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2 outline-none focus:border-black bg-[#FAF9F6]"
+                >
+                  {TIMEZONES.map(tz => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-[#A3A09E] mt-1">All your class times will display in this timezone.</p>
+              </div>
+
               <button type="submit" disabled={isSaving} className="w-full bg-[#2C2A28] text-white font-medium py-3 rounded-lg mt-4 hover:bg-[#4A4744]">
-                {isSaving ? "Saving..." : "Save Bio"}
+                {isSaving ? "Saving..." : "Save Profile"}
               </button>
             </form>
-            
+
             <div className="mt-10 pt-8 border-t border-[#E8E6E1]">
               <h2 className="text-xl font-bold mb-6">My Saved Studios & Calendars</h2>
               <div className="mb-8 space-y-4">
@@ -544,44 +583,73 @@ export default function Dashboard() {
                   <p className="text-sm text-[#7A7571]">You haven't saved any studios yet.</p>
                 ) : (
                   savedStudios.map(studio => (
-                    <div key={studio.id} className="p-5 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg shadow-sm">
-                      <div className="flex justify-between items-center mb-4">
+                    <div key={studio.id} className="p-5 bg-[#FAF9F6] border border-[#E8E6E1] rounded-lg shadow-sm space-y-4">
+                      <div className="flex justify-between items-center">
                         <span className="font-bold text-lg">{studio.name}</span>
-                        <button 
+                        <button
                           onClick={() => handleDeleteStudio(studio.id)}
                           className="text-[#7A7571] hover:text-red-500 transition-all px-2 py-1 text-xs font-bold uppercase tracking-wider"
-                          title="Remove studio"
                         >
                           ✕ Remove
                         </button>
                       </div>
-                      
+
                       <div>
-                        <label className="block text-xs font-bold text-[#7A7571] mb-2 uppercase tracking-wider">Studio iCal Link</label>
-                        <input 
-                          type="url" 
-                          placeholder="Paste specific studio .ics link here..." 
+                        <label className="block text-xs font-bold text-[#7A7571] mb-1.5 uppercase tracking-wider">Default Class Type</label>
+                        <select
+                          defaultValue={studio.default_class_type || ''}
+                          onChange={(e) => handleUpdateStudio(studio.id, { default_class_type: e.target.value })}
+                          className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 outline-none focus:border-black bg-white text-sm"
+                        >
+                          <option value="">No default — tag each class manually</option>
+                          {CLASS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <p className="text-[11px] text-[#A3A09E] mt-1.5">Synced classes from this studio will be auto-tagged with this type.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7571] mb-1.5 uppercase tracking-wider">Default Booking URL</label>
+                        <input
+                          type="url"
+                          placeholder="https://studiobooking.com/schedule"
+                          defaultValue={studio.default_booking_url || ''}
+                          onBlur={(e) => {
+                            if (e.target.value !== (studio.default_booking_url || '')) {
+                              handleUpdateStudio(studio.id, { default_booking_url: e.target.value });
+                            }
+                          }}
+                          className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 outline-none focus:border-black bg-white text-sm"
+                        />
+                        <p className="text-[11px] text-[#A3A09E] mt-1.5">Used for studios like Mindbody where all classes share one booking page. Auto-saves on blur.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#7A7571] mb-1.5 uppercase tracking-wider">Studio iCal Link</label>
+                        <input
+                          type="url"
+                          placeholder="Paste specific studio .ics link here..."
                           defaultValue={studio.calendar_url || ''}
                           onBlur={(e) => {
                             if (e.target.value !== (studio.calendar_url || '')) {
-                              handleUpdateStudioCalendar(studio.id, e.target.value);
+                              handleUpdateStudio(studio.id, { calendar_url: e.target.value });
                             }
                           }}
-                          className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 outline-none focus:border-black bg-white text-sm" 
+                          className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 outline-none focus:border-black bg-white text-sm"
                         />
-                        <p className="text-[11px] text-[#A3A09E] mt-1.5">Link auto-saves when you click outside the box.</p>
+                        <p className="text-[11px] text-[#A3A09E] mt-1.5">Auto-saves on blur.</p>
                       </div>
                     </div>
                   ))
                 )}
               </div>
+
               <div>
                 <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
                 <div className="flex gap-4">
-                    <div className="flex-1">
-                      <Autocomplete
+                  <div className="flex-1">
+                    <Autocomplete
                       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-                      options={{ 
+                      options={{
                         types: ["establishment"],
                         fields: ["name", "url"]
                       }}
@@ -601,16 +669,16 @@ export default function Dashboard() {
                       className="w-full border border-[#E8E6E1] rounded-lg px-4 py-3 outline-none focus:border-black bg-white text-sm shadow-sm"
                       placeholder="Search on Google Maps..."
                     />
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={handleAddSavedStudio}
-                      disabled={isSaving}
-                      className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap shadow-sm"
-                    >
-                      {isSaving ? 'Saving...' : 'Save Studio'}
-                    </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleAddSavedStudio}
+                    disabled={isSaving}
+                    className="px-6 py-3 bg-[#2C2A28] text-white rounded-lg font-medium hover:bg-[#4A4744] disabled:opacity-50 transition-colors text-sm whitespace-nowrap shadow-sm"
+                  >
+                    {isSaving ? 'Saving...' : 'Save Studio'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
