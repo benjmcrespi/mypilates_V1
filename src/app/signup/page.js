@@ -72,25 +72,25 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] text-[#2C2A28] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-linen text-bark flex flex-col justify-center py-12 sm:px-6 lg:px-8">
 
       <div className="absolute top-6 left-6">
-        <Link href="/" className="text-sm font-medium text-[#7A7571] hover:text-[#2C2A28] transition-colors flex items-center space-x-1">
+        <Link href="/" className="text-sm font-medium text-stone hover:text-bark transition-colors flex items-center space-x-1">
           <span>←</span> <span>Back to Live Schedule</span>
         </Link>
       </div>
 
       <div className="sm:mx-auto w-full max-w-md text-center px-4">
-        <h2 className="text-3xl font-bold tracking-tight text-[#2C2A28]">
+        <h2 className="text-3xl font-bold tracking-tight text-bark">
           Instructor Sign Up
         </h2>
-        <p className="mt-2 text-sm text-[#7A7571]">
+        <p className="mt-2 text-sm text-stone">
           Join the premier hub for independent Pilates instructors.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto w-full max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-sm border border-[#E8E6E1] rounded-xl sm:px-10">
+        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-xl sm:px-10">
 
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
@@ -105,7 +105,7 @@ export default function SignUp() {
 
           <form onSubmit={handleSignUp} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-[#2C2A28] mb-1">
+              <label className="block text-sm font-medium text-bark mb-1">
                 Full Name
               </label>
               <input
@@ -114,16 +114,16 @@ export default function SignUp() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Hannah Jane"
-                className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black outline-none bg-[#FAF9F6]/50"
+                className="w-full border border-sand rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#2C2A28] mb-1">
+              <label className="block text-sm font-medium text-bark mb-1">
                 Your Public URL
               </label>
-              <div className="flex items-center border border-[#E8E6E1] rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black bg-[#FAF9F6]/50">
-                <span className="pl-4 pr-2 text-sm text-[#A3A09E] whitespace-nowrap select-none">
+              <div className="flex items-center border border-sand rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-clay bg-linen/50">
+                <span className="pl-4 pr-2 text-sm text-stone whitespace-nowrap select-none">
                   instruktor.ca/
                 </span>
                 <input
@@ -136,13 +136,13 @@ export default function SignUp() {
                   className="flex-1 py-2.5 pr-4 outline-none bg-transparent text-sm"
                 />
               </div>
-              <p className="mt-1 text-xs text-[#A3A09E]">
+              <p className="mt-1 text-xs text-stone">
                 Letters, numbers, and underscores only. This cannot be changed later.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#2C2A28] mb-1">
+              <label className="block text-sm font-medium text-bark mb-1">
                 Email Address
               </label>
               <input
@@ -151,12 +151,12 @@ export default function SignUp() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="hannah@example.com"
-                className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-black outline-none bg-[#FAF9F6]/50"
+                className="w-full border border-sand rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#2C2A28] mb-1">
+              <label className="block text-sm font-medium text-bark mb-1">
                 Password
               </label>
               <div className="relative">
@@ -167,12 +167,12 @@ export default function SignUp() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   minLength="6"
-                  className="w-full border border-[#E8E6E1] rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-black outline-none bg-[#FAF9F6]/50"
+                  className="w-full border border-sand rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#7A7571] hover:text-[#2C2A28]"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-stone hover:text-bark"
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -191,15 +191,15 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#2C2A28] text-white font-medium py-3 rounded-lg hover:bg-[#4A4744] transition-colors disabled:bg-[#A39E99] mt-2 shadow-sm"
+              className="w-full bg-clay text-white font-medium py-3 rounded-lg hover:bg-clay-dark transition-colors disabled:opacity-50 mt-2 shadow-sm"
             >
               {isLoading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-[#7A7571]">
+          <div className="mt-6 text-center text-sm text-stone">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-[#2C2A28] hover:underline">
+            <Link href="/login" className="font-medium text-bark hover:underline">
               Sign in here
             </Link>
           </div>

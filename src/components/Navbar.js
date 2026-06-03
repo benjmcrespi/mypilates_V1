@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const router = useRouter();
-  const pathname = usePathname(); 
+  const pathname = usePathname();
 
   useEffect(() => {
     // Check initial status on load
@@ -34,11 +34,11 @@ export default function Navbar() {
   if (pathname === '/login') return null;
 
   return (
-    <header className="py-5 px-4 sm:px-6 border-b border-[#E8E6E1] bg-white sticky top-0 z-50 shadow-sm transition-all">
+    <header className="py-5 px-4 sm:px-6 border-b border-sand bg-white sticky top-0 z-50 shadow-sm transition-all">
       <div className="max-w-4xl mx-auto flex justify-between items-center">
-        
+
         {/* THE BRAND: Always takes you home */}
-        <Link href="/" className="text-xl font-bold tracking-tight text-[#2C2A28] hover:opacity-70 transition-opacity">
+        <Link href="/" className="text-xl font-bold tracking-tight text-bark hover:opacity-70 transition-opacity">
           Instruktor
         </Link>
 
@@ -47,22 +47,22 @@ export default function Navbar() {
           {user ? (
             <>
               {pathname !== '/dashboard' && (
-                <Link href="/dashboard" className="text-sm font-bold text-[#2C2A28] hover:text-[#7A7571] transition-colors">
+                <Link href="/dashboard" className="text-sm font-bold text-bark hover:text-stone transition-colors">
                   Instructor Dashboard
                 </Link>
               )}
               {pathname === '/dashboard' && (
-                <Link href="/" className="text-sm font-semibold text-[#7A7571] hover:text-[#2C2A28] transition-colors">
+                <Link href="/" className="text-sm font-semibold text-stone hover:text-bark transition-colors">
                   View Live Site
                 </Link>
               )}
-              <span className="text-[#E8E6E1]">|</span>
+              <span className="text-sand">|</span>
               <button onClick={handleSignOut} className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
                 Sign Out
               </button>
             </>
           ) : (
-            <Link href="/login" className="text-sm font-medium text-[#7A7571] hover:text-[#2C2A28] transition-colors">
+            <Link href="/login" className="text-sm font-medium text-stone hover:text-bark transition-colors">
               Instructor Login
             </Link>
           )}

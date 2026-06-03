@@ -43,12 +43,12 @@ export default function Classes() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] py-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-linen py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
 
         <div className="mb-12 text-center md:text-left">
-          <h1 className="text-4xl font-bold text-[#2C2A28]">Live Schedule</h1>
-          <p className="text-[#7A7571] mt-3 text-lg">Find your next session and book directly with the instructor.</p>
+          <h1 className="text-4xl font-bold text-bark">Live Schedule</h1>
+          <p className="text-stone mt-3 text-lg">Find your next session and book directly with the instructor.</p>
         </div>
 
         <div className="flex overflow-x-auto pb-4 mb-8 hide-scrollbar space-x-2">
@@ -58,8 +58,8 @@ export default function Classes() {
               onClick={() => setActiveFilter(category)}
               className={`whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
                 activeFilter === category
-                  ? 'bg-[#2C2A28] text-[#FAF9F6]'
-                  : 'bg-white text-[#7A7571] border border-[#E8E6E1] hover:bg-[#F3F0EA]'
+                  ? 'bg-clay text-white'
+                  : 'bg-white text-stone border border-sand hover:bg-clay-light'
               }`}
             >
               {category}
@@ -68,10 +68,10 @@ export default function Classes() {
         </div>
 
         {loading ? (
-          <div className="text-center py-20 text-[#96908B]">Loading schedule...</div>
+          <div className="text-center py-20 text-stone">Loading schedule...</div>
         ) : displayedClasses.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-[#E8E6E1]">
-            <p className="text-[#7A7571]">No upcoming classes for this category.</p>
+          <div className="text-center py-20 bg-white rounded-2xl border border-sand">
+            <p className="text-stone">No upcoming classes for this category.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -79,31 +79,31 @@ export default function Classes() {
               const tz = cls.profiles?.timezone || 'America/Vancouver';
               const { day, time } = formatDateTime(cls.date_time, tz);
               return (
-                <div key={cls.id} className="bg-white p-6 rounded-2xl shadow-sm border border-[#E8E6E1] hover:shadow-md transition-shadow flex flex-col justify-between h-full">
+                <div key={cls.id} className="bg-white p-6 rounded-2xl shadow-sm border border-sand hover:shadow-md transition-shadow flex flex-col justify-between h-full">
 
                   <div>
                     <div className="flex justify-between items-start mb-4">
-                      <span className="text-xs font-semibold bg-[#F3F0EA] text-[#7A7571] px-3 py-1 rounded-md">
+                      <span className="text-xs font-semibold bg-clay-light text-stone px-3 py-1 rounded-md">
                         {cls.class_type}
                       </span>
                     </div>
 
-                    <h3 className="text-xl font-bold text-[#2C2A28] mb-1">{cls.class_name}</h3>
+                    <h3 className="text-xl font-bold text-bark mb-1">{cls.class_name}</h3>
 
                     {cls.profiles?.handle ? (
-                      <Link href={`/${cls.profiles.handle}`} className="text-[#7A7571] text-sm font-medium mb-4 hover:text-[#2C2A28] hover:underline block">
+                      <Link href={`/${cls.profiles.handle}`} className="text-stone text-sm font-medium mb-4 hover:text-bark hover:underline block">
                         with {cls.profiles.full_name || "Instructor"}
                       </Link>
                     ) : (
-                      <p className="text-[#7A7571] text-sm font-medium mb-4">
+                      <p className="text-stone text-sm font-medium mb-4">
                         with {cls.profiles?.full_name || "Instructor"}
                       </p>
                     )}
 
-                    <div className="bg-[#FAF9F6] p-4 rounded-xl border border-[#E8E6E1] mb-6">
-                      <div className="text-sm font-medium text-[#2C2A28] mb-1">{day}</div>
-                      <div className="text-[#7A7571] text-sm">{time}</div>
-                      <div className="text-[#A3A09E] text-xs mt-1">{cls.studio_name}</div>
+                    <div className="bg-linen p-4 rounded-xl border border-sand mb-6">
+                      <div className="text-sm font-medium text-bark mb-1">{day}</div>
+                      <div className="text-stone text-sm">{time}</div>
+                      <div className="text-stone text-xs mt-1">{cls.studio_name}</div>
                     </div>
                   </div>
 
@@ -111,7 +111,7 @@ export default function Classes() {
                     href={cls.booking_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full text-center bg-[#2C2A28] text-[#FAF9F6] font-medium py-3 rounded-lg hover:bg-black transition-colors"
+                    className="block w-full text-center bg-clay text-white font-medium py-3 rounded-lg hover:bg-clay-dark transition-colors"
                   >
                     Book Class
                   </a>
