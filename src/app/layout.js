@@ -5,8 +5,8 @@ import Navbar from '@/components/Navbar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'MyPilates.ca',
-  description: 'Manage your schedule',
+  title: 'Instruktor',
+  description: 'Your schedule, beautifully simplified.',
 };
 
 export default function RootLayout({ children }) {

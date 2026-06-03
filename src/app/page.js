@@ -8,7 +8,7 @@ export default function LandingPage() {
         
         {/* Eyebrow Text */}
         <span className="text-sm font-bold tracking-widest uppercase text-[#7A7571] mb-6 block">
-          MyPilates.ca
+          Instruktor
         </span>
         
         {/* Main Headline */}

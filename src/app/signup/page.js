@@ -124,7 +124,7 @@ export default function SignUp() {
               </label>
               <div className="flex items-center border border-[#E8E6E1] rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-black bg-[#FAF9F6]/50">
                 <span className="pl-4 pr-2 text-sm text-[#A3A09E] whitespace-nowrap select-none">
-                  mypilates.ca/
+                  instruktor.ca/
                 </span>
                 <input
                   type="text"
