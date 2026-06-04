@@ -46,8 +46,15 @@ export default function Dashboard() {
 
   const [settingsData, setSettingsData] = useState({
     bio: '',
-    timezone: 'America/Vancouver'
+    timezone: 'America/Vancouver',
+    years_experience: '',
+    instagram_handle: '',
+    certifications: []
   });
+  const [certInput, setCertInput] = useState('');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -94,8 +101,12 @@ export default function Dashboard() {
         setProfile(profileData);
         setSettingsData({
           bio: profileData.bio || '',
-          timezone: profileData.timezone || 'America/Vancouver'
+          timezone: profileData.timezone || 'America/Vancouver',
+          years_experience: profileData.years_experience ?? '',
+          instagram_handle: profileData.instagram_handle || '',
+          certifications: profileData.certifications || []
         });
+        if (profileData.avatar_url) setAvatarPreview(profileData.avatar_url);
       }
       setIsChecking(false);
     };
@@ -263,15 +274,63 @@ export default function Dashboard() {
     setIsSaving(false);
   };
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleAddCert = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = certInput.trim().replace(/,$/, '');
+      if (val && !settingsData.certifications.includes(val)) {
+        setSettingsData(prev => ({ ...prev, certifications: [...prev.certifications, val] }));
+      }
+      setCertInput('');
+    }
+  };
+
+  const handleRemoveCert = (cert) => {
+    setSettingsData(prev => ({ ...prev, certifications: prev.certifications.filter(c => c !== cert) }));
+  };
+
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+
+    let avatar_url = profile?.avatar_url || null;
+
+    if (avatarFile) {
+      setIsUploadingAvatar(true);
+      const ext = avatarFile.name.split('.').pop();
+      const path = `${user.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, avatarFile, { upsert: true });
+      setIsUploadingAvatar(false);
+      if (uploadError) {
+        alert("Photo upload failed: " + uploadError.message);
+        setIsSaving(false);
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      avatar_url = publicUrl;
+    }
+
     const { error } = await supabase.from('profiles').upsert({
       id: user.id,
       bio: settingsData.bio,
-      timezone: settingsData.timezone
+      timezone: settingsData.timezone,
+      years_experience: settingsData.years_experience === '' ? null : Number(settingsData.years_experience),
+      instagram_handle: settingsData.instagram_handle || null,
+      certifications: settingsData.certifications,
+      avatar_url
     });
     if (!error) {
+      setProfile(prev => ({ ...prev, avatar_url }));
+      setAvatarFile(null);
       setSuccessMessage("Profile saved successfully!");
       setTimeout(() => setSuccessMessage(''), 3000);
     }
@@ -547,6 +606,34 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Instructor Profile</h2>
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
+
+              {/* Profile Photo */}
+              <div>
+                <label className="block text-sm font-medium mb-3">Profile Photo</label>
+                <div className="flex items-center gap-5">
+                  <div className="w-20 h-20 rounded-full bg-clay-light border border-sand overflow-hidden flex items-center justify-center shrink-0">
+                    {avatarPreview
+                      ? <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover" />
+                      : <span className="text-2xl font-bold text-stone">{profile?.full_name?.charAt(0) || 'I'}</span>
+                    }
+                  </div>
+                  <div>
+                    <label htmlFor="avatar-upload" className="cursor-pointer inline-block bg-linen border border-sand text-sm font-medium px-4 py-2 rounded-lg hover:bg-clay-light transition-colors">
+                      {avatarPreview ? 'Change Photo' : 'Upload Photo'}
+                    </label>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                    <p className="text-xs text-stone mt-1.5">JPG, PNG or WebP · Max 5 MB</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
               <div>
                 <label className="block text-sm font-medium mb-1">Public Bio</label>
                 <textarea
@@ -558,6 +645,58 @@ export default function Dashboard() {
                 />
               </div>
 
+              {/* Certifications */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Certifications</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {settingsData.certifications.map(cert => (
+                    <span key={cert} className="flex items-center gap-1.5 bg-clay-light text-bark text-sm px-3 py-1 rounded-full border border-sand">
+                      {cert}
+                      <button type="button" onClick={() => handleRemoveCert(cert)} className="text-stone hover:text-bark leading-none">×</button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={certInput}
+                  onChange={e => setCertInput(e.target.value)}
+                  onKeyDown={handleAddCert}
+                  placeholder="Type a certification and press Enter (e.g. STOTT Pilates)"
+                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen text-sm"
+                />
+                <p className="text-xs text-stone mt-1">Press Enter or comma to add each certification.</p>
+              </div>
+
+              {/* Years of experience + Instagram side by side */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Years of Experience</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="60"
+                    value={settingsData.years_experience}
+                    onChange={e => setSettingsData({ ...settingsData, years_experience: e.target.value })}
+                    placeholder="e.g. 8"
+                    className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Instagram Handle</label>
+                  <div className="flex items-center border border-sand rounded-lg bg-linen overflow-hidden focus-within:border-clay">
+                    <span className="pl-3 text-stone text-sm select-none">@</span>
+                    <input
+                      type="text"
+                      value={settingsData.instagram_handle}
+                      onChange={e => setSettingsData({ ...settingsData, instagram_handle: e.target.value.replace(/^@/, '') })}
+                      placeholder="yourhandle"
+                      className="flex-1 px-2 py-2 outline-none bg-transparent text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Timezone */}
               <div>
                 <label className="block text-sm font-medium mb-1">Your Timezone</label>
                 <select
@@ -572,8 +711,8 @@ export default function Dashboard() {
                 <p className="text-xs text-stone mt-1">All your class times will display in this timezone.</p>
               </div>
 
-              <button type="submit" disabled={isSaving} className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-4 hover:bg-clay-dark disabled:opacity-50">
-                {isSaving ? "Saving..." : "Save Profile"}
+              <button type="submit" disabled={isSaving || isUploadingAvatar} className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-4 hover:bg-clay-dark disabled:opacity-50">
+                {isUploadingAvatar ? "Uploading photo..." : isSaving ? "Saving..." : "Save Profile"}
               </button>
             </form>
 
