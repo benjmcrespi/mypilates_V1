@@ -130,11 +130,20 @@ export default function InstructorProfile() {
             {classes.map((c) => (
               <div key={c.id} className="bg-white rounded-xl shadow-sm border border-sand p-5 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-all">
                 <div className="mb-4 sm:mb-0">
-                  <div className="flex items-center space-x-3 mb-1.5">
+                  <div className="flex items-center flex-wrap gap-2 mb-1.5">
                     <h3 className="text-lg font-bold leading-tight">{c.class_name}</h3>
                     <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">
                       {c.class_type}
                     </span>
+                    {c.booking_type === 'membership_required' && (
+                      <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">Membership required</span>
+                    )}
+                    {c.booking_type === 'app_recommended' && (
+                      <span className="text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">Book via app</span>
+                    )}
+                    {c.booking_type === 'dropin_welcome' && (
+                      <span className="text-xs font-medium bg-sage-light text-sage border border-sage/30 px-2 py-0.5 rounded">Drop-in welcome</span>
+                    )}
                   </div>
                   <p className="text-stone text-sm sm:text-base">
   {new Date(c.date_time).toLocaleDateString('en-US', {
@@ -156,6 +165,10 @@ export default function InstructorProfile() {
                   >
                     📍 {c.studios?.name || c.studio_name}
                   </a>
+
+                  {c.booking_note && (
+                    <p className="text-xs text-stone mt-1.5 italic">{c.booking_note}</p>
+                  )}
                 </div>
 
                 {/* DYNAMIC BUTTON: Checks if the class is waitlisted */}

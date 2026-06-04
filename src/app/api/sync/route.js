@@ -29,7 +29,16 @@ function inferClassType(className, defaultClassType) {
 
 export async function POST(req) {
   try {
-    const { calendarUrl, instructorId, studioName, defaultBookingUrl, defaultClassType } = await req.json();
+    const {
+      calendarUrl,
+      instructorId,
+      studioName,
+      defaultBookingUrl,
+      defaultClassType,
+      defaultBookingType,
+      defaultBookingNote,
+    } = await req.json();
+
     const authHeader = req.headers.get('Authorization');
 
     const supabase = createClient(
@@ -68,6 +77,9 @@ export async function POST(req) {
         if (currentEvent.start) {
           const eventDate = parseICSDate(currentEvent.start);
           if (eventDate >= new Date()) {
+            // Prefer native ICS URL over studio default
+            const bookingUrl = currentEvent.url || defaultBookingUrl || '';
+
             draftClasses.push({
               instructor_id: instructorId,
               class_name: currentEvent.summary || 'Imported Class',
@@ -76,7 +88,9 @@ export async function POST(req) {
               studio_name: studioName || currentEvent.location || 'Studio TBD',
               external_uid: currentEvent.uid || `auto-${Date.now()}-${Math.random()}`,
               status: 'draft',
-              booking_url: defaultBookingUrl || '',
+              booking_url: bookingUrl,
+              booking_type: defaultBookingType || 'direct',
+              booking_note: defaultBookingNote || null,
               location_url: '',
             });
           }
@@ -85,6 +99,7 @@ export async function POST(req) {
         if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8).trim();
         else if (line.startsWith('LOCATION:')) currentEvent.location = line.substring(9).trim().replace(/\\,/g, ',').replace(/\\n/gi, ', ');
         else if (line.startsWith('UID:')) currentEvent.uid = line.substring(4).trim();
+        else if (line.startsWith('URL:')) currentEvent.url = line.substring(4).trim();
         else if (line.startsWith('DTSTART')) {
           const parts = line.split(':');
           if (parts.length > 1) currentEvent.start = parts[1].trim();
