@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [newStudioName, setNewStudioName] = useState('');
   const [newStudioUrl, setNewStudioUrl] = useState('');
   const settingsStudioRef = useRef(null);
+  const formRef = useRef(null);
 
   const [editingDraftId, setEditingDraftId] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -131,6 +132,12 @@ export default function Dashboard() {
     loadDashboard();
   }, [router]);
 
+  useEffect(() => {
+    if (editingDraftId && activeTab === 'add' && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [editingDraftId, activeTab]);
+
   // ── Waitlist toggle ──────────────────────────────────────────────────────────
   const handleToggleWaitlist = async (id, currentStatus) => {
     setMyClasses(prev => prev.map(c => c.id === id ? { ...c, is_waitlisted: !currentStatus } : c));
@@ -161,7 +168,6 @@ export default function Dashboard() {
     });
 
     setEditingDraftId(draft.id);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelEdit = () => {
@@ -399,7 +405,7 @@ export default function Dashboard() {
   if (isChecking) return <div className="min-h-screen bg-linen"></div>;
 
   return (
-    <div className="min-h-screen bg-linen text-bark py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-linen text-bark py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
 
         {successMessage && (
@@ -409,11 +415,16 @@ export default function Dashboard() {
         )}
 
         {/* ── Tabs ── */}
-        <div className="flex space-x-8 mb-8 border-b border-sand">
-          {[['schedule', 'Live Schedule'], ['add', 'Add & Drafts'], ['settings', 'Instructor Settings']].map(([tab, label]) => (
+        <div className="flex gap-5 sm:gap-8 mb-8 border-b border-sand">
+          {[
+            ['schedule', 'Schedule', 'Live Schedule'],
+            ['add', 'Add & Drafts', 'Add & Drafts'],
+            ['settings', 'Settings', 'Instructor Settings'],
+          ].map(([tab, mobileLabel, desktopLabel]) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`pb-3 text-sm font-semibold transition-colors ${activeTab === tab ? 'border-b-2 border-clay text-clay' : 'text-stone hover:text-bark'}`}>
-              {label}
+              className={`pb-3 text-sm font-semibold transition-colors shrink-0 ${activeTab === tab ? 'border-b-2 border-clay text-clay' : 'text-stone hover:text-bark'}`}>
+              <span className="sm:hidden">{mobileLabel}</span>
+              <span className="hidden sm:inline">{desktopLabel}</span>
               {tab === 'add' && pendingDrafts.length > 0 && (
                 <span className="ml-2 bg-clay text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{pendingDrafts.length}</span>
               )}
@@ -473,7 +484,6 @@ export default function Dashboard() {
                           locationUrl: c.location_url || '',
                         });
                         setActiveTab('add');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                         className="text-sm font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-lg transition-colors active:scale-95">
                         Edit
@@ -490,8 +500,63 @@ export default function Dashboard() {
         {activeTab === 'add' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* Publish form */}
-            <div className={`bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
+            {/* Sync Drafts panel — first on mobile so Pull + Publish All are immediately visible */}
+            <div className="order-1 lg:order-2 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
+              <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
+              <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
+
+              <button onClick={handleSync} disabled={isSyncing}
+                className="w-full bg-white border border-sand text-bark font-bold py-3 rounded-lg mb-3 shadow-sm hover:bg-linen transition-colors disabled:opacity-50">
+                {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
+              </button>
+
+              {pendingDrafts.length > 0 && (
+                <button onClick={handlePublishAll} disabled={isPublishingAll}
+                  className="w-full bg-clay text-white font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
+                  {isPublishingAll ? "Publishing..." : `✓ Publish All ${pendingDrafts.length} Drafts`}
+                </button>
+              )}
+
+              {!pendingDrafts.length && <div className="mb-6" />}
+
+              {pendingDrafts.length === 0 ? (
+                <div className="bg-white/50 border border-sand border-dashed rounded-lg p-8 text-center text-stone text-sm font-medium">
+                  No pending drafts. You're all caught up!
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                  {pendingDrafts.map((c) => (
+                    <div key={c.id} className="bg-white p-4 rounded-lg border border-sand text-sm flex justify-between items-center shadow-sm">
+                      <div className="pr-4 min-w-0">
+                        <p className="font-bold truncate">{c.class_name}</p>
+                        <p className="text-stone text-xs mt-0.5">
+                          {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })}
+                          {' '}@ {c.studio_name || 'Pending Studio'}
+                        </p>
+                        {c.booking_type && c.booking_type !== 'direct' && (
+                          <span className="inline-block mt-1 text-[10px] font-medium bg-sand text-stone px-2 py-0.5 rounded-full">
+                            {BOOKING_TYPES.find(bt => bt.value === c.booking_type)?.label}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button onClick={() => handleDeleteClass(c.id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors">
+                          Delete
+                        </button>
+                        <button onClick={() => handleEditDraft(c)}
+                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors">
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Publish form — second on mobile, first column on desktop */}
+            <div ref={formRef} className={`order-2 lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
                   {editingDraftId ? "📝 Finish Publishing Draft" : "Publish a New Class"}
@@ -559,7 +624,7 @@ export default function Dashboard() {
                 {/* Booking context — collapsible override */}
                 <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
                   <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Context (shown to students)</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-stone mb-1">Booking Type</label>
                       <select value={classData.bookingType}
@@ -585,60 +650,6 @@ export default function Dashboard() {
               </form>
             </div>
 
-            {/* Sync Drafts panel */}
-            <div className="bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
-              <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
-              <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
-
-              <button onClick={handleSync} disabled={isSyncing}
-                className="w-full bg-white border border-sand text-bark font-bold py-3 rounded-lg mb-3 shadow-sm hover:bg-linen transition-colors disabled:opacity-50">
-                {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
-              </button>
-
-              {pendingDrafts.length > 0 && (
-                <button onClick={handlePublishAll} disabled={isPublishingAll}
-                  className="w-full bg-clay text-white font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
-                  {isPublishingAll ? "Publishing..." : `✓ Publish All ${pendingDrafts.length} Drafts`}
-                </button>
-              )}
-
-              {!pendingDrafts.length && <div className="mb-6" />}
-
-              {pendingDrafts.length === 0 ? (
-                <div className="bg-white/50 border border-sand border-dashed rounded-lg p-8 text-center text-stone text-sm font-medium">
-                  No pending drafts. You're all caught up!
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                  {pendingDrafts.map((c) => (
-                    <div key={c.id} className="bg-white p-4 rounded-lg border border-sand text-sm flex justify-between items-center shadow-sm">
-                      <div className="pr-4 min-w-0">
-                        <p className="font-bold truncate">{c.class_name}</p>
-                        <p className="text-stone text-xs mt-0.5">
-                          {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })}
-                          {' '}@ {c.studio_name || 'Pending Studio'}
-                        </p>
-                        {c.booking_type && c.booking_type !== 'direct' && (
-                          <span className="inline-block mt-1 text-[10px] font-medium bg-sand text-stone px-2 py-0.5 rounded-full">
-                            {BOOKING_TYPES.find(bt => bt.value === c.booking_type)?.label}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => handleDeleteClass(c.id)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors">
-                          Delete
-                        </button>
-                        <button onClick={() => handleEditDraft(c)}
-                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors">
-                          Edit
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
 
@@ -832,7 +843,7 @@ export default function Dashboard() {
               {/* Add new studio */}
               <div>
                 <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
                     <Autocomplete
                       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
@@ -852,7 +863,7 @@ export default function Dashboard() {
                     />
                   </div>
                   <button type="button" onClick={handleAddSavedStudio} disabled={isSaving}
-                    className="px-6 py-3 bg-clay text-white rounded-lg font-medium hover:bg-clay-dark disabled:opacity-50 transition-colors text-sm whitespace-nowrap shadow-sm">
+                    className="w-full sm:w-auto px-6 py-3 bg-clay text-white rounded-lg font-medium hover:bg-clay-dark disabled:opacity-50 transition-colors text-sm whitespace-nowrap shadow-sm">
                     {isSaving ? 'Saving...' : 'Save Studio'}
                   </button>
                 </div>

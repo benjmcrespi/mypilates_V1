@@ -69,31 +69,31 @@ export default function InstructorProfile() {
   return (
     <div className="min-h-screen bg-linen text-bark pb-20">
 
-      {/* BIO HEADER */}
-      <div className="bg-white border-b border-sand py-12 px-6 text-center">
-        <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden border-2 border-sand bg-clay-light flex items-center justify-center">
+      {/* BIO HEADER — dark espresso per brand spec */}
+      <div className="bg-espresso text-linen py-12 px-6 text-center">
+        <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden border-2 border-white/20 bg-bark flex items-center justify-center">
           {instructor.avatar_url
             ? <img src={instructor.avatar_url} alt={instructor.full_name} className="w-full h-full object-cover" />
-            : <span className="text-3xl font-bold text-stone">{instructor.full_name?.charAt(0) || 'I'}</span>
+            : <span className="text-3xl font-bold text-smoke">{instructor.full_name?.charAt(0) || 'I'}</span>
           }
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{instructor.full_name}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-linen">{instructor.full_name}</h1>
 
         {/* Meta row: years experience + Instagram */}
         {(instructor.years_experience || instructor.instagram_handle) && (
-          <div className="flex items-center justify-center gap-4 mt-2 text-sm text-stone">
+          <div className="flex items-center justify-center gap-4 mt-2 text-sm text-smoke">
             {instructor.years_experience && (
               <span>{instructor.years_experience} yrs experience</span>
             )}
             {instructor.years_experience && instructor.instagram_handle && (
-              <span className="text-sand">·</span>
+              <span className="text-smoke/40">·</span>
             )}
             {instructor.instagram_handle && (
               <a
                 href={`https://instagram.com/${instructor.instagram_handle}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-bark transition-colors"
+                className="hover:text-linen transition-colors"
               >
                 @{instructor.instagram_handle}
               </a>
@@ -101,7 +101,7 @@ export default function InstructorProfile() {
           </div>
         )}
 
-        <p className="text-stone max-w-md mx-auto mt-3 text-sm leading-relaxed">
+        <p className="text-smoke max-w-md mx-auto mt-3 text-sm leading-relaxed">
           {instructor.bio || "Welcome to my schedule! View upcoming classes and book your spot below."}
         </p>
 
@@ -109,7 +109,7 @@ export default function InstructorProfile() {
         {instructor.certifications?.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
             {instructor.certifications.map(cert => (
-              <span key={cert} className="bg-clay-light text-bark text-xs font-medium px-3 py-1 rounded-full border border-sand">
+              <span key={cert} className="bg-bark/60 text-linen text-xs font-medium px-3 py-1 rounded-full border border-white/10">
                 {cert}
               </span>
             ))}

@@ -2,13 +2,15 @@
 
 @theme {
   /* Instruktor brand colour palette */
+  --color-espresso:   #1A0E07;
+  --color-bark:       #2C1810;
+  --color-linen:      #F7F3EE;
+  --color-sand:       #E4CDB8;
+  --color-stone:      #9B8070;
+  --color-smoke:      #BFA090;
   --color-clay:       #B85A35;
   --color-clay-light: #F2E6DF;
   --color-clay-dark:  #7A3520;
-  --color-linen:      #F7F3EE;
-  --color-bark:       #2C1810;
-  --color-sand:       #E4CDB8;
-  --color-stone:      #9B8070;
   --color-sage:       #7A9471;
   --color-sage-light: #EAF0E6;
 }

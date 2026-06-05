@@ -48,7 +48,8 @@ export default function Navbar() {
             <>
               {pathname !== '/dashboard' && (
                 <Link href="/dashboard" className="text-sm font-bold text-bark hover:text-stone transition-colors">
-                  Instructor Dashboard
+                  <span className="sm:hidden">Dashboard</span>
+                  <span className="hidden sm:inline">Instructor Dashboard</span>
                 </Link>
               )}
               {pathname === '/dashboard' && (
