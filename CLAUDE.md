@@ -48,16 +48,12 @@ Studios benefit too. An instructor with a professional profile, a proven followi
 
 Already built and working:
 - instruktor.ca live with hybrid colour palette applied
-- Instructor authentication and dashboard (3 tabs: Live Schedule, Add & Drafts, Instructor Settings)
-- ICS calendar file upload and parsing with duplicate detection via `external_uid`
-- Draft class system — pull from ICS, edit, Publish All in one tap
+- Instructor authentication and dashboard
+- ICS calendar file upload and parsing
+- Draft class system — pull from ICS, edit, publish
 - Student-facing schedule page at instruktor.ca/[username]
-- Instructor profile: photo upload (Supabase Storage `avatars` bucket), bio, certifications (tags), years of experience, Instagram handle
-- Studio management: platform dropdown, booking type, booking note, default booking URL, iCal link — all set once per studio, auto-inherited by synced classes
-- Sync API: parses native ICS `URL:` field (uses it over studio default when present), stamps `booking_type` and `booking_note` onto every draft
-- Booking context on student page: coloured badges (membership required, app recommended, drop-in welcome) + booking note shown on each class card
-- Publish All button — one tap publishes every pending draft
-- Draft count badge on Add & Drafts tab
+- Basic class cards with Book Spot button linking to studio booking pages
+- Instructor bio information completed
 
 ---
 
@@ -66,7 +62,7 @@ Already built and working:
 | Layer | Tool |
 |---|---|
 | Frontend | Tailwind CSS |
-| Backend / Database | Supabase (PostgreSQL + Auth + Storage), project ID: `ptbemdzqfujbfjiybooj` |
+| Backend / Database | Supabase (PostgreSQL + Auth + Storage) |
 | Hosting | Vercel |
 | Version Control | GitHub |
 | Editor | VS Code + Claude Code |
@@ -74,6 +70,19 @@ Already built and working:
 ---
 
 ## Brand & Visual Identity
+
+### Typography — Confirmed
+
+| Element | Value |
+|---|---|
+| Wordmark font | Cormorant Garamond (Google Fonts) — Georgia as system fallback |
+| Wordmark case | Title case — "Instruktor" |
+| Wordmark weight | 400 (regular) |
+| Letter spacing | 4px |
+| Primary colour | Linen `#F7F3EE` on Espresso `#1A0E07` |
+| Secondary colour | Clay `#C4683A` on Linen `#F7F3EE` |
+| Logo mark | Clay circle `#C4683A` + "Ik" in Espresso on Espresso bg |
+| Favicon | Clay circle on Espresso square |
 
 ### Positioning
 Warm, professional, inviting, direct. The product should feel like a well-designed professional tool that happens to be built for a creative, community-driven industry. Not clinical like a SaaS dashboard. Not soft like a generic wellness app. Confident and approachable — the way a great instructor carries themselves.
@@ -186,7 +195,7 @@ Build in this exact sequence. Do not jump ahead.
 
 ---
 
-### Session 2 — Studio management with default booking URLs ✓ (COMPLETE)
+### Session 2 — Studio management with default booking URLs
 
 Each instructor adds studios to their profile. Each studio record stores:
 - Studio name
@@ -306,23 +315,23 @@ Small, unobtrusive, stone/smoke colour. Does not compete with instructor content
 
 ---
 
-## Supabase Schema — Current State
+## Supabase Schema — Extensions Needed
 
-### Already live (do not recreate)
-
-**profiles** — id, full_name, role, avatar_url, bio, handle, timezone, certifications (text[]), years_experience (int), instagram_handle, calendar_url, default_studio_links, onboarding_completed (still needs adding — see below)
-
-**studios** — id, instructor_id, name, platform, booking_flow, booking_type, booking_note, default_booking_url, default_class_type, calendar_url (= ics feed), location_url, created_at
-> Note: ICS feed URL is stored as `calendar_url` on studios (not `ics_feed_url`)
-
-**classes** — id, instructor_id, class_name, class_type, date_time, booking_url, booking_type, booking_note, studio_name, studio_id, location_url, status ('draft'|'published'), external_uid (unique — used for dedup), is_waitlisted
-
-**Storage bucket** — `avatars` (public, 5MB limit, images only). Path pattern: `{user_id}/avatar.{ext}`
-
-### Still needed (add in future sessions)
+Check existing schema first. Only add what isn't already there.
 
 ```sql
--- Session 4: Email follow mechanic
+CREATE TABLE IF NOT EXISTS studios (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  instructor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  platform TEXT,
+  default_booking_url TEXT,
+  ics_feed_url TEXT,
+  booking_type TEXT DEFAULT 'direct',
+  booking_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS followers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   instructor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
@@ -332,10 +341,9 @@ CREATE TABLE IF NOT EXISTS followers (
   UNIQUE(instructor_id, email)
 );
 
--- Session 5: Click-through tracking
 CREATE TABLE IF NOT EXISTS analytics_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type TEXT NOT NULL, -- 'book_spot_click' | 'page_view' | 'follow'
+  event_type TEXT NOT NULL,
   instructor_id UUID REFERENCES profiles(id),
   class_id UUID REFERENCES classes(id),
   follower_email TEXT,
@@ -344,7 +352,6 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Session 6: Attendance reporting
 CREATE TABLE IF NOT EXISTS attendance_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID REFERENCES classes(id),
@@ -353,9 +360,11 @@ CREATE TABLE IF NOT EXISTS attendance_reports (
   reported_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Session 7: Onboarding tracking
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
 ```
+
+Ensure classes table has: `studio_id`, `booking_url`, `booking_type`, `booking_note`, `status`, `category`, `start_time`.
 
 ---
 
