@@ -5,9 +5,9 @@
 
 ## What We're Building
 
-**Instruktor** is a personal brand and scheduling platform purpose-built for boutique fitness instructors. It consolidates classes from multiple studios into one instructor-owned profile page, giving instructors the professional presence, client ownership, and performance data they need to build careers on their own terms.
+**Instruktor** is a professional scheduling and personal brand platform for boutique fitness instructors. Think LinkedIn for fitness instructors — but with a live, bookable schedule. It gives instructors the professional presence, portable following, and career data they need to build a practice that belongs to them, wherever they teach.
 
-**Mission:** Shift the power dynamic in boutique fitness — from "the instructor is grateful to teach at the studio" to "the studio is grateful to have the instructor."
+**Mission:** Give every fitness instructor the professional infrastructure to own their career — wherever they teach.
 
 **Tagline:** Become an Instruktor.
 
@@ -17,17 +17,30 @@
 
 ## The Problem
 
-Boutique fitness instructors often teach at 2–4 studios simultaneously. Each studio runs its own booking platform (Mindbody, Mariana Tek, etc.). The instructor has no unified presence — their identity and client relationships are fragmented across platforms they don't own. When an instructor leaves a studio, their booking history, reviews, and client relationships stay behind.
+Boutique fitness instructors are skilled professionals who often teach across multiple studios simultaneously. But the infrastructure around them wasn't built with them in mind.
+
+Today, an instructor teaching at three studios has:
+- Three separate booking platforms with no unified presence
+- Client relationships stored on each studio's platform — not portable
+- Reviews and ratings that stay with studios when the instructor moves on
+- No professional profile that travels with them
+- No data to show what they bring to a room
+
+Instruktor builds the professional layer that's been missing.
 
 ---
 
 ## The Solution
 
-A profile page at instruktor.ca/[username] that:
-- Pulls all classes from all studios into one place via ICS calendar sync
-- Belongs to the instructor, not any studio
-- Builds a student following the instructor owns
-- Generates analytics they can take into studio auditions
+A profile page at instruktor.ca/[username] — the instructor's professional home. It:
+- Consolidates classes from all studios into one bookable schedule
+- Builds a student following the instructor carries everywhere they teach
+- Generates performance data portable to any future opportunity
+- Exists independently of any single studio or platform
+
+Studios benefit too. An instructor with a professional profile, a proven following, and trackable fill rates is easier to hire and less of a gamble. Instruktor makes instructors more credible, not more threatening.
+
+**The analogy:** Every photographer has a portfolio. Every musician has a Spotify artist page. Every professional has a LinkedIn. Fitness instructors should have an Instruktor.
 
 ---
 
@@ -35,12 +48,16 @@ A profile page at instruktor.ca/[username] that:
 
 Already built and working:
 - instruktor.ca live with hybrid colour palette applied
-- Instructor authentication and dashboard
-- ICS calendar file upload and parsing
-- Draft class system — pull from ICS, edit, publish
+- Instructor authentication and dashboard (3 tabs: Live Schedule, Add & Drafts, Instructor Settings)
+- ICS calendar file upload and parsing with duplicate detection via `external_uid`
+- Draft class system — pull from ICS, edit, Publish All in one tap
 - Student-facing schedule page at instruktor.ca/[username]
-- Basic class cards with Book Spot button linking to studio booking pages
-- Instructor bio information completed
+- Instructor profile: photo upload (Supabase Storage `avatars` bucket), bio, certifications (tags), years of experience, Instagram handle
+- Studio management: platform dropdown, booking type, booking note, default booking URL, iCal link — all set once per studio, auto-inherited by synced classes
+- Sync API: parses native ICS `URL:` field (uses it over studio default when present), stamps `booking_type` and `booking_note` onto every draft
+- Booking context on student page: coloured badges (membership required, app recommended, drop-in welcome) + booking note shown on each class card
+- Publish All button — one tap publishes every pending draft
+- Draft count badge on Add & Drafts tab
 
 ---
 
@@ -59,11 +76,24 @@ Already built and working:
 ## Brand & Visual Identity
 
 ### Positioning
-Warm, grounded, empowering, inclusive. Not feminine, not techy, not corporate. Premium and distinctive — closer to a high-end wellness brand than a SaaS product. Reference: Kolm Kontrast (kolmkontrast.com) — warm dark aesthetic, not as dark.
+Warm, professional, inviting, direct. The product should feel like a well-designed professional tool that happens to be built for a creative, community-driven industry. Not clinical like a SaaS dashboard. Not soft like a generic wellness app. Confident and approachable — the way a great instructor carries themselves.
+
+Reference aesthetic: Kolm Kontrast (kolmkontrast.com) — warm dark palette, premium but not cold. Not as dark.
+
+### The LinkedIn Parallel
+Instruktor is to fitness instructors what LinkedIn is to professionals. It is not a statement about studios. It is a statement about taking your career seriously. Studios don't feel threatened by instructors having a LinkedIn. They won't feel threatened by instructors having an Instruktor — because it signals professionalism, not defiance.
+
+### Tone
+- **Inviting:** speaks to instructors as accomplished professionals, not underdogs
+- **Warm:** community-first, not corporate
+- **Professional:** clean, direct, no fitness clichés
+- **Direct:** says what it means, no hedging
+
+Avoid: "power shift," "the studio should be grateful," adversarial framing of any kind. The student-studio-instructor relationship is collaborative. Instruktor sits inside that relationship as a professional tool, not against it.
 
 ### Palette — Hybrid Approach
 
-The platform uses dark surfaces for brand/profile moments and light surfaces for functional content. Clay is the universal constant — works on both dark and light backgrounds.
+Dark surfaces for brand/profile moments. Light surfaces for functional content. Clay is the universal constant across both.
 
 **Dark surfaces (hero sections, profile headers, navigation, onboarding):**
 
@@ -116,15 +146,15 @@ colors: {
 ### Hybrid Usage Pattern
 - **Instructor profile header / student page header:** dark (espresso bg, linen text)
 - **Class list / schedule content:** light (linen bg, bark text)
-- **Instructor dashboard:** light (easier to work in)
-- **Onboarding cards:** dark throughout, clay final CTA card
+- **Instructor dashboard:** light
+- **Onboarding cards:** dark throughout, clay final card
 - **Landing page hero:** dark
 - **Landing page content sections:** alternating dark/light
 
 ### Component Patterns
-- **Primary button:** `bg-clay text-linen rounded-xl` — universal
-- **Page background (dark sections):** `bg-espresso`
-- **Page background (light sections):** `bg-linen`
+- **Primary button:** `bg-clay text-linen rounded-xl`
+- **Dark page background:** `bg-espresso`
+- **Light page background:** `bg-linen`
 - **Cards on dark:** `bg-bark border border-white/10 rounded-xl`
 - **Cards on light:** `bg-white border border-sand rounded-xl`
 - **Dark muted text:** `text-smoke`
@@ -136,13 +166,13 @@ colors: {
 ## User Roles
 
 ### Instructor (primary customer — pays subscription)
-Creates and manages their profile. Syncs classes from studios. Publishes their schedule. Shares their instruktor.ca/[username] link on social media.
+Creates and manages their profile. Syncs classes from studios. Publishes their schedule. Shares their instruktor.ca/[username] link.
 
 ### Student (end user — free)
-Views an instructor's schedule page. Clicks Book Spot to be redirected to the studio's booking platform. Can follow an instructor via email to get notified of new classes.
+Views an instructor's page. Clicks Book Spot. Can follow an instructor via email to get notified of new classes.
 
 ### Studio (future — not in MVP)
-Will eventually have accounts to discover and hire instructors based on Instruktor analytics data.
+Will eventually discover and hire instructors through Instruktor. Not adversaries — partners. An instructor with a strong Instruktor profile is a lower-risk hire.
 
 ---
 
@@ -153,164 +183,146 @@ Build in this exact sequence. Do not jump ahead.
 ---
 
 ### Session 1 — Colour system update ✓ (COMPLETE)
-Apply hybrid palette tokens to Tailwind config. Dark header on student-facing page, light body. Dashboard remains light.
 
 ---
 
-### Session 2 — Studio management with default booking URLs
+### Session 2 — Studio management with default booking URLs ✓ (COMPLETE)
 
 Each instructor adds studios to their profile. Each studio record stores:
 - Studio name
-- Platform (Mindbody / Mariana Tek / Other) — dropdown
+- Platform (Mindbody / Mariana Tek / Other)
 - Default booking URL — auto-applied to all classes from this studio on sync
 - ICS feed URL
-- Booking type — dropdown: "Direct link" / "Membership required" / "App recommended" / "Drop-in welcome"
-- Booking note — optional short text (e.g. "Book through the Altea app", "First class free")
+- Booking type: "Direct link" / "Membership required" / "App recommended" / "Drop-in welcome"
+- Booking note — optional short text (e.g. "Book through the Altea app")
 
-**Auto-population logic on sync:**
-When a class is pulled from an ICS feed, it inherits the booking URL, booking type, and booking note from its matching studio automatically. Instructor can override per class but should rarely need to.
+**Auto-population on sync:**
+Classes inherit booking URL, booking type, and booking note from the matched studio. Instructor can override per class but rarely needs to.
 
-Also check ICS events for a native URL property — if present, use that instead of the studio default.
+Check ICS events for a native URL property — if present, use that over the studio default.
 
-**Booking type and note display on student page:**
-Show booking context on each class card so students know what to expect before clicking Book Spot. A student hitting a membership wall with no warning is a broken experience.
+**Booking context on student page:**
+Show booking type and note on each class card. A student hitting a membership wall with no warning is a broken experience.
 
 **Per-class override:**
-Each draft card has an Edit option for class-specific exceptions. Not visible by default — only used when a class differs from the studio default.
+Edit option on each draft for exceptions. Not visible by default.
 
 **Publish All button:**
-Single button to publish all reviewed drafts in one tap. Target: full weekly sync in under 60 seconds.
+One tap to publish all reviewed drafts. Target: full weekly sync under 60 seconds.
 
 **Duplicate detection:**
-Do not create duplicate classes if the instructor pulls their schedule multiple times. Match on class name + start time + studio.
+Match on class name + start time + studio. No duplicates on re-pull.
 
 ---
 
 ### Session 3 — Mobile optimisation
 
-Both the instructor dashboard and instruktor.ca/[username] must be fully responsive and pixel-perfect on mobile. Test on a real phone, not browser dev tools.
+Both dashboard and instruktor.ca/[username] fully responsive, tested on a real phone.
 
-Priority screens:
-- Student-facing profile page (students click from Instagram stories)
-- Pull Latest Schedule flow (instructors manage between classes)
-- Studio management form
-- Publish All confirmation
+Priority screens: student profile page, pull/publish flow, studio management form.
 
-Acceptance test: Hannah can complete the full weekly sync — pull, review, publish — on her phone in under 60 seconds without assistance.
+Acceptance test: Hannah completes full weekly sync on her phone in under 60 seconds without help.
 
 ---
 
 ### Session 4 — Email follow mechanic
 
-On instruktor.ca/[username], below the instructor header:
+On instruktor.ca/[username]:
 - "Follow [Name] — get notified when new classes are added"
-- Single email input + submit button
+- Email input + submit
 - Store: email, instructor_id, created_at, confirmed boolean
+- Confirmation email on submit
+- Notify instructor at follower milestones (1, 10, 25, 50)
+- Notify confirmed followers when instructor publishes new classes
 
-On submit:
-- Send confirmation email to the student
-- On confirm: mark confirmed = true, send welcome message
-- Notify instructor when follower count milestones are hit (first follower, 10, 25, 50)
+Show follower count as a metric on instructor dashboard.
 
-Show follower count on instructor's dashboard as a metric card.
-
-When instructor publishes new classes, send notification email to confirmed followers.
-
-**Do not build full student authentication in this session.** Email capture only.
+No full student authentication in this session. Email capture only.
 
 ---
 
 ### Session 5 — Click-through tracking
 
-Every Book Spot button click must log an analytics event.
-
-Log: `event_type: 'book_spot_click'`, `instructor_id`, `class_id`, `timestamp`, `follower_email` (if available from follow session), `source` (direct / social — infer from referrer)
+Log every Book Spot click: `event_type`, `instructor_id`, `class_id`, `timestamp`, `follower_email` if available, `source`.
 
 Show on instructor dashboard:
-- Book Spot clicks per class
+- Clicks per class
 - Total clicks this week
 - Top class by clicks
 
-This is the foundation of the analytics layer. Instrument it completely even if the full dashboard UI comes later. Retroactive data collection is impossible.
+Instrument completely now even if full dashboard comes later.
 
 ---
 
 ### Session 6 — Post-class attendance prompt
 
-After a class date passes, send the instructor an in-app notification or email:
+After a class date passes, prompt the instructor:
 *"Your [Class Name] was today — how many students attended?"*
 
-Simple number input. Store: class_id, instructor_id, reported_count, reported_at.
+Store: class_id, instructor_id, reported_count, reported_at.
 
-Show on dashboard: reported attendance per class, average fill rate over time.
-
-This feeds the audition analytics portfolio in a future release.
+Show: attendance per class, average fill rate over time.
 
 ---
 
 ### Session 7 — Onboarding card flow
 
-A card carousel shown once to every new instructor after signup, before they reach the dashboard. Cannot be skipped — must complete or it remains on the next login. Re-accessible any time from Settings → "Watch walkthrough again."
+Shown once after signup. Cannot be skipped. Re-accessible from Settings → "Watch walkthrough again."
 
-Six cards in sequence:
-1. "You became an Instruktor." — identity/welcome
-2. "One link. Every class." — core value prop
+Six cards:
+1. "You became an Instruktor." — identity
+2. "One link. Every class." — core value
 3. "Your brand. Your page." — instruktor.ca/[username]
-4. "Your students follow you." — ownership
-5. "We're just getting started." — coming soon preview
-6. "Let's build your profile." — CTA to profile setup
+4. "Your students follow you." — portable following
+5. "We're just getting started." — coming soon
+6. "Let's build your profile." — CTA to setup
 
-Design: dark throughout (espresso bg), clay accent, linen text. Final card: clay background. No skip button. Progress dots (pill shape for active). Swipeable on mobile.
+Dark throughout. Clay final card. No skip button. Progress dots. Swipeable on mobile.
 
-Track: `onboarding_completed boolean` on profiles table.
+Track `onboarding_completed` boolean on profiles table.
 
 ---
 
 ### Session 8 — Viral growth mechanic
 
-On every instruktor.ca/[username] page, add a subtle footer:
+Subtle footer on every student-facing page:
 *"Build your own schedule page — Instruktor.ca"*
 
-Understated — should not compete with the instructor's content. Small text, stone/smoke colour, no button. Just a link.
+Small, unobtrusive, stone/smoke colour. Does not compete with instructor content.
 
 ---
 
-## Parked — Build After MVP
-
-Do not build these now. Architecture should anticipate them.
+## Parked — Post-MVP
 
 - Landing/marketing page (design complete, build after product is stable)
-- Full student accounts with authentication
-- Post-class student reviews (tied to instructor, not studio)
-- Analytics dashboard v2 — shareable audition portfolio
-- Merit-based verification badge (Uber/Airbnb Superhost model)
-- API integrations with Mindbody and Mariana Tek
+- Full student accounts
+- Post-class student reviews (tied to instructor, portable)
+- Analytics dashboard v2 — audition portfolio
+- Merit-based verification badge
+- API integrations (Mindbody, Mariana Tek)
 - Location-based class discovery
 - Studio marketplace
 - Instructor digital product sales
 
 ---
 
-## Supabase Schema — Extensions Needed
+## Supabase Schema — Current State
 
-Check existing schema before touching anything. Only add what isn't already there.
+### Already live (do not recreate)
+
+**profiles** — id, full_name, role, avatar_url, bio, handle, timezone, certifications (text[]), years_experience (int), instagram_handle, calendar_url, default_studio_links, onboarding_completed (still needs adding — see below)
+
+**studios** — id, instructor_id, name, platform, booking_flow, booking_type, booking_note, default_booking_url, default_class_type, calendar_url (= ics feed), location_url, created_at
+> Note: ICS feed URL is stored as `calendar_url` on studios (not `ics_feed_url`)
+
+**classes** — id, instructor_id, class_name, class_type, date_time, booking_url, booking_type, booking_note, studio_name, studio_id, location_url, status ('draft'|'published'), external_uid (unique — used for dedup), is_waitlisted
+
+**Storage bucket** — `avatars` (public, 5MB limit, images only). Path pattern: `{user_id}/avatar.{ext}`
+
+### Still needed (add in future sessions)
 
 ```sql
--- Studios table
-CREATE TABLE IF NOT EXISTS studios (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  instructor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  platform TEXT, -- 'mindbody' | 'mariana_tek' | 'other'
-  default_booking_url TEXT,
-  ics_feed_url TEXT,
-  booking_type TEXT DEFAULT 'direct',
-  -- 'direct' | 'membership_required' | 'app_recommended' | 'dropin_welcome'
-  booking_note TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Followers
+-- Session 4: Email follow mechanic
 CREATE TABLE IF NOT EXISTS followers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   instructor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
@@ -320,11 +332,10 @@ CREATE TABLE IF NOT EXISTS followers (
   UNIQUE(instructor_id, email)
 );
 
--- Analytics events
+-- Session 5: Click-through tracking
 CREATE TABLE IF NOT EXISTS analytics_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type TEXT NOT NULL,
-  -- 'book_spot_click' | 'page_view' | 'follow' | 'attendance_reported'
+  event_type TEXT NOT NULL, -- 'book_spot_click' | 'page_view' | 'follow'
   instructor_id UUID REFERENCES profiles(id),
   class_id UUID REFERENCES classes(id),
   follower_email TEXT,
@@ -333,7 +344,7 @@ CREATE TABLE IF NOT EXISTS analytics_events (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Attendance reports
+-- Session 6: Attendance reporting
 CREATE TABLE IF NOT EXISTS attendance_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   class_id UUID REFERENCES classes(id),
@@ -342,40 +353,37 @@ CREATE TABLE IF NOT EXISTS attendance_reports (
   reported_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Profiles extensions (add only if columns don't exist)
+-- Session 7: Onboarding tracking
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
 ```
-
-Ensure classes table has: `studio_id` (FK to studios), `booking_url` (overrideable), `booking_type` (overrideable), `booking_note` (overrideable), `status` ('draft' | 'published'), `category`, `start_time`.
 
 ---
 
 ## Key Design Principles
 
-**Instructor is the product.** Their name, photo, and brand lead every page. Instruktor branding is secondary on public profiles.
+**Instructor is the product.** Their name, photo, and brand lead every page. Instruktor is the frame, not the feature.
 
-**Mobile is the primary surface.** Design mobile first. Students click from Instagram. Instructors manage between classes.
+**Mobile is the primary surface.** Students click from Instagram. Instructors manage between classes. Design mobile first.
 
-**Reduce every interaction to its minimum.** The weekly sync workflow must take under 60 seconds on mobile. Complexity is a failure of design.
+**Reduce every interaction to its minimum.** Weekly sync must take under 60 seconds. Complexity is a failure of design.
 
-**Own the relationship.** Every feature moves client relationships from the studio to the instructor.
+**Professional by default.** Every screen should feel like a tool a serious professional would use and be proud to share.
 
-**Instrument everything from day one.** Log every click, follow, and view now — even if the dashboard UI comes later. Retroactive collection is impossible.
+**Instrument everything from day one.** Log every click, follow, and view now. Retroactive data collection is impossible.
 
-**Warm over clinical.** Every UI decision favours warmth and approachability. This is a community platform.
+**Warm over clinical.** Community platform, not SaaS dashboard.
 
-**Dark for brand moments, light for work.** Hero sections, profile headers, and onboarding use dark. Dashboards, forms, and class lists use light. Clay is universal.
+**Dark for brand moments, light for work.** Hero sections and onboarding use dark. Dashboards and class lists use light. Clay is universal.
 
 ---
 
-## Instructor Onboarding Flow (Target)
+## Instructor Onboarding Target
 
-1. Sign up → complete onboarding card carousel (not skippable)
-2. Complete profile — photo, bio, certifications
-3. Add studios — name, platform, booking type, booking URL, ICS feed URL
-4. Pull Latest Schedule — classes populate as drafts
-5. Review drafts (most fields auto-populated)
+1. Sign up → onboarding cards (not skippable)
+2. Profile — photo, bio, certifications
+3. Add studios — name, platform, booking type, URL, ICS feed
+4. Pull Latest Schedule
+5. Review drafts (mostly auto-populated)
 6. Publish All
 7. Share instruktor.ca/[username] in Instagram bio
 
@@ -385,18 +393,18 @@ Ensure classes table has: `studio_id` (FK to studios), `booking_url` (overrideab
 
 ## Monetisation
 
-**Current:** Free during beta with early instructors.
+**Current:** Free during beta.
 
-**V1:** $15/month per instructor. Early adopter cohort locks in permanently at a lower rate.
+**V1:** $15/month. Early adopter cohort locks in permanently at a lower rate.
 
-**Future:** Studio marketplace subscription, 2% API booking fee, instructor digital product platform fee.
+**Future:** Studio marketplace subscription, 2% API booking fee, digital product platform fee.
 
 ---
 
-## Success at MVP
+## MVP Success Metrics
 
 - Hannah's full profile live across all 4 studios, clean on mobile
-- 15 Vancouver instructors onboarded within 60 days of beta launch
+- 15 Vancouver instructors onboarded within 60 days
 - Every Book Spot click tracked from day one
 - Instructors returning weekly to pull and publish without prompting
 - At least one instructor shares their page on Instagram and drives measurable traffic
