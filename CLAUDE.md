@@ -13,6 +13,8 @@
 
 **Domain:** instruktor.ca (migrated from mypilates.ca — complete)
 
+**Social:** @beinstruktor on Instagram and TikTok
+
 ---
 
 ## The Problem
@@ -312,6 +314,7 @@ Small, unobtrusive, stone/smoke colour. Does not compete with instructor content
 - Location-based class discovery
 - Studio marketplace
 - Instructor digital product sales
+- Instructor invoicing — auto-generated from class data, GST-aware, Stripe Connect payments between instructors and studios
 
 ---
 
@@ -402,11 +405,13 @@ Ensure classes table has: `studio_id`, `booking_url`, `booking_type`, `booking_n
 
 ## Monetisation
 
-**Current:** Free during beta.
+**Beta (current):** Free. Invite-only. Hannah and small initial cohort.
 
-**V1:** $15/month. Early adopter cohort locks in permanently at a lower rate.
+**Founding Instruktor cohort:** First 50 spots at $9/month locked forever. Opens once instructors are returning weekly without prompting. Founding members get a visible badge on their profile and direct product access. A waitlist for this cohort should be live on the landing page as early as possible.
 
-**Future:** Studio marketplace subscription, 2% API booking fee, digital product platform fee.
+**V1 standard:** $15/month once founding cohort closes.
+
+**Future:** Studio marketplace subscription, 2% API booking fee, instructor invoicing platform fee (Stripe Connect), digital product platform fee.
 
 ---
 
