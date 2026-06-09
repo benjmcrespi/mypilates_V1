@@ -1,14 +1,20 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 export default function InstructorProfile() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const [instructor, setInstructor] = useState(null);
   const [classes, setClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bookingClass, setBookingClass] = useState(null);
+
+  // Follow widget state
+  const [followEmail, setFollowEmail] = useState('');
+  const [followState, setFollowState] = useState('idle'); // idle | submitting | done | confirmed | already | error
+  const followParam = searchParams?.get('follow');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +51,38 @@ export default function InstructorProfile() {
 
     fetchData();
   }, [params]);
+
+  // Show confirmed state if redirected from confirm link
+  useEffect(() => {
+    if (followParam === 'confirmed') setFollowState('confirmed');
+    if (followParam === 'error') setFollowState('error');
+  }, [followParam]);
+
+  const handleFollow = async (e) => {
+    e.preventDefault();
+    if (!followEmail || !instructor) return;
+    setFollowState('submitting');
+
+    const res = await fetch('/api/follow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: followEmail,
+        instructor_id: instructor.id,
+        instructor_name: instructor.full_name,
+        handle: params.handle,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setFollowState('error');
+    } else if (data.status === 'already_following') {
+      setFollowState('already');
+    } else {
+      setFollowState('done');
+    }
+  };
 
   const handleBookClick = (classItem) => {
     // THE INTELLIGENCE: Read the studio database to decide the flow
@@ -115,6 +153,53 @@ export default function InstructorProfile() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* FOLLOW WIDGET */}
+      <div className="bg-linen border-b border-sand py-6 px-4">
+        <div className="max-w-md mx-auto">
+          {followState === 'done' ? (
+            <div className="bg-sage-light border border-sage/30 rounded-xl px-5 py-4 text-center">
+              <p className="text-sage font-semibold text-sm">Check your inbox to confirm your follow.</p>
+              <p className="text-stone text-xs mt-1">You'll get notified when {instructor.full_name?.split(' ')[0]} adds new classes.</p>
+            </div>
+          ) : followState === 'confirmed' ? (
+            <div className="bg-sage-light border border-sage/30 rounded-xl px-5 py-4 text-center">
+              <p className="text-sage font-semibold text-sm">You're now following {instructor.full_name?.split(' ')[0]}!</p>
+              <p className="text-stone text-xs mt-1">You'll get notified when {instructor.full_name?.split(' ')[0]} adds new classes.</p>
+            </div>
+          ) : followState === 'already' ? (
+            <div className="bg-sage-light border border-sage/30 rounded-xl px-5 py-4 text-center">
+              <p className="text-sage font-semibold text-sm">You're already following {instructor.full_name?.split(' ')[0]}.</p>
+            </div>
+          ) : (
+            <form onSubmit={handleFollow} className="flex flex-col sm:flex-row gap-2">
+              <div className="flex-1">
+                <label className="block text-xs font-semibold text-stone uppercase tracking-wider mb-2">
+                  Follow {instructor.full_name?.split(' ')[0]} — get notified when new classes are added
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="your@email.com"
+                  value={followEmail}
+                  onChange={e => setFollowEmail(e.target.value)}
+                  className="w-full border border-sand rounded-lg px-4 py-2.5 text-sm outline-none focus:border-clay bg-white"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={followState === 'submitting'}
+                className="sm:self-end bg-clay text-white font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-clay-dark active:scale-95 transition-all disabled:opacity-60 whitespace-nowrap"
+              >
+                {followState === 'submitting' ? 'Sending...' : 'Follow'}
+              </button>
+            </form>
+          )}
+          {followState === 'error' && (
+            <p className="text-red-600 text-xs mt-2 text-center">Something went wrong. Please try again.</p>
+          )}
+        </div>
       </div>
 
       {/* SCHEDULE FEED */}

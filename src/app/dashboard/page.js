@@ -77,6 +77,7 @@ export default function Dashboard() {
   const [isPublishingAll, setIsPublishingAll] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
+  const [followerCount, setFollowerCount] = useState(null);
 
   const fetchMyClasses = async (userId) => {
     const { data } = await supabase
@@ -85,6 +86,15 @@ export default function Dashboard() {
       .eq('instructor_id', userId)
       .order('date_time', { ascending: true });
     if (data) setMyClasses(data);
+  };
+
+  const fetchFollowerCount = async (userId) => {
+    const { count } = await supabase
+      .from('followers')
+      .select('*', { count: 'exact', head: true })
+      .eq('instructor_id', userId)
+      .eq('confirmed', true);
+    setFollowerCount(count ?? 0);
   };
 
   const fetchSavedStudios = async () => {
@@ -108,6 +118,7 @@ export default function Dashboard() {
 
       fetchSavedStudios();
       fetchMyClasses(session.user.id);
+      fetchFollowerCount(session.user.id);
 
       const { data: profileData } = await supabase
         .from('profiles')
@@ -291,6 +302,16 @@ export default function Dashboard() {
       setSuccessMessage(`${ids.length} class${ids.length > 1 ? 'es' : ''} published to your live schedule!`);
       setTimeout(() => setSuccessMessage(''), 4000);
       fetchMyClasses(user.id);
+
+      // Notify confirmed followers about new classes (fire and forget)
+      if (followerCount > 0) {
+        const { data: { session } } = await supabase.auth.getSession();
+        fetch('/api/notify-followers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+          body: JSON.stringify({ classIds: ids }),
+        }).catch(err => console.error('Notify followers failed:', err));
+      }
     } else {
       alert("Error publishing: " + error.message);
     }
@@ -434,6 +455,33 @@ export default function Dashboard() {
 
         {/* ══ LIVE SCHEDULE TAB ══ */}
         {activeTab === 'schedule' && (
+          <div className="space-y-6">
+
+          {/* Follower count metric */}
+          {followerCount !== null && (
+            <div className="flex items-center gap-4 bg-white rounded-xl border border-sand p-5 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-clay-light flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-clay" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-bark leading-none">{followerCount}</p>
+                <p className="text-xs text-stone uppercase tracking-wider mt-0.5">Confirmed follower{followerCount !== 1 ? 's' : ''}</p>
+              </div>
+              {profile?.handle && (
+                <a
+                  href={`/${profile.handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-xs font-semibold text-clay hover:underline"
+                >
+                  View your page →
+                </a>
+              )}
+            </div>
+          )}
+
           <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
 
@@ -493,6 +541,7 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+          </div>
           </div>
         )}
 
