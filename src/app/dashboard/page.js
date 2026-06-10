@@ -6,6 +6,15 @@ import Autocomplete from 'react-google-autocomplete';
 
 const CLASS_TYPES = ['Mat Pilates', 'Reformer Pilates', 'Stretch and Mobility', 'Yoga'];
 
+function inferClassType(className) {
+  const name = (className || '').toLowerCase();
+  if (name.includes('reformer')) return 'Reformer Pilates';
+  if (name.includes('mat')) return 'Mat Pilates';
+  if (name.includes('yoga') || name.includes('vinyasa') || name.includes('flow')) return 'Yoga';
+  if (name.includes('stretch') || name.includes('mobility') || name.includes('flex')) return 'Stretch and Mobility';
+  return '';
+}
+
 const PLATFORMS = [
   { value: '', label: 'Select platform...' },
   { value: 'mindbody', label: 'Mindbody' },
@@ -48,6 +57,7 @@ export default function Dashboard() {
   const formRef = useRef(null);
 
   const [editingDraftId, setEditingDraftId] = useState(null);
+  const [categoryAutoSet, setCategoryAutoSet] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
 
   const [classData, setClassData] = useState({
@@ -78,6 +88,7 @@ export default function Dashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
   const [followerCount, setFollowerCount] = useState(null);
+  const [clickStats, setClickStats] = useState({ total: 0, weekTotal: 0, perClass: {}, topClassId: null, topCount: 0 });
 
   const fetchMyClasses = async (userId) => {
     const { data } = await supabase
@@ -95,6 +106,33 @@ export default function Dashboard() {
       .eq('instructor_id', userId)
       .eq('confirmed', true);
     setFollowerCount(count ?? 0);
+  };
+
+  const fetchClickStats = async (userId) => {
+    const { data } = await supabase
+      .from('analytics_events')
+      .select('class_id, created_at')
+      .eq('instructor_id', userId)
+      .eq('event_type', 'book_spot_click');
+
+    if (!data) return;
+
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const perClass = {};
+    let weekTotal = 0;
+
+    data.forEach(ev => {
+      perClass[ev.class_id] = (perClass[ev.class_id] || 0) + 1;
+      if (new Date(ev.created_at) >= weekAgo) weekTotal++;
+    });
+
+    let topClassId = null;
+    let topCount = 0;
+    Object.entries(perClass).forEach(([id, count]) => {
+      if (count > topCount) { topCount = count; topClassId = id; }
+    });
+
+    setClickStats({ total: data.length, weekTotal, perClass, topClassId, topCount });
   };
 
   const fetchSavedStudios = async () => {
@@ -119,6 +157,7 @@ export default function Dashboard() {
       fetchSavedStudios();
       fetchMyClasses(session.user.id);
       fetchFollowerCount(session.user.id);
+      fetchClickStats(session.user.id);
 
       const { data: profileData } = await supabase
         .from('profiles')
@@ -167,8 +206,10 @@ export default function Dashboard() {
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
 
+    const resolvedType = draft.class_type !== 'TBD' ? draft.class_type : inferClassType(draft.class_name);
+
     setClassData({
-      classType: draft.class_type !== 'TBD' ? draft.class_type : '',
+      classType: resolvedType,
       className: draft.class_name,
       dateTime: localISOTime,
       bookingUrl: draft.booking_url || '',
@@ -177,12 +218,14 @@ export default function Dashboard() {
       studioName: matchedStudio.name,
       locationUrl: matchedStudio.location_url || '',
     });
+    setCategoryAutoSet(draft.class_type === 'TBD');
 
     setEditingDraftId(draft.id);
   };
 
   const cancelEdit = () => {
     setEditingDraftId(null);
+    setCategoryAutoSet(true);
     setClassData({
       classType: '', className: '', dateTime: '',
       bookingUrl: '', bookingType: 'direct', bookingNote: '',
@@ -482,6 +525,28 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* Click-through metrics */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl border border-sand p-5 shadow-sm">
+              <p className="text-2xl font-bold text-bark leading-none">{clickStats.total}</p>
+              <p className="text-xs text-stone uppercase tracking-wider mt-1.5">Total Book Spot clicks</p>
+            </div>
+            <div className="bg-white rounded-xl border border-sand p-5 shadow-sm">
+              <p className="text-2xl font-bold text-bark leading-none">{clickStats.weekTotal}</p>
+              <p className="text-xs text-stone uppercase tracking-wider mt-1.5">Clicks this week</p>
+            </div>
+            <div className="bg-white rounded-xl border border-sand p-5 shadow-sm col-span-2 sm:col-span-1">
+              <p className="text-2xl font-bold text-bark leading-none truncate">
+                {clickStats.topClassId
+                  ? (myClasses.find(c => c.id === clickStats.topClassId)?.class_name || '—')
+                  : '—'}
+              </p>
+              <p className="text-xs text-stone uppercase tracking-wider mt-1.5">
+                Top class{clickStats.topCount > 0 ? ` · ${clickStats.topCount} click${clickStats.topCount !== 1 ? 's' : ''}` : ''}
+              </p>
+            </div>
+          </div>
+
           <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
 
@@ -495,6 +560,11 @@ export default function Dashboard() {
                       <div className="flex items-center space-x-3 mb-1">
                         <h4 className="font-bold text-lg text-bark">{c.class_name}</h4>
                         <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">{c.class_type}</span>
+                        {clickStats.perClass[c.id] > 0 && (
+                          <span className="text-xs font-medium bg-sage-light text-sage px-2 py-0.5 rounded border border-sage/30">
+                            {clickStats.perClass[c.id]} click{clickStats.perClass[c.id] !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-stone">
                         {new Date(c.date_time).toLocaleDateString('en-US', { timeZone: tz })} • {new Date(c.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: tz })} @ {c.studio_name}
@@ -619,7 +689,15 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Specific Class Name</label>
                   <input type="text" value={classData.className}
-                    onChange={e => setClassData({ ...classData, className: e.target.value })}
+                    onChange={e => {
+                      const className = e.target.value;
+                      const inferred = inferClassType(className);
+                      if (categoryAutoSet && inferred) {
+                        setClassData({ ...classData, className, classType: inferred });
+                      } else {
+                        setClassData({ ...classData, className });
+                      }
+                    }}
                     required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
                 </div>
 
@@ -627,7 +705,10 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium mb-1">Category & Studio</label>
                   <div className="grid grid-cols-2 gap-4">
                     <select value={classData.classType}
-                      onChange={e => setClassData({ ...classData, classType: e.target.value })}
+                      onChange={e => {
+                        setCategoryAutoSet(false);
+                        setClassData({ ...classData, classType: e.target.value });
+                      }}
                       required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
                       <option value="" disabled>Select Category...</option>
                       {CLASS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}

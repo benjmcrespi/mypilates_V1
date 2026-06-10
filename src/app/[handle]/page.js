@@ -85,6 +85,18 @@ export default function InstructorProfile() {
   };
 
   const handleBookClick = (classItem) => {
+    // Log the click — fire and forget, never block the booking flow
+    fetch('/api/track-click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instructor_id: instructor.id,
+        class_id: classItem.id,
+        follower_email: followEmail || null,
+        source: 'profile_page',
+      }),
+    }).catch(() => {});
+
     // THE INTELLIGENCE: Read the studio database to decide the flow
     const flow = classItem.studios?.booking_flow || 'direct_route';
 
