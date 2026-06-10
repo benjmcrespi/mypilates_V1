@@ -3,6 +3,42 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useParams, useSearchParams } from 'next/navigation';
 
+const WEEKDAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+// Returns { year, month, day, weekday } for a date as observed in the given timezone
+function getTZDateParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(date);
+  const obj = {};
+  parts.forEach(p => { if (p.type !== 'literal') obj[p.type] = p.value; });
+  return obj;
+}
+
+// Groups classes into "this week" (through Sunday), "next week" (Mon-Sun), and "later",
+// based on calendar days in the instructor's timezone.
+function groupClassesByWeek(classes, timeZone) {
+  const todayParts = getTZDateParts(new Date(), timeZone);
+  const todayUTC = Date.UTC(+todayParts.year, +todayParts.month - 1, +todayParts.day);
+  const todayDow = WEEKDAY_INDEX[todayParts.weekday] ?? 0;
+  const thisWeekEnd = 6 - todayDow; // days from today through Sunday
+  const nextWeekEnd = thisWeekEnd + 7;
+
+  const groups = { thisWeek: [], nextWeek: [], later: [] };
+
+  classes.forEach((c) => {
+    const cParts = getTZDateParts(new Date(c.date_time), timeZone);
+    const cUTC = Date.UTC(+cParts.year, +cParts.month - 1, +cParts.day);
+    const dayOffset = Math.round((cUTC - todayUTC) / 86400000);
+
+    if (dayOffset <= thisWeekEnd) groups.thisWeek.push(c);
+    else if (dayOffset <= nextWeekEnd) groups.nextWeek.push(c);
+    else groups.later.push(c);
+  });
+
+  return groups;
+}
+
 export default function InstructorProfile() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -10,6 +46,7 @@ export default function InstructorProfile() {
   const [classes, setClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bookingClass, setBookingClass] = useState(null);
+  const [showLater, setShowLater] = useState(false);
 
   // Follow widget state
   const [followEmail, setFollowEmail] = useState('');
@@ -223,70 +260,50 @@ export default function InstructorProfile() {
             No upcoming classes scheduled right now.
           </div>
         ) : (
-          <div className="space-y-4">
-            {classes.map((c) => (
-              <div key={c.id} className="bg-white rounded-xl shadow-sm border border-sand p-5 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-all">
-                <div className="mb-4 sm:mb-0">
-                  <div className="flex items-center flex-wrap gap-2 mb-1.5">
-                    <h3 className="text-lg font-bold leading-tight">{c.class_name}</h3>
-                    <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">
-                      {c.class_type}
-                    </span>
-                    {c.booking_type === 'membership_required' && (
-                      <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">Membership required</span>
-                    )}
-                    {c.booking_type === 'app_recommended' && (
-                      <span className="text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">Book via app</span>
-                    )}
-                    {c.booking_type === 'dropin_welcome' && (
-                      <span className="text-xs font-medium bg-sage-light text-sage border border-sage/30 px-2 py-0.5 rounded">Drop-in welcome</span>
+          (() => {
+            const tz = instructor.timezone || 'America/Vancouver';
+            const { thisWeek, nextWeek, later } = groupClassesByWeek(classes, tz);
+
+            return (
+              <div className="space-y-8">
+                {thisWeek.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-stone uppercase tracking-wider">This Week</h3>
+                    {thisWeek.map((c) => (
+                      <ClassCard key={c.id} c={c} tz={tz} handleBookClick={handleBookClick} />
+                    ))}
+                  </div>
+                )}
+
+                {nextWeek.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Next Week</h3>
+                    {nextWeek.map((c) => (
+                      <ClassCard key={c.id} c={c} tz={tz} handleBookClick={handleBookClick} />
+                    ))}
+                  </div>
+                )}
+
+                {later.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Later</h3>
+                    {showLater ? (
+                      later.map((c) => (
+                        <ClassCard key={c.id} c={c} tz={tz} handleBookClick={handleBookClick} />
+                      ))
+                    ) : (
+                      <button
+                        onClick={() => setShowLater(true)}
+                        className="w-full bg-white border border-sand text-stone font-semibold text-sm py-3 rounded-lg hover:bg-clay-light hover:text-bark transition-colors"
+                      >
+                        Show {later.length} more class{later.length !== 1 ? 'es' : ''}
+                      </button>
                     )}
                   </div>
-                  <p className="text-stone text-sm sm:text-base">
-  {new Date(c.date_time).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-    timeZone: instructor.timezone || 'America/Vancouver'
-  })}
-  <span className="mx-1">•</span>
-  {new Date(c.date_time).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit',
-    timeZone: instructor.timezone || 'America/Vancouver'
-  })}
-</p>
-
-                  <a
-                    href={c.studios?.location_url || c.location_url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block text-sm text-stone hover:text-bark font-medium mt-2 underline decoration-dotted"
-                  >
-                    📍 {c.studios?.name || c.studio_name}
-                  </a>
-
-                  {c.booking_note && (
-                    <p className="text-xs text-stone mt-1.5 italic">{c.booking_note}</p>
-                  )}
-                </div>
-
-                {/* DYNAMIC BUTTON: Checks if the class is waitlisted */}
-                {c.is_waitlisted ? (
-                  <button
-                    onClick={() => handleBookClick(c)}
-                    className="w-full sm:w-auto bg-sand text-stone font-bold py-3.5 px-8 rounded-lg hover:bg-sand/70 hover:text-bark active:scale-[0.98] transition-all"
-                  >
-                    Join Waitlist
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleBookClick(c)}
-                    className="w-full sm:w-auto bg-clay text-white font-bold py-3.5 px-8 rounded-lg hover:bg-clay-dark active:scale-[0.98] transition-all"
-                  >
-                    Book Spot
-                  </button>
                 )}
               </div>
-            ))}
-          </div>
+            );
+          })()
         )}
       </main>
 
@@ -340,6 +357,71 @@ export default function InstructorProfile() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function ClassCard({ c, tz, handleBookClick }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-sand p-5 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-all">
+      <div className="mb-4 sm:mb-0">
+        <div className="flex items-center flex-wrap gap-2 mb-1.5">
+          <h3 className="text-lg font-bold leading-tight">{c.class_name}</h3>
+          <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">
+            {c.class_type}
+          </span>
+          {c.booking_type === 'membership_required' && (
+            <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">Membership required</span>
+          )}
+          {c.booking_type === 'app_recommended' && (
+            <span className="text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">Book via app</span>
+          )}
+          {c.booking_type === 'dropin_welcome' && (
+            <span className="text-xs font-medium bg-sage-light text-sage border border-sage/30 px-2 py-0.5 rounded">Drop-in welcome</span>
+          )}
+        </div>
+        <p className="text-stone text-sm sm:text-base">
+          {new Date(c.date_time).toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric',
+            timeZone: tz
+          })}
+          <span className="mx-1">•</span>
+          {new Date(c.date_time).toLocaleTimeString('en-US', {
+            hour: 'numeric', minute: '2-digit',
+            timeZone: tz
+          })}
+        </p>
+
+        <a
+          href={c.studios?.location_url || c.location_url || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-sm text-stone hover:text-bark font-medium mt-2 underline decoration-dotted"
+        >
+          📍 {c.studios?.name || c.studio_name}
+        </a>
+
+        {c.booking_note && (
+          <p className="text-xs text-stone mt-1.5 italic">{c.booking_note}</p>
+        )}
+      </div>
+
+      {/* DYNAMIC BUTTON: Checks if the class is waitlisted */}
+      {c.is_waitlisted ? (
+        <button
+          onClick={() => handleBookClick(c)}
+          className="w-full sm:w-auto bg-sand text-stone font-bold py-3.5 px-8 rounded-lg hover:bg-sand/70 hover:text-bark active:scale-[0.98] transition-all"
+        >
+          Join Waitlist
+        </button>
+      ) : (
+        <button
+          onClick={() => handleBookClick(c)}
+          className="w-full sm:w-auto bg-clay text-white font-bold py-3.5 px-8 rounded-lg hover:bg-clay-dark active:scale-[0.98] transition-all"
+        >
+          Book Spot
+        </button>
       )}
     </div>
   );

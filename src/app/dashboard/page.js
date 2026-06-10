@@ -15,6 +15,42 @@ function inferClassType(className) {
   return '';
 }
 
+const WEEKDAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+
+// Returns { year, month, day, weekday } for a date as observed in the given timezone
+function getTZDateParts(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone, year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(date);
+  const obj = {};
+  parts.forEach(p => { if (p.type !== 'literal') obj[p.type] = p.value; });
+  return obj;
+}
+
+// Groups items with a date_time into "this week" (through Sunday), "next week" (Mon-Sun), and "later",
+// based on calendar days in the given timezone.
+function groupByWeek(items, timeZone) {
+  const todayParts = getTZDateParts(new Date(), timeZone);
+  const todayUTC = Date.UTC(+todayParts.year, +todayParts.month - 1, +todayParts.day);
+  const todayDow = WEEKDAY_INDEX[todayParts.weekday] ?? 0;
+  const thisWeekEnd = 6 - todayDow; // days from today through Sunday
+  const nextWeekEnd = thisWeekEnd + 7;
+
+  const groups = { thisWeek: [], nextWeek: [], later: [] };
+
+  items.forEach((item) => {
+    const itemParts = getTZDateParts(new Date(item.date_time), timeZone);
+    const itemUTC = Date.UTC(+itemParts.year, +itemParts.month - 1, +itemParts.day);
+    const dayOffset = Math.round((itemUTC - todayUTC) / 86400000);
+
+    if (dayOffset <= thisWeekEnd) groups.thisWeek.push(item);
+    else if (dayOffset <= nextWeekEnd) groups.nextWeek.push(item);
+    else groups.later.push(item);
+  });
+
+  return groups;
+}
+
 const PLATFORMS = [
   { value: '', label: 'Select platform...' },
   { value: 'mindbody', label: 'Mindbody' },
@@ -85,6 +121,9 @@ export default function Dashboard() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishingAll, setIsPublishingAll] = useState(false);
+  const [isPublishingSelected, setIsPublishingSelected] = useState(false);
+  const [selectedDraftIds, setSelectedDraftIds] = useState([]);
+  const [showLaterDrafts, setShowLaterDrafts] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
   const [followerCount, setFollowerCount] = useState(null);
@@ -291,6 +330,7 @@ export default function Dashboard() {
       setSuccessMessage('Class removed successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
       fetchMyClasses(user.id);
+      setSelectedDraftIds(prev => prev.filter(id => id !== classId));
       if (editingDraftId === classId) cancelEdit();
     }
     setIsSaving(false);
@@ -332,19 +372,14 @@ export default function Dashboard() {
     setIsSaving(false);
   };
 
-  // ── Publish All ──────────────────────────────────────────────────────────────
-  const handlePublishAll = async () => {
-    const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
-    if (drafts.length === 0) return;
-    if (!window.confirm(`Publish all ${drafts.length} draft${drafts.length > 1 ? 's' : ''} to your live schedule?`)) return;
-
-    setIsPublishingAll(true);
-    const ids = drafts.map(d => d.id);
+  // ── Publish helpers ──────────────────────────────────────────────────────────
+  const publishClassIds = async (ids) => {
     const { error } = await supabase.from('classes').update({ status: 'published' }).in('id', ids);
     if (!error) {
       setSuccessMessage(`${ids.length} class${ids.length > 1 ? 'es' : ''} published to your live schedule!`);
       setTimeout(() => setSuccessMessage(''), 4000);
       fetchMyClasses(user.id);
+      setSelectedDraftIds(prev => prev.filter(id => !ids.includes(id)));
 
       // Notify confirmed followers about new classes (fire and forget)
       if (followerCount > 0) {
@@ -358,7 +393,29 @@ export default function Dashboard() {
     } else {
       alert("Error publishing: " + error.message);
     }
+  };
+
+  const handlePublishAll = async () => {
+    const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
+    if (drafts.length === 0) return;
+    if (!window.confirm(`Publish all ${drafts.length} draft${drafts.length > 1 ? 's' : ''} to your live schedule?`)) return;
+
+    setIsPublishingAll(true);
+    await publishClassIds(drafts.map(d => d.id));
     setIsPublishingAll(false);
+  };
+
+  const handlePublishSelected = async () => {
+    if (selectedDraftIds.length === 0) return;
+    if (!window.confirm(`Publish ${selectedDraftIds.length} selected draft${selectedDraftIds.length > 1 ? 's' : ''} to your live schedule?`)) return;
+
+    setIsPublishingSelected(true);
+    await publishClassIds(selectedDraftIds);
+    setIsPublishingSelected(false);
+  };
+
+  const toggleDraftSelection = (id) => {
+    setSelectedDraftIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   // ── Profile / avatar ─────────────────────────────────────────────────────────
@@ -630,10 +687,18 @@ export default function Dashboard() {
               </button>
 
               {pendingDrafts.length > 0 && (
-                <button onClick={handlePublishAll} disabled={isPublishingAll}
-                  className="w-full bg-clay text-white font-bold py-3 rounded-lg mb-6 shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
-                  {isPublishingAll ? "Publishing..." : `✓ Publish All ${pendingDrafts.length} Drafts`}
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                  <button onClick={handlePublishAll} disabled={isPublishingAll || isPublishingSelected}
+                    className="flex-1 bg-clay text-white font-bold py-3 rounded-lg shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
+                    {isPublishingAll ? "Publishing..." : `✓ Publish All ${pendingDrafts.length} Drafts`}
+                  </button>
+                  {selectedDraftIds.length > 0 && (
+                    <button onClick={handlePublishSelected} disabled={isPublishingAll || isPublishingSelected}
+                      className="flex-1 bg-bark text-white font-bold py-3 rounded-lg shadow-sm hover:bg-espresso transition-colors disabled:opacity-50">
+                      {isPublishingSelected ? "Publishing..." : `Publish Selected (${selectedDraftIds.length})`}
+                    </button>
+                  )}
+                </div>
               )}
 
               {!pendingDrafts.length && <div className="mb-6" />}
@@ -643,34 +708,54 @@ export default function Dashboard() {
                   No pending drafts. You're all caught up!
                 </div>
               ) : (
-                <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                  {pendingDrafts.map((c) => (
-                    <div key={c.id} className="bg-white p-4 rounded-lg border border-sand text-sm flex justify-between items-center shadow-sm">
-                      <div className="pr-4 min-w-0">
-                        <p className="font-bold truncate">{c.class_name}</p>
-                        <p className="text-stone text-xs mt-0.5">
-                          {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })}
-                          {' '}@ {c.studio_name || 'Pending Studio'}
-                        </p>
-                        {c.booking_type && c.booking_type !== 'direct' && (
-                          <span className="inline-block mt-1 text-[10px] font-medium bg-sand text-stone px-2 py-0.5 rounded-full">
-                            {BOOKING_TYPES.find(bt => bt.value === c.booking_type)?.label}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => handleDeleteClass(c.id)}
-                          className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors">
-                          Delete
-                        </button>
-                        <button onClick={() => handleEditDraft(c)}
-                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors">
-                          Edit
-                        </button>
-                      </div>
+                (() => {
+                  const { thisWeek, nextWeek, later } = groupByWeek(pendingDrafts, tz);
+                  return (
+                    <div className="max-h-[600px] overflow-y-auto pr-2 space-y-5">
+                      {thisWeek.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold text-stone uppercase tracking-wider">This Week</h3>
+                          {thisWeek.map((c) => (
+                            <DraftRow key={c.id} c={c} tz={tz} isSelected={selectedDraftIds.includes(c.id)}
+                              onToggle={() => toggleDraftSelection(c.id)}
+                              onDelete={() => handleDeleteClass(c.id)} onEdit={() => handleEditDraft(c)} />
+                          ))}
+                        </div>
+                      )}
+
+                      {nextWeek.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Next Week</h3>
+                          {nextWeek.map((c) => (
+                            <DraftRow key={c.id} c={c} tz={tz} isSelected={selectedDraftIds.includes(c.id)}
+                              onToggle={() => toggleDraftSelection(c.id)}
+                              onDelete={() => handleDeleteClass(c.id)} onEdit={() => handleEditDraft(c)} />
+                          ))}
+                        </div>
+                      )}
+
+                      {later.length > 0 && (
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Later</h3>
+                          {showLaterDrafts ? (
+                            later.map((c) => (
+                              <DraftRow key={c.id} c={c} tz={tz} isSelected={selectedDraftIds.includes(c.id)}
+                                onToggle={() => toggleDraftSelection(c.id)}
+                                onDelete={() => handleDeleteClass(c.id)} onEdit={() => handleEditDraft(c)} />
+                            ))
+                          ) : (
+                            <button
+                              onClick={() => setShowLaterDrafts(true)}
+                              className="w-full bg-white border border-sand text-stone font-semibold text-sm py-3 rounded-lg hover:bg-linen hover:text-bark transition-colors"
+                            >
+                              Show {later.length} more draft{later.length !== 1 ? 's' : ''}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()
               )}
             </div>
 
@@ -1002,6 +1087,39 @@ export default function Dashboard() {
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
+function DraftRow({ c, tz, isSelected, onToggle, onDelete, onEdit }) {
+  return (
+    <div className={`bg-white p-4 rounded-lg border text-sm flex justify-between items-center shadow-sm transition-colors ${isSelected ? 'border-clay ring-2 ring-clay/20' : 'border-sand'}`}>
+      <div className="flex items-center gap-3 pr-4 min-w-0">
+        <input type="checkbox" checked={isSelected} onChange={onToggle}
+          className="w-4 h-4 shrink-0 accent-clay cursor-pointer" />
+        <div className="min-w-0">
+          <p className="font-bold truncate">{c.class_name}</p>
+          <p className="text-stone text-xs mt-0.5">
+            {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })}
+            {' '}@ {c.studio_name || 'Pending Studio'}
+          </p>
+          {c.booking_type && c.booking_type !== 'direct' && (
+            <span className="inline-block mt-1 text-[10px] font-medium bg-sand text-stone px-2 py-0.5 rounded-full">
+              {BOOKING_TYPES.find(bt => bt.value === c.booking_type)?.label}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2 shrink-0">
+        <button onClick={onDelete}
+          className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors">
+          Delete
+        </button>
+        <button onClick={onEdit}
+          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors">
+          Edit
+        </button>
       </div>
     </div>
   );
