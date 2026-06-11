@@ -41,7 +41,7 @@ export default function Navbar() {
       <div className="max-w-4xl mx-auto flex justify-between items-center">
 
         {/* THE BRAND: Always takes you home */}
-        <Link href="/" className="text-xl font-bold tracking-tight text-bark hover:opacity-70 transition-opacity">
+        <Link href="/" className="font-wordmark text-2xl tracking-[4px] text-bark hover:opacity-70 transition-opacity">
           Instruktor
         </Link>
 
