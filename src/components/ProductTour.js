@@ -39,7 +39,7 @@ const TOUR_STEPS = [
     },
   },
   {
-    tab: 'add',
+    tab: 'schedule',
     element: '[data-tour="analytics-cards"]',
     popover: {
       title: 'Your Analytics',
