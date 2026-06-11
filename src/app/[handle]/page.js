@@ -39,6 +39,13 @@ function groupClassesByWeek(classes, timeZone) {
   return groups;
 }
 
+function truncateBio(bio, maxLength) {
+  if (bio.length <= maxLength) return bio;
+  const truncated = bio.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return (lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated).trimEnd() + '…';
+}
+
 export default function InstructorProfile() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -47,6 +54,7 @@ export default function InstructorProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [bookingClass, setBookingClass] = useState(null);
   const [showLater, setShowLater] = useState(false);
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   // Follow widget state
   const [followEmail, setFollowEmail] = useState('');
@@ -188,9 +196,27 @@ export default function InstructorProfile() {
           </div>
         )}
 
-        <p className="text-smoke max-w-md mx-auto mt-3 text-sm leading-relaxed">
-          {instructor.bio || "Welcome to my schedule! View upcoming classes and book your spot below."}
-        </p>
+        {(() => {
+          const bio = instructor.bio || "Welcome to my schedule! View upcoming classes and book your spot below.";
+          const isLong = bio.length > 200;
+          return (
+            <p className="text-smoke max-w-md mx-auto mt-3 text-sm leading-relaxed">
+              {isLong && !bioExpanded ? truncateBio(bio, 200) : bio}
+              {isLong && (
+                <>
+                  {' '}
+                  <button
+                    type="button"
+                    onClick={() => setBioExpanded(!bioExpanded)}
+                    className="text-clay font-medium hover:underline"
+                  >
+                    {bioExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                </>
+              )}
+            </p>
+          );
+        })()}
 
         {/* Certifications */}
         {instructor.certifications?.length > 0 && (
