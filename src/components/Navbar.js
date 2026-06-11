@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
+  const [handle, setHandle] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -14,12 +15,21 @@ export default function Navbar() {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
+      if (session?.user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('handle')
+          .eq('id', session.user.id)
+          .single();
+        setHandle(data?.handle || null);
+      }
     };
     checkUser();
 
     // Listen silently in the background for logins/logouts
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
+      if (!session?.user) setHandle(null);
     });
 
     return () => subscription.unsubscribe();
@@ -56,7 +66,7 @@ export default function Navbar() {
                 </Link>
               )}
               {pathname === '/dashboard' && (
-                <Link href="/" data-tour="view-live-site" className="text-sm font-semibold text-stone hover:text-bark transition-colors">
+                <Link href={handle ? `/${handle}` : '/'} data-tour="view-live-site" className="text-sm font-semibold text-stone hover:text-bark transition-colors">
                   View Live Site
                 </Link>
               )}
