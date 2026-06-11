@@ -22,3 +22,83 @@ body {
 .font-wordmark {
   font-family: var(--font-cormorant), Georgia, serif;
 }
+
+/* Product tour (Driver.js) — branded espresso/linen/clay styling */
+.instruktor-tour-popover.driver-popover {
+  background-color: var(--color-espresso);
+  color: var(--color-linen);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.instruktor-tour-popover .driver-popover-title {
+  color: var(--color-linen);
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+}
+
+.instruktor-tour-popover .driver-popover-description {
+  color: var(--color-smoke);
+}
+
+.instruktor-tour-popover .driver-popover-progress-text {
+  color: var(--color-smoke);
+}
+
+.instruktor-tour-popover .driver-popover-close-btn {
+  color: var(--color-smoke);
+}
+
+.instruktor-tour-popover .driver-popover-close-btn:hover,
+.instruktor-tour-popover .driver-popover-close-btn:focus {
+  color: var(--color-linen);
+}
+
+.instruktor-tour-popover .driver-popover-footer button {
+  background-color: var(--color-clay);
+  color: var(--color-linen);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+.instruktor-tour-popover .driver-popover-footer button:hover,
+.instruktor-tour-popover .driver-popover-footer button:focus {
+  background-color: var(--color-clay-dark);
+}
+
+.instruktor-tour-popover .driver-popover-footer .driver-popover-btn-disabled {
+  background-color: var(--color-bark);
+  color: var(--color-smoke);
+}
+
+.instruktor-tour-popover .driver-popover-arrow {
+  border-color: var(--color-espresso);
+}
+
+.instruktor-tour-popover .driver-popover-arrow-side-left {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-top-color: transparent;
+}
+
+.instruktor-tour-popover .driver-popover-arrow-side-right {
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  border-top-color: transparent;
+}
+
+.instruktor-tour-popover .driver-popover-arrow-side-top {
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+
+.instruktor-tour-popover .driver-popover-arrow-side-bottom {
+  border-left-color: transparent;
+  border-top-color: transparent;
+  border-right-color: transparent;
+}

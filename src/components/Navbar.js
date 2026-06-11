@@ -56,7 +56,7 @@ export default function Navbar() {
                 </Link>
               )}
               {pathname === '/dashboard' && (
-                <Link href="/" className="text-sm font-semibold text-stone hover:text-bark transition-colors">
+                <Link href="/" data-tour="view-live-site" className="text-sm font-semibold text-stone hover:text-bark transition-colors">
                   View Live Site
                 </Link>
               )}

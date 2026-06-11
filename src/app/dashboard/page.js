@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Autocomplete from 'react-google-autocomplete';
 import OnboardingFlow from '@/components/OnboardingFlow';
+import { startProductTour } from '@/components/ProductTour';
 
 const CLASS_TYPES = ['Mat Pilates', 'Reformer Pilates', 'Stretch and Mobility', 'Yoga'];
 
@@ -132,6 +133,7 @@ export default function Dashboard() {
   const [myClasses, setMyClasses] = useState([]);
   const [followerCount, setFollowerCount] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const tourStartedRef = useRef(false);
   const [clickStats, setClickStats] = useState({ total: 0, weekTotal: 0, perClass: {}, topClassId: null, topCount: 0 });
 
   const fetchMyClasses = async (userId) => {
@@ -467,6 +469,25 @@ export default function Dashboard() {
     }
   };
 
+  const markTourCompleted = async () => {
+    if (profile?.tour_completed) return;
+    await supabase.from('profiles').update({ tour_completed: true }).eq('id', user.id);
+    setProfile(prev => ({ ...prev, tour_completed: true }));
+  };
+
+  const handleStartTour = () => {
+    startProductTour({ setActiveTab, onFinish: markTourCompleted });
+  };
+
+  // Auto-trigger the product tour on first login after onboarding is complete
+  useEffect(() => {
+    if (isChecking || showOnboarding || !profile || tourStartedRef.current) return;
+    if (profile.onboarding_completed && !profile.tour_completed) {
+      tourStartedRef.current = true;
+      handleStartTour();
+    }
+  }, [isChecking, showOnboarding, profile]);
+
   // ── Profile / avatar ─────────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -594,6 +615,7 @@ export default function Dashboard() {
             ['settings', 'Settings', 'Instructor Settings'],
           ].map(([tab, mobileLabel, desktopLabel]) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
+              data-tour={tab === 'settings' ? 'settings-tab' : tab === 'add' ? 'add-drafts-tab' : undefined}
               className={`pb-3 text-sm font-semibold transition-colors shrink-0 ${activeTab === tab ? 'border-b-2 border-clay text-clay' : 'text-stone hover:text-bark'}`}>
               <span className="sm:hidden">{mobileLabel}</span>
               <span className="hidden sm:inline">{desktopLabel}</span>
@@ -634,7 +656,7 @@ export default function Dashboard() {
           )}
 
           {/* Click-through metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div data-tour="analytics-cards" className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="bg-white rounded-xl border border-sand p-5 shadow-sm">
               <p className="text-2xl font-bold text-bark leading-none">{clickStats.total}</p>
               <p className="text-xs text-stone uppercase tracking-wider mt-1.5">Total Book Spot clicks</p>
@@ -728,7 +750,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
             {/* Sync Drafts panel — first on mobile so Pull + Publish All are immediately visible */}
-            <div className="order-1 lg:order-2 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
+            <div data-tour="publish-all-panel" className="order-1 lg:order-2 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
               <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
 
@@ -740,6 +762,7 @@ export default function Dashboard() {
               {pendingDrafts.length > 0 && (
                 <div className="flex flex-col sm:flex-row gap-2 mb-6">
                   <button onClick={handlePublishAll} disabled={isPublishingAll || isPublishingSelected}
+                    data-tour="publish-all-btn"
                     className="flex-1 bg-clay text-white font-bold py-3 rounded-lg shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
                     {isPublishingAll ? "Publishing..." : `✓ Publish All ${pendingDrafts.length} Drafts`}
                   </button>
@@ -1143,7 +1166,7 @@ export default function Dashboard() {
               </div>
 
               {/* Add new studio */}
-              <div>
+              <div data-tour="add-studio">
                 <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
@@ -1173,10 +1196,14 @@ export default function Dashboard() {
             </div>
 
             {/* ── Walkthrough ── */}
-            <div className="mt-10 pt-8 border-t border-sand">
+            <div className="mt-10 pt-8 border-t border-sand flex flex-col items-start gap-2">
               <button type="button" onClick={() => setShowOnboarding(true)}
                 className="text-sm font-semibold text-clay hover:underline">
                 Watch walkthrough again
+              </button>
+              <button type="button" onClick={handleStartTour}
+                className="text-sm font-semibold text-clay hover:underline">
+                Watch product tour
               </button>
             </div>
           </div>
