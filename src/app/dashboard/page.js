@@ -498,7 +498,8 @@ export default function Dashboard() {
         return;
       }
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
-      avatar_url = publicUrl;
+      // Bust cache so the new image loads instead of the previously cached file at this same path
+      avatar_url = `${publicUrl}?t=${Date.now()}`;
     }
 
     const { error } = await supabase.from('profiles').upsert({
