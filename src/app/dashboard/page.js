@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Autocomplete from 'react-google-autocomplete';
+import OnboardingFlow from '@/components/OnboardingFlow';
 
 const CLASS_TYPES = ['Mat Pilates', 'Reformer Pilates', 'Stretch and Mobility', 'Yoga'];
 
@@ -130,6 +131,7 @@ export default function Dashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
   const [followerCount, setFollowerCount] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [clickStats, setClickStats] = useState({ total: 0, weekTotal: 0, perClass: {}, topClassId: null, topCount: 0 });
 
   const fetchMyClasses = async (userId) => {
@@ -217,6 +219,7 @@ export default function Dashboard() {
           certifications: profileData.certifications || [],
         });
         if (profileData.avatar_url) setAvatarPreview(profileData.avatar_url);
+        if (!profileData.onboarding_completed) setShowOnboarding(true);
       }
       setIsChecking(false);
     };
@@ -455,6 +458,15 @@ export default function Dashboard() {
     setSelectedDraftIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    setActiveTab('settings');
+    if (!profile?.onboarding_completed) {
+      await supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id);
+      setProfile(prev => ({ ...prev, onboarding_completed: true }));
+    }
+  };
+
   // ── Profile / avatar ─────────────────────────────────────────────────────────
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -565,6 +577,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-linen text-bark py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
+      {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />}
       <div className="max-w-5xl mx-auto">
 
         {successMessage && (
@@ -1157,6 +1170,14 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* ── Walkthrough ── */}
+            <div className="mt-10 pt-8 border-t border-sand">
+              <button type="button" onClick={() => setShowOnboarding(true)}
+                className="text-sm font-semibold text-clay hover:underline">
+                Watch walkthrough again
+              </button>
             </div>
           </div>
         )}

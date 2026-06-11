@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 const WEEKDAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
 
@@ -332,6 +333,13 @@ export default function InstructorProfile() {
           })()
         )}
       </main>
+
+      {/* VIRAL FOOTER */}
+      <footer className="text-center pb-8 px-4">
+        <Link href="/" className="text-xs text-stone hover:text-clay transition-colors">
+          Build your own schedule page — Instruktor.ca
+        </Link>
+      </footer>
 
       {/* MOBILE-OPTIMIZED BOTTOM SHEET MODAL (Mindbody Only) */}
       {bookingClass && (
