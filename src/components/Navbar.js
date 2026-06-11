@@ -33,6 +33,9 @@ export default function Navbar() {
   // Keep the login page completely blank to maintain focus
   if (pathname === '/login') return null;
 
+  // Landing page has its own custom nav
+  if (pathname === '/') return null;
+
   return (
     <header className="py-5 px-4 sm:px-6 border-b border-sand bg-white sticky top-0 z-50 shadow-sm transition-all">
       <div className="max-w-4xl mx-auto flex justify-between items-center">
