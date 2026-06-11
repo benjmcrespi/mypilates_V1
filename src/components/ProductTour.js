@@ -79,6 +79,7 @@ export function startProductTour({ setActiveTab, onFinish }) {
     overlayColor: '#1A0E07',
     overlayOpacity: 0.7,
     popoverClass: 'instruktor-tour-popover',
+    scrollIntoViewOptions: { block: 'nearest', inline: 'nearest' },
     onDestroyed: () => {
       onFinish?.();
     },
