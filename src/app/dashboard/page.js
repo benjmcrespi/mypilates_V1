@@ -105,6 +105,9 @@ export default function Dashboard() {
     bookingNote: '',
     studioName: '',
     locationUrl: '',
+    repeatFrequency: 'none',
+    repeatDuration: '2weeks',
+    repeatEndDate: '',
   });
 
   const [settingsData, setSettingsData] = useState({
@@ -269,6 +272,7 @@ export default function Dashboard() {
       classType: '', className: '', dateTime: '',
       bookingUrl: '', bookingType: 'direct', bookingNote: '',
       studioName: '', locationUrl: '',
+      repeatFrequency: 'none', repeatDuration: '2weeks', repeatEndDate: '',
     });
   };
 
@@ -356,6 +360,39 @@ export default function Dashboard() {
       const { error } = await supabase.from('classes').update(payload).eq('id', editingDraftId);
       if (!error) {
         setSuccessMessage("Success! Class published to live schedule.");
+        setTimeout(() => setSuccessMessage(''), 3000);
+        cancelEdit();
+        fetchMyClasses(user.id);
+      }
+    } else if (classData.repeatFrequency !== 'none') {
+      const intervalDays = classData.repeatFrequency === 'biweekly' ? 14 : 7;
+      const startDate = new Date(classData.dateTime);
+
+      let endBoundary;
+      if (classData.repeatDuration === 'custom') {
+        endBoundary = classData.repeatEndDate ? new Date(`${classData.repeatEndDate}T23:59:59`) : startDate;
+      } else {
+        const weeks = classData.repeatDuration === '4weeks' ? 4 : classData.repeatDuration === '8weeks' ? 8 : 2;
+        endBoundary = new Date(startDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
+      }
+
+      const seriesId = crypto.randomUUID();
+      const rows = [];
+      let occurrence = new Date(startDate);
+      while (occurrence <= endBoundary) {
+        rows.push({
+          instructor_id: user.id,
+          ...payload,
+          date_time: occurrence.toISOString(),
+          status: 'draft',
+          series_id: seriesId,
+        });
+        occurrence = new Date(occurrence.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+      }
+
+      const { error } = await supabase.from('classes').insert(rows);
+      if (!error) {
+        setSuccessMessage(`Success! ${rows.length} draft classes created.`);
         setTimeout(() => setSuccessMessage(''), 3000);
         cancelEdit();
         fetchMyClasses(user.id);
@@ -829,6 +866,42 @@ export default function Dashboard() {
                     required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
                 </div>
 
+                {!editingDraftId && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Repeat</label>
+                      <select value={classData.repeatFrequency}
+                        onChange={e => setClassData({ ...classData, repeatFrequency: e.target.value })}
+                        className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
+                        <option value="none">Does not repeat</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every 2 weeks</option>
+                      </select>
+                    </div>
+                    {classData.repeatFrequency !== 'none' && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Ends</label>
+                        <select value={classData.repeatDuration}
+                          onChange={e => setClassData({ ...classData, repeatDuration: e.target.value })}
+                          className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
+                          <option value="2weeks">Next 2 weeks</option>
+                          <option value="4weeks">Next 4 weeks</option>
+                          <option value="8weeks">Next 8 weeks</option>
+                          <option value="custom">Custom end date</option>
+                        </select>
+                      </div>
+                    )}
+                    {classData.repeatFrequency !== 'none' && classData.repeatDuration === 'custom' && (
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium mb-1">Repeat Until</label>
+                        <input type="date" value={classData.repeatEndDate}
+                          onChange={e => setClassData({ ...classData, repeatEndDate: e.target.value })}
+                          required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium mb-1">Checkout Link</label>
                   <input type="url" placeholder="https://..." value={classData.bookingUrl}
@@ -860,7 +933,7 @@ export default function Dashboard() {
 
                 <button type="submit" disabled={isSaving}
                   className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
-                  {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : "Publish Class")}
+                  {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
                 </button>
               </form>
             </div>
