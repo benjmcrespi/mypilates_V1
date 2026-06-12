@@ -37,6 +37,7 @@
 - Analytics dashboard cards — confirmed followers, total clicks, clicks this week, top class
 - Booking context shown on student page class cards (booking type and note)
 - Mobile responsive on both dashboard and student-facing page
+- Recurring class creation — weekly and bi-weekly repeat options, generates independent draft instances with series_id, works with Publish All
 
 **Not yet built (build in order below):**
 - Recurring class creation for manual studios
@@ -185,15 +186,7 @@ Install DM Sans and Cormorant Garamond from Google Fonts. Update `tailwind.confi
 
 ---
 
-### Next C — Recurring Class Creation
-
-Add Repeat section to the manual class creation form. Two fields:
-- Frequency: Does not repeat / Weekly / Every 2 weeks
-- Duration: Next 2 weeks / Next 4 weeks / Next 8 weeks
-
-On submit with a repeat option: generate multiple independent draft instances. Same class details on each matching day within the duration. Store a `series_id` UUID on each generated instance (for future grouping — do not build series management UI yet). Generated drafts appear in existing drafts panel and work with Publish All.
-
-Only modify the manual class creation form.
+### ✅ Next C — Recurring Class Creation — COMPLETE
 
 ---
 
