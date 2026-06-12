@@ -1,393 +1,200 @@
-# Instruktor — Product Context Document
-> Feed this document to Claude Code at the start of every session for full product context.
+# Instruktor
+### Professional scheduling and personal brand platform for fitness instructors
 
 ---
 
-## What We're Building
+## The Problem
 
-**Instruktor** is a professional scheduling and personal brand platform for boutique fitness instructors. Think LinkedIn for fitness instructors — but with a live, bookable schedule. It gives instructors the professional presence, portable following, and career data they need to build a practice that belongs to them, wherever they teach.
+Boutique fitness instructors are skilled professionals who often teach across multiple studios simultaneously. But the infrastructure around them was built for studios, not for them.
 
-**Mission:** Give every fitness instructor the professional infrastructure to own their career — wherever they teach.
+Today, an instructor teaching at three studios has:
+- Three separate booking platforms and no unified presence
+- Client relationships stored on each studio's system — not theirs to take
+- Reviews that stay with each studio when they move on
+- No professional profile that travels with them
+- No data to show what they bring to a room
 
-**Tagline:** Become an Instruktor.
+The tools exist for studios. The tools exist for students. Nobody built one for the instructor.
 
-**Domain:** instruktor.ca (migrated from mypilates.ca — complete)
-
-**Social:** @beinstruktor on Instagram and TikTok
-
----
-
-## Current State (what is already built and working)
-
-- instruktor.ca live, deployed on Vercel, full domain migration complete
-- Hybrid colour palette applied throughout
-- Instructor authentication, sign up, and dashboard
-- Instructor profile — photo upload, bio, certifications, years of experience, Instagram handle, timezone
-- Studio management — name, platform, booking type, booking note, default booking URL, ICS feed URL
-- ICS calendar sync — pull latest schedule, auto-populates booking URL/type/note from studio defaults
-- Duplicate detection on ICS pull
-- Draft class system — edit individual drafts, Publish All button
-- Multi-select delete on drafts
-- Student-facing page at instruktor.ca/[username] — dark header, linen body, hybrid palette
-- Classes grouped by week on student page (This week / Next week / Later collapsed)
-- Bio truncated with Read More / Show Less toggle
-- Email follow mechanic — email capture, confirmation email, follower notifications on new publish
-- Follower count on instructor dashboard
-- Click-through tracking on every Book Spot button — logged to analytics_events table
-- Analytics dashboard cards — confirmed followers, total clicks, clicks this week, top class
-- Booking context shown on student page class cards (booking type and note)
-- Mobile responsive on both dashboard and student-facing page
-- Recurring class creation — weekly and bi-weekly repeat options, generates independent draft instances with series_id, works with Publish All
-
-**Not yet built (build in order below):**
-- Recurring class creation for manual studios
-- Forgot password + /reset-password page
-- Typography system (DM Sans + Cormorant Garamond)
-- Landing/marketing page at instruktor.ca
-- Product tour (Driver.js)
-- Post-class attendance prompt
-- Onboarding card carousel
-- Viral footer CTA
+Instruktor fixes that.
 
 ---
 
-## Tech Stack
+## Mission, Vision & Values
 
-| Layer | Tool |
-|---|---|
-| Frontend | Tailwind CSS |
-| Backend / Database | Supabase (PostgreSQL + Auth + Storage) |
-| Email | Resend (DNS verified, SMTP configured) |
-| Hosting | Vercel |
-| Version Control | GitHub |
-| Editor | VS Code + Claude Code |
+### Mission
+Give every fitness instructor the professional infrastructure to own their career — wherever they teach.
 
----
+### Vision
+A world where every fitness instructor has a professional home that travels with them — a profile, a following, and a track record that exists independently of any studio, platform, or employer.
 
-## Brand & Visual Identity
+### The Analogy
+Every photographer has a portfolio. Every musician has a Spotify artist page. Every professional has a LinkedIn. Fitness instructors should have an Instruktor.
 
-### Logo Mark
-Clay rotated k mark on bark (#2C1810) background. Built as geometric SVG paths — not a font character. A horizontal bar with two lines converging from upper-left and upper-right toward the centre of the bar. Represents multiple studios converging into one professional presence.
+It is not a statement about studios. It is a statement about taking your career seriously. Studios don't feel threatened by instructors having a LinkedIn — they won't feel threatened by instructors having an Instruktor. It signals professionalism. An instructor with a proven following and trackable fill rates is a lower-risk hire, not a liability.
 
-### Typography System — Two Fonts
+### Values
 
-**Cormorant Garamond** (Google Fonts) — display/brand use only
-- The Instruktor wordmark in the nav
-- Instructor name on student-facing profile header
-- H1 display headings on the landing page hero
-- Nothing smaller than 20px. Never on form inputs, buttons, or functional UI.
+**Professional by default.**
+Every instructor deserves tools that match the level of craft they bring to their work. Instruktor is built to that standard.
 
-**DM Sans** (Google Fonts) — everything else
-- All body text, class names, dates, times
-- Buttons, inputs, labels, dropdowns
-- Nav links, dashboard content, analytics cards
-- The default font-family for the entire app
+**Ownership that travels.**
+The following, reputation, and career data an instructor builds on Instruktor belong to them permanently — independent of any studio or platform.
 
-**Tailwind Config:**
-```javascript
-fontFamily: {
-  sans:  ['DM Sans', 'system-ui', 'sans-serif'],
-  serif: ['Cormorant Garamond', 'Georgia', 'serif'],
-},
-colors: {
-  espresso: '#1A0E07',
-  bark:     '#2C1810',
-  linen:    '#F7F3EE',
-  sand:     '#E4CDB8',
-  stone:    '#9B8070',
-  smoke:    '#BFA090',
-  clay: {
-    DEFAULT: '#C4683A',
-    light:   '#F2E6DF',
-    dark:    '#7A3520',
-  },
-  sage: {
-    DEFAULT: '#7A9471',
-    light:   '#EAF0E6',
-  },
-},
-```
+**Warm, not clinical.**
+Instruktor is a community platform, not enterprise software. Every interaction should feel like a tool someone is proud to share and happy to use.
 
-### Wordmark
-"Instruktor" — Cormorant Garamond, title case, weight 400, letter-spacing 4px.
-- Primary: linen (#F7F3EE) on espresso (#1A0E07)
-- Secondary: clay (#C4683A) on linen (#F7F3EE)
+**Earned, not bought.**
+Credibility on Instruktor is built through performance — reviews, attendance, consistency. Not through payments or follower counts.
 
-### Palette — Hybrid Approach
-
-**Dark surfaces (profile headers, hero sections, nav, onboarding):**
-
-| Token | Hex | Usage |
-|---|---|---|
-| `espresso` | `#1A0E07` | Page background, hero sections |
-| `bark` | `#2C1810` | Cards on dark, surface elements |
-| `linen` | `#F7F3EE` | Primary text on dark |
-| `smoke` | `#BFA090` | Muted text on dark |
-
-**Light surfaces (dashboards, class lists, forms):**
-
-| Token | Hex | Usage |
-|---|---|---|
-| `linen` | `#F7F3EE` | Page background |
-| `bark` | `#2C1810` | Primary text on light |
-| `sand` | `#E4CDB8` | Borders, dividers |
-| `stone` | `#9B8070` | Muted text on light |
-
-**Universal:**
-
-| Token | Hex | Usage |
-|---|---|---|
-| `clay` | `#C4683A` | All buttons, CTAs, active states |
-| `sage` | `#7A9471` | Success, verification |
-
-### Component Patterns
-- **Primary button:** `bg-clay text-linen rounded-xl font-sans`
-- **Dark background:** `bg-espresso`
-- **Light background:** `bg-linen`
-- **Cards on dark:** `bg-bark border border-white/10 rounded-xl`
-- **Cards on light:** `bg-white border border-sand rounded-xl`
-- **Section labels:** 11px, uppercase, letter-spacing, `text-stone` or `text-smoke`
-
-### Tone
-Inviting, warm, professional, direct. Not adversarial toward studios — collaborative. No "power shift" language. The student-studio-instructor relationship is collaborative. Instruktor is professional infrastructure, not a rebellion.
+**Simplicity as respect.**
+Instructors are not sitting at desks. The weekly workflow must work on a phone, between classes, in under 60 seconds. Complexity is a failure of design.
 
 ---
 
-## User Roles
+## The Solution
 
-**Instructor** — pays subscription. Creates profile, syncs classes, publishes schedule, shares link.
+A profile page at instruktor.ca/[username] — the instructor's professional home. It:
 
-**Student** — free. Views instructor page, clicks Book Spot, follows via email.
+- Consolidates classes from all studios into one live, bookable schedule
+- Builds a student following the instructor carries everywhere they teach
+- Generates performance data portable to any future opportunity
+- Looks and feels like a professional presence worth sharing
 
-**Studio** — future. Discovers and hires instructors through Instruktor.
+**For students:** one link finds every class from their favourite instructor, regardless of which studio they teach at that week.
 
----
-
-## Build Queue — In Priority Order
-
-### ✅ Sessions 1–5 — COMPLETE
-Colour system, studio management, mobile optimisation, email follow mechanic, click tracking. All working.
+**For studios:** an instructor with a professional profile, a real following, and trackable results is easier to discover, easier to hire, and more credible to work with.
 
 ---
 
-### Next A — Forgot Password + Reset Page
+## Target Market
 
-Add "Forgot password?" link below the sign-in form. On click: reveal email input and "Send reset link" button. On submit: call `supabase.auth.resetPasswordForEmail` with `redirectTo: 'https://instruktor.ca/reset-password'`. Show success: "Check your email — we've sent a reset link."
+**Primary:** Boutique fitness instructors teaching across multiple studios — Pilates, yoga, barre, spin, and all movement disciplines.
 
-Create `/reset-password` page: reads Supabase token from URL, shows new password + confirm password inputs, calls `supabase.auth.updateUser` on submit, redirects to dashboard on success.
+**Beachhead:** Vancouver, BC. Dense instructor community, Instagram-active, multi-studio culture, community-driven.
 
-Style with brand tokens. Do not touch anything else.
+**Expanded market:** Fitness and movement instructors across Canada and North America who want a professional practice that belongs to them.
 
----
-
-### Next B — Typography Implementation
-
-Install DM Sans and Cormorant Garamond from Google Fonts. Update `tailwind.config.js` with fontFamily as above. Apply Cormorant Garamond to: Instruktor wordmark in nav, instructor name on student profile header, H1 on landing page hero. Apply DM Sans everywhere else. Never use Cormorant Garamond below 20px.
+**User zero:** Hannah — a Vancouver-based Pilates instructor teaching across four studios. First complete user and ongoing product feedback source.
 
 ---
 
-### ✅ Next C — Recurring Class Creation — COMPLETE
+## MVP
+
+Proves the core value: an instructor consolidates their full schedule, shares a professional profile link, and begins building a portable following — in under 10 minutes of setup.
+
+### 1. Complete Instructor Profile
+Photo, bio, certifications, specialties, linked studios. The foundation. instruktor.ca/hannah should look like a professional page worth putting in a bio.
+
+### 2. Studio Management with Default Booking URLs
+Add each studio once with a default booking link and booking context (direct link, membership required, app recommended, drop-in). Every class auto-populates from there. Manual entry per class is eliminated.
+
+### 3. ICS Calendar Sync
+Pull classes from any studio's ICS feed. Classes arrive as drafts. Review and Publish All in one tap. Target: full weekly schedule live in under 60 seconds.
+
+### 4. Mobile-First Design
+Both the instructor dashboard and student page fully responsive and tested on a real phone. Non-negotiable.
+
+### 5. Email Follow Mechanic
+Students follow an instructor with a single email — no account required. Instructors build a portable audience. Confirmed followers get notified when new classes are published.
+
+### 6. Click-Through Tracking
+Every Book Spot click logged. Foundation of the analytics layer, instrumented from day one.
+
+### 7. Post-Class Attendance Prompt
+After each class, the instructor is asked: "How many students attended?" Feeds their average fill rate over time.
+
+### 8. Basic Analytics Dashboard
+Page views, clicks per class, follower count, reported attendance. Simple summary card — not complex tooling.
+
+### 9. Viral Growth Mechanic
+Subtle footer on every student page: *"Build your own schedule page — Instruktor.ca."* Organic instructor acquisition at zero cost.
+
+### 10. Onboarding Card Flow
+Six-card carousel shown once after signup. Cannot be skipped. Re-accessible from Settings. Introduces the product through identity and aspiration, not a feature list.
 
 ---
 
-### Session — Landing Page (instruktor.ca homepage)
+## Business Model
 
-Six sections using brand tokens throughout. Mobile responsive.
+### Beta Phase
+Free while testing with early instructors. Invite-only. Hannah and a small initial cohort.
 
-**1. Nav** — Instruktor wordmark (Cormorant Garamond, linen on espresso), Sign in link, "Create your page" clay button.
+### Founding Instruktor Cohort — First 50 Spots
+**$9/month, locked forever.** Available to the first 50 instructors who join after beta. Founding members receive:
+- Lowest rate Instruktor will ever offer, guaranteed for life
+- A visible Founding Instruktor badge on their profile page
+- Direct access to the product roadmap and feature requests
 
-**2. Hero** — espresso background. Badge: "Beta · Vancouver, BC". H1 (Cormorant Garamond): "Become an Instruktor." Sub (DM Sans): "Your classes. Every studio. One link. The professional home for fitness instructors who teach at more than one studio." Primary CTA (clay button): "Create your page →". Small text: "Free during beta."
+The trigger for opening the founding cohort is not a date or a headcount — it is when instructors are returning weekly to pull and publish without being nudged. That behaviour signals the product has earned its price.
 
-**3. How it works** — linen background. Three steps:
-1. Add your studios — connect each studio's calendar and booking link once
-2. Pull your schedule — all classes from all studios populate in one tap
-3. Share your link — one URL for students to find every class you teach
+A waitlist for the founding cohort should be live on the landing page as soon as possible. Captures interest before the product is ready for strangers and acts as an early demand signal.
 
-**4. The professional case** — bark background. Headline: "Your career, professionally managed." Body: "Every photographer has a portfolio. Every professional has a LinkedIn. Instruktor is the professional home fitness instructors have always needed — a profile, a following, and a track record that travels with you."
+### V1 Standard Pricing
+**$15 per month** once the founding cohort of 50 closes. New instructors see the standard rate and understand why founding members got a deal.
 
-**5. Coming soon** — linen background. Three items: Student reviews tied to you not the studio. Analytics for studio auditions. A verification badge you earn.
-
-**6. Final CTA** — espresso background. "Ready to build your practice?" H2 (Cormorant Garamond): "Become an Instruktor." Clay button: "Create your page →". Small text: "Currently in beta · Vancouver, BC"
-
-Footer: Instruktor wordmark, © 2025, Privacy, instruktor.ca
-
-"Create your page" CTA links to existing signup flow. Instruktor wordmark in nav links to instruktor.ca. Do not touch dashboard or student profile pages.
-
----
-
-### Session — Product Tour (Driver.js)
-
-Install Driver.js. Trigger once after first login post-onboarding. Store `tour_completed` boolean on profiles table. Re-triggerable from Instructor Settings → "Watch product tour."
-
-Six steps in order:
-1. Instructor Settings tab — "Start here. Add your photo, bio, and first studio."
-2. Add Studio section — "Add each studio once. The booking link auto-applies to every class."
-3. Add & Drafts tab — "Pull your schedule here. Classes appear as drafts instantly."
-4. Publish All button — "Review drafts and publish in one tap."
-5. Live Schedule analytics cards — "Track your followers and Book Spot clicks here."
-6. View Live Site link — "This is the link you share. Put it in your Instagram bio."
-
-Style Driver.js overlay with brand tokens — espresso background, linen text, clay highlight/button. Skippable at any step.
+### Future Revenue Streams
+- Studio marketplace subscription (studios discovering and hiring through Instruktor)
+- 2% booking fee when API integrations with Mindbody and Mariana Tek are live
+- Platform fee on instructor digital product sales
 
 ---
 
-### Session 6 — Post-Class Attendance Prompt
+## Goals
 
-After a class date passes, prompt the instructor (in-app notification or email):
-*"Your [Class Name] was today — how many students attended?"*
+### 0–3 Months — Prove the Product
+- instruktor.ca live with hybrid visual identity
+- Hannah's full profile working across all four studios on mobile
+- 15 active Vancouver instructors onboarded through warm network
+- Every Book Spot click tracked from launch
+- Instructors returning weekly to pull and publish without prompting
 
-Simple number input. Store: class_id, instructor_id, reported_count, reported_at.
+### 3–12 Months — Prove the Business
+- 100+ active instructors across Vancouver
+- $15/month subscription launched with early adopter cohort
+- Student review system live — portable, tied to the instructor
+- Analytics dashboard functioning as a career tool
+- Expansion to Toronto and Calgary
 
-Show on dashboard: attendance per class, average fill rate over time.
-
----
-
-### Session 7 — Onboarding Card Carousel
-
-Shown once after signup, before dashboard. Cannot be skipped. Re-accessible from Settings → "Watch walkthrough again."
-
-Six cards, dark throughout, clay final card, no skip button, progress dots, swipeable mobile:
-1. "You became an Instruktor." — identity/welcome
-2. "One link. Every class." — core value
-3. "Your brand. Your page." — instruktor.ca/[username]
-4. "Your students follow you." — portable following
-5. "We're just getting started." — coming soon preview
-6. "Let's build your profile." — CTA to profile setup
-
-Track `onboarding_completed` boolean on profiles table.
+### 12–24 Months — Prove the Market
+- National Canadian presence
+- API integrations with Mindbody and Mariana Tek live
+- Merit-based verification badge launched
+- Studio marketplace operational
+- Initial US expansion
 
 ---
 
-### Session 8 — Viral Footer
+## Future Roadmap
 
-Subtle footer on every student-facing page:
-*"Build your own schedule page — Instruktor.ca"*
+### Portable Student Reviews
+Reviews tied to the instructor, not the studio. They travel when the instructor moves. The differentiator from every existing review system in fitness.
 
-Small, unobtrusive, stone/smoke colour. Does not compete with instructor content.
+### Analytics Dashboard v2 — Career Portfolio
+A shareable page an instructor can send before an audition. Fill rate, follower growth, review score, studios worked with. Third-party credentialing that belongs to the instructor.
 
----
+### Merit-Based Verification Badge
+Earned through reviews, fill rate, consistency, and profile completeness. Re-evaluated quarterly — can be lost. Modelled on Airbnb Superhost. A signal studios trust and instructors are proud of.
 
-## Supabase Schema
+### API Integrations
+Direct connections to Mindbody and Mariana Tek replace ICS sync. Real-time data, unique class URLs, live availability. Enables the 2% booking fee model.
 
-Check existing tables before running anything. Only add what is not already there.
+### Location-Based Class Discovery
+Student-facing search by discipline, city, instructor, and time. Viable at 50+ active instructors per city. Vancouver first.
 
-```sql
--- Studios (may already exist)
-CREATE TABLE IF NOT EXISTS studios (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  instructor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  platform TEXT,
-  default_booking_url TEXT,
-  ics_feed_url TEXT,
-  booking_type TEXT DEFAULT 'direct',
-  booking_note TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+### Studio Marketplace
+Studios browse instructor profiles and performance data to find and hire. Both sides benefit — instructors get discovered, studios reduce hiring risk. This only works because Instruktor is not positioned against studios.
 
--- Followers (may already exist)
-CREATE TABLE IF NOT EXISTS followers (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  instructor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  confirmed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(instructor_id, email)
-);
 
--- Analytics events (may already exist)
-CREATE TABLE IF NOT EXISTS analytics_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_type TEXT NOT NULL,
-  instructor_id UUID REFERENCES profiles(id),
-  class_id UUID REFERENCES classes(id),
-  follower_email TEXT,
-  source TEXT,
-  metadata JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+### Instructor Invoicing
+Instruktor already knows which instructor taught at which studio, how many classes, and on which dates. That data is the foundation for auto-generated invoices — no other invoicing tool can do this. An instructor sets their rate per class per studio once. At the end of each billing period, Instruktor drafts the invoice automatically. The instructor approves and sends it. Studios pay through the platform.
 
--- Attendance reports
-CREATE TABLE IF NOT EXISTS attendance_reports (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  class_id UUID REFERENCES classes(id),
-  instructor_id UUID REFERENCES profiles(id),
-  reported_count INTEGER,
-  reported_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Profile columns (add only if missing)
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tour_completed BOOLEAN DEFAULT FALSE;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_handle TEXT;
-
--- Classes columns (add only if missing)
-ALTER TABLE classes ADD COLUMN IF NOT EXISTS series_id UUID;
-```
+This is HoneyBook's core value made structurally better because the class data already exists in the system. Particularly relevant in Canada where the majority of boutique fitness instructors are independent contractors invoicing studios biweekly with GST. Revenue model: a small percentage on payments processed through the platform via Stripe Connect.
 
 ---
 
-## Key Design Principles
+## Why This Works
 
-**Instructor is the product.** Their name and brand lead every page.
+Fitness instructors are already personal brands in practice — they have loyal followings, community relationships, and craft that clients seek out by name. They simply lack the professional infrastructure to formalise and carry that identity.
 
-**Mobile is the primary surface.** Design mobile first, always.
-
-**Reduce every interaction to its minimum.** Weekly sync in under 60 seconds.
-
-**Professional by default.** Every screen should feel like a tool a serious professional is proud to share.
-
-**Instrument everything from day one.** Log every click, follow, and view now.
-
-**Warm over clinical.** Community platform, not SaaS dashboard.
-
-**Dark for brand moments, light for work.** Clay is universal across both.
-
----
-
-## Onboarding Flow Target
-
-1. Sign up → onboarding cards (not skippable) → product tour (Driver.js)
-2. Complete profile — photo, bio, certifications
-3. Add studios — name, platform, booking type, URL, ICS feed
-4. Pull Latest Schedule
-5. Review drafts
-6. Publish All
-7. Share instruktor.ca/[username] in Instagram bio
-
-**Target: signup to live page in under 10 minutes.**
-
----
-
-## Monetisation
-
-**Beta:** Free. Invite-only. Hannah and small initial cohort.
-
-**Founding Instruktor cohort:** First 50 spots at $9/month locked forever. Opens once instructors return weekly without prompting. Founding members get a visible badge and direct product access. Waitlist to be live on landing page.
-
-**V1 standard:** $15/month once founding cohort closes.
-
-**Future:** Studio marketplace, 2% API booking fee, instructor invoicing (Stripe Connect, auto-generated from class data, GST-aware), digital product platform fee.
-
----
-
-## Parked — Post-MVP
-
-- Full student accounts with following feed
-- Post-class student reviews (portable, tied to instructor not studio)
-- Analytics dashboard v2 — shareable audition portfolio
-- Merit-based verification badge (Airbnb Superhost model)
-- API integrations — Mindbody, Mariana Tek
-- Location-based class discovery (viable at 50+ instructors per city)
-- Studio marketplace — studios discovering and hiring instructors
-- Student booking confirmation ("I booked it" mechanic)
-
----
-
-## MVP Success Metrics
-
-- Hannah's full profile live across all 4 studios, clean on mobile
-- 15 Vancouver instructors onboarded within 60 days
-- Every Book Spot click tracked
-- Instructors returning weekly without prompting
-- At least one instructor shares their page on Instagram and drives measurable traffic
+Instruktor is that infrastructure. Not a rebellion against studios. Not a disruption of the booking ecosystem. A professional layer that was always missing — for the people who actually fill the room.
