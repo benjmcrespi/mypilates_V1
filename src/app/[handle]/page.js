@@ -85,7 +85,7 @@ export default function InstructorProfile() {
 
       const { data: classData } = await supabase
         .from('classes')
-        .select('*, studios(*)')
+        .select('*, studios(*), class_categories(id, name)')
         .eq('instructor_id', profile.id)
         .eq('status', 'published')
         .gte('date_time', now)
@@ -403,7 +403,7 @@ function ClassCard({ c, tz, handleBookClick }) {
         <div className="flex items-center flex-wrap gap-2 mb-1.5">
           <h3 className="text-lg font-bold leading-tight">{c.class_name}</h3>
           <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">
-            {c.class_type}
+            {c.class_categories?.name || c.category_other || 'Uncategorized'}
           </span>
           {c.booking_type === 'membership_required' && (
             <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">Membership required</span>

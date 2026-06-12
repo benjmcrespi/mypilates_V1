@@ -33,7 +33,7 @@ export async function POST(request) {
   // Get the newly published classes
   const { data: newClasses } = await supabaseAdmin
     .from('classes')
-    .select('class_name, class_type, date_time, studio_name')
+    .select('class_name, date_time, studio_name')
     .in('id', classIds)
     .gte('date_time', new Date().toISOString())
     .order('date_time', { ascending: true });

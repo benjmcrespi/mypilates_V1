@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { inferCategoryId } from '@/lib/categories';
 
 function parseICSDate(icsDate) {
   if (!icsDate) return null;
@@ -17,16 +18,6 @@ function parseICSDate(icsDate) {
   return new Date();
 }
 
-function inferClassType(className, defaultClassType) {
-  if (defaultClassType) return defaultClassType;
-  const name = (className || '').toLowerCase();
-  if (name.includes('reformer')) return 'Reformer Pilates';
-  if (name.includes('mat')) return 'Mat Pilates';
-  if (name.includes('yoga') || name.includes('vinyasa') || name.includes('flow')) return 'Yoga';
-  if (name.includes('stretch') || name.includes('mobility') || name.includes('flex')) return 'Stretch and Mobility';
-  return 'TBD';
-}
-
 export async function POST(req) {
   try {
     const {
@@ -34,7 +25,8 @@ export async function POST(req) {
       instructorId,
       studioName,
       defaultBookingUrl,
-      defaultClassType,
+      defaultCategoryId,
+      defaultCategoryOther,
       defaultBookingType,
       defaultBookingNote,
     } = await req.json();
@@ -46,6 +38,11 @@ export async function POST(req) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       { global: { headers: { Authorization: authHeader } } }
     );
+
+    const { data: categories } = await supabase
+      .from('class_categories')
+      .select('*')
+      .eq('active', true);
 
     const response = await fetch(calendarUrl, {
       headers: {
@@ -80,10 +77,13 @@ export async function POST(req) {
             // Prefer native ICS URL over studio default
             const bookingUrl = currentEvent.url || defaultBookingUrl || '';
 
+            const categoryId = inferCategoryId(currentEvent.summary, categories || [], defaultCategoryId || null);
+
             draftClasses.push({
               instructor_id: instructorId,
               class_name: currentEvent.summary || 'Imported Class',
-              class_type: inferClassType(currentEvent.summary, defaultClassType),
+              category_id: categoryId,
+              category_other: !categoryId ? (defaultCategoryOther || null) : null,
               date_time: eventDate.toISOString(),
               studio_name: studioName || currentEvent.location || 'Studio TBD',
               external_uid: currentEvent.uid || `auto-${Date.now()}-${Math.random()}`,

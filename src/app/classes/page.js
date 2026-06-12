@@ -1,23 +1,33 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { categoryLabel } from '@/lib/categories';
 import Link from 'next/link';
 
 export default function Classes() {
   const [classes, setClasses] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const categories = ['All', 'Mat Pilates', 'Reformer Pilates', 'Stretch and Mobility', 'Yoga'];
-
   useEffect(() => {
+    fetchCategories();
     fetchClasses();
   }, []);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('class_categories')
+      .select('*')
+      .eq('active', true)
+      .order('sort_order', { ascending: true });
+    if (data) setCategories(data);
+  };
 
   const fetchClasses = async () => {
     const { data, error } = await supabase
       .from('classes')
-      .select('*, profiles(full_name, handle, timezone)')
+      .select('*, profiles(full_name, handle, timezone), class_categories(id, name)')
       .eq('status', 'published')
       .order('date_time', { ascending: true });
 
@@ -32,7 +42,7 @@ export default function Classes() {
 
   const displayedClasses = activeFilter === 'All'
     ? classes
-    : classes.filter(c => c.class_type === activeFilter);
+    : classes.filter(c => c.category_id === activeFilter);
 
   const formatDateTime = (dateString, timezone = 'America/Vancouver') => {
     const date = new Date(dateString);
@@ -52,17 +62,27 @@ export default function Classes() {
         </div>
 
         <div className="flex overflow-x-auto pb-4 mb-8 hide-scrollbar space-x-2">
+          <button
+            onClick={() => setActiveFilter('All')}
+            className={`whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
+              activeFilter === 'All'
+                ? 'bg-clay text-white'
+                : 'bg-white text-stone border border-sand hover:bg-clay-light'
+            }`}
+          >
+            All
+          </button>
           {categories.map((category) => (
             <button
-              key={category}
-              onClick={() => setActiveFilter(category)}
+              key={category.id}
+              onClick={() => setActiveFilter(category.id)}
               className={`whitespace-nowrap px-5 py-2.5 rounded-full text-sm font-medium transition-colors ${
-                activeFilter === category
+                activeFilter === category.id
                   ? 'bg-clay text-white'
                   : 'bg-white text-stone border border-sand hover:bg-clay-light'
               }`}
             >
-              {category}
+              {category.name}
             </button>
           ))}
         </div>
@@ -84,7 +104,7 @@ export default function Classes() {
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-xs font-semibold bg-clay-light text-stone px-3 py-1 rounded-md">
-                        {cls.class_type}
+                        {categoryLabel(cls, categories) || 'Uncategorized'}
                       </span>
                     </div>
 

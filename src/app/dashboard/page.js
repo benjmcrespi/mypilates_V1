@@ -5,17 +5,8 @@ import { useRouter } from 'next/navigation';
 import Autocomplete from 'react-google-autocomplete';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import { startProductTour } from '@/components/ProductTour';
-
-const CLASS_TYPES = ['Mat Pilates', 'Reformer Pilates', 'Stretch and Mobility', 'Yoga'];
-
-function inferClassType(className) {
-  const name = (className || '').toLowerCase();
-  if (name.includes('reformer')) return 'Reformer Pilates';
-  if (name.includes('mat')) return 'Mat Pilates';
-  if (name.includes('yoga') || name.includes('vinyasa') || name.includes('flow')) return 'Yoga';
-  if (name.includes('stretch') || name.includes('mobility') || name.includes('flex')) return 'Stretch and Mobility';
-  return '';
-}
+import CategorySelect from '@/components/CategorySelect';
+import { inferCategoryId, categoryLabel } from '@/lib/categories';
 
 const WEEKDAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
 
@@ -98,8 +89,11 @@ export default function Dashboard() {
   const [categoryAutoSet, setCategoryAutoSet] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
 
+  const [categories, setCategories] = useState([]);
+
   const [classData, setClassData] = useState({
-    classType: '',
+    categoryId: '',
+    categoryOther: '',
     className: '',
     dateTime: '',
     bookingUrl: '',
@@ -181,6 +175,15 @@ export default function Dashboard() {
     setClickStats({ total: data.length, weekTotal, perClass, topClassId, topCount });
   };
 
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('class_categories')
+      .select('*')
+      .eq('active', true)
+      .order('sort_order', { ascending: true });
+    if (data) setCategories(data);
+  };
+
   const fetchSavedStudios = async () => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) return;
@@ -200,6 +203,7 @@ export default function Dashboard() {
       }
       setUser(session.user);
 
+      fetchCategories();
       fetchSavedStudios();
       fetchMyClasses(session.user.id);
       fetchFollowerCount(session.user.id);
@@ -253,10 +257,12 @@ export default function Dashboard() {
     const tzOffset = d.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
 
-    const resolvedType = draft.class_type !== 'TBD' ? draft.class_type : inferClassType(draft.class_name);
+    const resolvedCategoryId = draft.category_id
+      || inferCategoryId(draft.class_name, categories, matchedStudio.default_category_id);
 
     setClassData({
-      classType: resolvedType,
+      categoryId: resolvedCategoryId || (draft.category_other ? 'other' : ''),
+      categoryOther: draft.category_other || '',
       className: draft.class_name,
       dateTime: localISOTime,
       bookingUrl: draft.booking_url || '',
@@ -265,7 +271,7 @@ export default function Dashboard() {
       studioName: matchedStudio.name,
       locationUrl: matchedStudio.location_url || '',
     });
-    setCategoryAutoSet(draft.class_type === 'TBD');
+    setCategoryAutoSet(!draft.category_id && !draft.category_other);
 
     setEditingDraftId(draft.id);
   };
@@ -274,7 +280,7 @@ export default function Dashboard() {
     setEditingDraftId(null);
     setCategoryAutoSet(true);
     setClassData({
-      classType: '', className: '', dateTime: '',
+      categoryId: '', categoryOther: '', className: '', dateTime: '',
       bookingUrl: '', bookingType: 'direct', bookingNote: '',
       studioName: '', locationUrl: '',
       repeatFrequency: 'none', repeatDuration: '2weeks', repeatEndDate: '',
@@ -350,7 +356,8 @@ export default function Dashboard() {
     setIsSaving(true);
 
     const payload = {
-      class_type: classData.classType,
+      category_id: classData.categoryId && classData.categoryId !== 'other' ? classData.categoryId : null,
+      category_other: classData.categoryId === 'other' ? classData.categoryOther : null,
       class_name: classData.className,
       date_time: new Date(classData.dateTime).toISOString(),
       booking_url: classData.bookingUrl,
@@ -573,7 +580,8 @@ export default function Dashboard() {
             instructorId: user.id,
             studioName: studio.name,
             defaultBookingUrl: studio.default_booking_url || '',
-            defaultClassType: studio.default_class_type || '',
+            defaultCategoryId: studio.default_category_id || '',
+            defaultCategoryOther: studio.default_category_other || '',
             defaultBookingType: studio.booking_type || 'direct',
             defaultBookingNote: studio.booking_note || '',
           }),
@@ -689,7 +697,7 @@ export default function Dashboard() {
                     <div className="mb-4 sm:mb-0">
                       <div className="flex items-center space-x-3 mb-1">
                         <h4 className="font-bold text-lg text-bark">{c.class_name}</h4>
-                        <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">{c.class_type}</span>
+                        <span className="text-xs font-medium bg-clay-light px-2 py-0.5 rounded border border-sand">{categoryLabel(c, categories) || 'Needs category'}</span>
                         {clickStats.perClass[c.id] > 0 && (
                           <span className="text-xs font-medium bg-sage-light text-sage px-2 py-0.5 rounded border border-sage/30">
                             {clickStats.perClass[c.id]} click{clickStats.perClass[c.id] !== 1 ? 's' : ''}
@@ -722,7 +730,8 @@ export default function Dashboard() {
                         const tzOffset = d.getTimezoneOffset() * 60000;
                         const localISOTime = (new Date(d - tzOffset)).toISOString().slice(0, 16);
                         setClassData({
-                          classType: c.class_type,
+                          categoryId: c.category_id || (c.category_other ? 'other' : ''),
+                          categoryOther: c.category_other || '',
                           className: c.class_name,
                           dateTime: localISOTime,
                           bookingUrl: c.booking_url || '',
@@ -850,9 +859,9 @@ export default function Dashboard() {
                   <input type="text" value={classData.className}
                     onChange={e => {
                       const className = e.target.value;
-                      const inferred = inferClassType(className);
+                      const inferred = inferCategoryId(className, categories, null);
                       if (categoryAutoSet && inferred) {
-                        setClassData({ ...classData, className, classType: inferred });
+                        setClassData({ ...classData, className, categoryId: inferred, categoryOther: '' });
                       } else {
                         setClassData({ ...classData, className });
                       }
@@ -863,15 +872,19 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Category & Studio</label>
                   <div className="grid grid-cols-2 gap-4">
-                    <select value={classData.classType}
-                      onChange={e => {
+                    <CategorySelect
+                      categories={categories}
+                      value={classData.categoryId}
+                      otherValue={classData.categoryOther}
+                      onChange={val => {
                         setCategoryAutoSet(false);
-                        setClassData({ ...classData, classType: e.target.value });
+                        setClassData({ ...classData, categoryId: val, categoryOther: val === 'other' ? classData.categoryOther : '' });
                       }}
-                      required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
-                      <option value="" disabled>Select Category...</option>
-                      {CLASS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                      onOtherChange={val => setClassData({ ...classData, categoryOther: val })}
+                      placeholder={{ value: '', label: 'Select Category...', disabled: true }}
+                      required
+                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen"
+                    />
 
                     <select value={classData.studioName}
                       onChange={(e) => {
@@ -1124,12 +1137,18 @@ export default function Dashboard() {
                       {/* Default class type */}
                       <div>
                         <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Default Class Type</label>
-                        <select defaultValue={studio.default_class_type || ''}
-                          onChange={e => handleUpdateStudio(studio.id, { default_class_type: e.target.value })}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm">
-                          <option value="">No default — tag each class manually</option>
-                          {CLASS_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
+                        <CategorySelect
+                          categories={categories}
+                          value={studio.default_category_id || (studio.default_category_other ? 'other' : '')}
+                          otherValue={studio.default_category_other || ''}
+                          onChange={val => handleUpdateStudio(studio.id, {
+                            default_category_id: val && val !== 'other' ? val : null,
+                            default_category_other: val === 'other' ? (studio.default_category_other || '') : null,
+                          })}
+                          onOtherChange={val => handleUpdateStudio(studio.id, { default_category_other: val })}
+                          placeholder={{ value: '', label: 'No default — tag each class manually', disabled: false }}
+                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm"
+                        />
                         <p className="text-[11px] text-stone mt-1.5">Synced classes from this studio will be auto-tagged with this type.</p>
                       </div>
 
