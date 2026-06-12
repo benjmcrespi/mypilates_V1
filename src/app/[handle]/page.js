@@ -173,7 +173,7 @@ export default function InstructorProfile() {
             : <span className="text-3xl font-bold text-smoke">{instructor.full_name?.charAt(0) || 'I'}</span>
           }
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-linen">{instructor.full_name}</h1>
+        <h1 className="font-serif text-4xl font-normal tracking-wide text-linen">{instructor.full_name}</h1>
 
         {/* Meta row: years experience + Instagram */}
         {(instructor.years_experience || instructor.instagram_handle) && (

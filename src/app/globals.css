@@ -13,14 +13,15 @@
   --color-clay-dark:  #7A3520;
   --color-sage:       #7A9471;
   --color-sage-light: #EAF0E6;
-}
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
+  /* Typography system */
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, serif;
+  --default-font-family: var(--font-sans);
 }
 
 .font-wordmark {
-  font-family: var(--font-cormorant), Georgia, serif;
+  font-family: var(--font-serif);
 }
 
 /* Product tour (Driver.js) — branded espresso/linen/clay styling */

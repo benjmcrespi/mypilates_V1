@@ -30,7 +30,7 @@ export default function LandingPage() {
           <span className="inline-block text-xs font-bold tracking-widest uppercase text-clay border border-clay/40 rounded-full px-4 py-1.5 mb-8">
             Beta · Vancouver, BC
           </span>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6 leading-tight">
+          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl font-normal tracking-tight mb-6 leading-tight">
             Become an Instruktor.
           </h1>
           <p className="text-lg sm:text-xl text-smoke mb-10 leading-relaxed max-w-2xl mx-auto">
