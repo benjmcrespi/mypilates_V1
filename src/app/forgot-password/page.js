@@ -15,7 +15,7 @@ export default function ForgotPassword() {
     setErrorMsg('');
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: 'https://www.instruktor.ca/reset-password',
     });
 
     setIsLoading(false);
