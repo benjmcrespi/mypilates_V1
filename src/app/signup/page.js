@@ -85,7 +85,7 @@ export default function SignUp() {
           Instructor Sign Up
         </h2>
         <p className="mt-2 text-sm text-stone">
-          Join the premier hub for independent Pilates instructors.
+          Join the premier hub for independent fitness instructors.
         </p>
       </div>
 
