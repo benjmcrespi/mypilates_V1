@@ -40,8 +40,8 @@ export default function Navbar() {
     router.push('/');
   };
 
-  // Keep the login page completely blank to maintain focus
-  if (pathname === '/login') return null;
+  // Keep the auth pages completely blank to maintain focus
+  if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password') return null;
 
   // Landing page has its own custom nav
   if (pathname === '/') return null;
