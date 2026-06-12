@@ -252,6 +252,60 @@ ON CONFLICT (slug) DO NOTHING;
 
 ---
 
+### Session — PWA (Progressive Web App)
+
+Makes instruktor.ca installable on iOS and Android home screens. Looks and behaves like a native app — no browser chrome, standalone display, branded splash screen. Users tap "Add to Home Screen" and it sits on their device with the Instruktor logo.
+
+**Install next-pwa:**
+```
+npm install next-pwa
+```
+
+**manifest.json** (in /public):
+```json
+{
+  "name": "Instruktor",
+  "short_name": "Instruktor",
+  "description": "Your classes. Every studio. One link.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A0E07",
+  "theme_color": "#1A0E07",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
+```
+
+**iOS meta tags** (in _document or layout head):
+```html
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Instruktor" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+```
+
+**Icons needed** — generate from the instruktor_logo.svg:
+- /public/icons/icon-192.png (192×192)
+- /public/icons/icon-512.png (512×512)
+- /public/favicon.ico
+
+Use the clay rotated k mark on bark background — same asset as the LinkedIn logo.
+
+**next.config.js** — wrap with next-pwa:
+```javascript
+const withPWA = require('next-pwa')({ dest: 'public', disable: process.env.NODE_ENV === 'development' })
+module.exports = withPWA({ /* existing config */ })
+```
+
+Disable in development (disable: process.env.NODE_ENV === 'development') to avoid service worker conflicts during builds.
+
+Test by opening instruktor.ca on a real phone and confirming "Add to Home Screen" prompt appears and the installed app opens without browser chrome.
+
+---
 ### Session — Landing Page (instruktor.ca homepage)
 
 Six sections using brand tokens throughout. Mobile responsive.
