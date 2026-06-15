@@ -1,8 +1,10 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#2C1810"/>
-  <g fill="none" stroke="#C4683A" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
-    <line x1="100" y1="256" x2="412" y2="256"/>
-    <line x1="120" y1="120" x2="300" y2="256"/>
-    <line x1="120" y1="392" x2="300" y2="256"/>
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <rect width="500" height="500" fill="#2C1810"/>
+  <g transform="rotate(-90, 250, 250)">
+    <g stroke="#C4683A" stroke-width="30" stroke-linecap="round" fill="none">
+      <line x1="215" y1="120" x2="215" y2="380"/>
+      <line x1="215" y1="250" x2="325" y2="140"/>
+      <line x1="215" y1="250" x2="325" y2="360"/>
+    </g>
   </g>
 </svg>
