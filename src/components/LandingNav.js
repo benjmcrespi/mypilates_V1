@@ -54,7 +54,7 @@ export default function LandingNav() {
           open ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <div className="px-4 sm:px-6 pb-5 flex flex-col gap-3">
+        <div className="px-4 sm:px-6 pb-5 flex flex-col items-end gap-3 text-right">
           <Link
             href="/login"
             onClick={() => setOpen(false)}
