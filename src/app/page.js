@@ -1,28 +1,12 @@
 import Link from 'next/link';
+import LandingNav from '@/components/LandingNav';
 
 export default function LandingPage() {
   return (
     <div className="bg-linen text-bark">
 
       {/* 1. Nav */}
-      <header className="bg-espresso text-linen sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto flex justify-between items-center px-4 sm:px-6 py-5">
-          <Link href="/" className="font-wordmark text-2xl tracking-[4px]">
-            Instruktor
-          </Link>
-          <nav className="flex items-center gap-4 sm:gap-6">
-            <Link href="/login" className="text-sm font-medium text-smoke hover:text-linen transition-colors">
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              className="bg-clay text-linen text-sm font-bold py-2.5 px-5 rounded-xl hover:bg-clay-dark transition-colors"
-            >
-              Create your page
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <LandingNav />
 
       {/* 2. Hero */}
       <section className="bg-espresso text-linen px-4 sm:px-6 py-20 sm:py-28">
