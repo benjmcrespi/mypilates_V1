@@ -44,19 +44,6 @@ function groupByWeek(items, timeZone) {
   return groups;
 }
 
-const PLATFORMS = [
-  { value: '', label: 'Select platform...' },
-  { value: 'mindbody', label: 'Mindbody' },
-  { value: 'mariana_tek', label: 'Mariana Tek' },
-  { value: 'other', label: 'Other' },
-];
-
-const BOOKING_TYPES = [
-  { value: 'direct', label: 'Direct link' },
-  { value: 'membership_required', label: 'Membership required' },
-  { value: 'app_recommended', label: 'App recommended' },
-  { value: 'dropin_welcome', label: 'Drop-in welcome' },
-];
 
 const TIMEZONES = [
   { value: 'America/Vancouver',   label: 'Pacific Time (Vancouver)' },
@@ -308,7 +295,6 @@ export default function Dashboard() {
       name: finalName,
       location_url: newStudioUrl,
       instructor_id: user.id,
-      booking_type: 'direct',
     }]);
 
     if (!error) {
@@ -582,7 +568,7 @@ export default function Dashboard() {
             defaultBookingUrl: studio.default_booking_url || '',
             defaultCategoryId: studio.default_category_id || '',
             defaultCategoryOther: studio.default_category_other || '',
-            defaultBookingType: studio.booking_type || 'direct',
+            defaultBookingType: studio.booking_type || null,
             defaultBookingNote: studio.booking_note || '',
           }),
         });
@@ -962,22 +948,12 @@ export default function Dashboard() {
                 {/* Booking context — collapsible override */}
                 <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
                   <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Context (shown to students)</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-stone mb-1">Booking Type</label>
-                      <select value={classData.bookingType}
-                        onChange={e => setClassData({ ...classData, bookingType: e.target.value })}
-                        className="w-full border border-sand rounded-lg px-3 py-2 outline-none focus:border-clay bg-white text-sm">
-                        {BOOKING_TYPES.map(bt => <option key={bt.value} value={bt.value}>{bt.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-stone mb-1">Booking Note <span className="font-normal">(optional)</span></label>
-                      <input type="text" placeholder="e.g. Book via the Altea app"
-                        value={classData.bookingNote}
-                        onChange={e => setClassData({ ...classData, bookingNote: e.target.value })}
-                        className="w-full border border-sand rounded-lg px-3 py-2 outline-none focus:border-clay bg-white text-sm" />
-                    </div>
+                  <div>
+                    <label className="block text-xs font-medium text-stone mb-1">Booking Note <span className="font-normal">(optional)</span></label>
+                    <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
+                      value={classData.bookingNote}
+                      onChange={e => setClassData({ ...classData, bookingNote: e.target.value })}
+                      className="w-full border border-sand rounded-lg px-3 py-2 outline-none focus:border-clay bg-white text-sm" />
                   </div>
                 </div>
 
@@ -1099,31 +1075,10 @@ export default function Dashboard() {
                         </button>
                       </div>
 
-                      {/* Platform */}
-                      <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Booking Platform</label>
-                        <select defaultValue={studio.platform || ''}
-                          onChange={e => handleUpdateStudio(studio.id, { platform: e.target.value })}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm">
-                          {PLATFORMS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                        </select>
-                      </div>
-
-                      {/* Booking type */}
-                      <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Default Booking Type</label>
-                        <select defaultValue={studio.booking_type || 'direct'}
-                          onChange={e => handleUpdateStudio(studio.id, { booking_type: e.target.value })}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm">
-                          {BOOKING_TYPES.map(bt => <option key={bt.value} value={bt.value}>{bt.label}</option>)}
-                        </select>
-                        <p className="text-[11px] text-stone mt-1.5">Shown to students so they know what to expect before clicking Book Spot.</p>
-                      </div>
-
                       {/* Booking note */}
                       <div>
                         <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Booking Note <span className="font-normal normal-case">(optional)</span></label>
-                        <input type="text" placeholder="e.g. Book via the Altea app, First class free"
+                        <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
                           defaultValue={studio.booking_note || ''}
                           onBlur={e => {
                             if (e.target.value !== (studio.booking_note || '')) {
@@ -1245,11 +1200,6 @@ function DraftRow({ c, tz, isSelected, onToggle, onDelete, onEdit }) {
             {new Date(c.date_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz })}
             {' '}@ {c.studio_name || 'Pending Studio'}
           </p>
-          {c.booking_type && c.booking_type !== 'direct' && (
-            <span className="inline-block mt-1 text-[10px] font-medium bg-sand text-stone px-2 py-0.5 rounded-full">
-              {BOOKING_TYPES.find(bt => bt.value === c.booking_type)?.label}
-            </span>
-          )}
         </div>
       </div>
       <div className="flex gap-2 shrink-0">

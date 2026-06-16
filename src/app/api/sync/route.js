@@ -89,7 +89,7 @@ export async function POST(req) {
               external_uid: currentEvent.uid || `auto-${Date.now()}-${Math.random()}`,
               status: 'draft',
               booking_url: bookingUrl,
-              booking_type: defaultBookingType || 'direct',
+              booking_type: defaultBookingType || null,
               booking_note: defaultBookingNote || null,
               location_url: '',
             });
