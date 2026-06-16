@@ -35,7 +35,7 @@ export default function LandingPage() {
       {/* 3. How it works */}
       <section className="bg-linen px-4 sm:px-6 py-20 sm:py-28">
         <div className="max-w-5xl mx-auto">
-          <span className="block text-center text-xs font-bold tracking-widest uppercase text-stone mb-4">
+          <span className="block text-center text-sm font-bold tracking-widest uppercase text-stone mb-4">
             How it works
           </span>
           <div className="grid sm:grid-cols-3 gap-8 mt-10">
@@ -43,14 +43,14 @@ export default function LandingPage() {
               <div className="text-clay text-sm font-bold tracking-widest uppercase mb-4">Step 1</div>
               <h3 className="text-xl font-bold mb-3">Add your studios</h3>
               <p className="text-stone leading-relaxed">
-                Connect each studio&apos;s calendar and booking link once.
+                Connect your studios&apos; calendars and booking links once.
               </p>
             </div>
             <div className="bg-white border border-sand rounded-xl p-8 text-center">
               <div className="text-clay text-sm font-bold tracking-widest uppercase mb-4">Step 2</div>
               <h3 className="text-xl font-bold mb-3">Pull your schedule</h3>
               <p className="text-stone leading-relaxed">
-                All classes from all studios populate in one tap.
+                One tap syncs all your classes from every studio.
               </p>
             </div>
             <div className="bg-white border border-sand rounded-xl p-8 text-center">
@@ -71,7 +71,7 @@ export default function LandingPage() {
             Your career, professionally managed.
           </h2>
           <p className="text-lg text-smoke leading-relaxed">
-            Every photographer has a portfolio. Every professional has a LinkedIn. Instruktor is the professional home fitness instructors have always needed — a profile, a following, and a track record that travels with you.
+            Every photographer has a portfolio. Every professional has a LinkedIn. Instruktor is yours. A professional page, a following, and a track record that travels with you wherever you teach.
           </p>
         </div>
       </section>
@@ -79,11 +79,11 @@ export default function LandingPage() {
       {/* 5. Coming soon */}
       <section className="bg-linen px-4 sm:px-6 py-20 sm:py-28">
         <div className="max-w-5xl mx-auto">
-          <span className="block text-center text-xs font-bold tracking-widest uppercase text-stone mb-4">
-            Coming soon
+          <span className="block text-center text-2xl font-bold tracking-widest uppercase text-bark mb-4">
+            Coming Soon
           </span>
           <p className="text-center text-stone mb-10 max-w-2xl mx-auto">
-            Early members get these first.
+            Founding members get first access.
           </p>
           <div className="grid sm:grid-cols-3 gap-8">
             <div className="bg-white border border-sand rounded-xl p-8 text-center">
@@ -114,7 +114,7 @@ export default function LandingPage() {
           <p className="text-sm font-bold tracking-widest uppercase text-clay mb-4">
             Ready to build your practice?
           </p>
-          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight mb-8">
+          <h2 className="font-serif text-5xl sm:text-6xl md:text-7xl font-normal tracking-tight mb-8 leading-tight">
             Become an Instruktor.
           </h2>
           <Link
