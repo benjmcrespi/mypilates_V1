@@ -43,7 +43,7 @@ export async function POST(request) {
   // Get confirmed followers
   const { data: followers } = await supabaseAdmin
     .from('followers')
-    .select('email')
+    .select('email, unsubscribe_token')
     .eq('instructor_id', user.id)
     .eq('confirmed', true);
 
@@ -58,7 +58,10 @@ export async function POST(request) {
     from: 'Instruktor <noreply@instruktor.ca>',
     to: f.email,
     subject: `New classes from ${profile.full_name}`,
-    html: newClassesEmailHtml({ profile, newClasses, baseUrl, tz }),
+    html: newClassesEmailHtml({
+      profile, newClasses, baseUrl, tz,
+      unsubscribeUrl: `${baseUrl}/unfollow?token=${f.unsubscribe_token}`,
+    }),
   }));
 
   try {
@@ -71,7 +74,7 @@ export async function POST(request) {
   return Response.json({ sent: followers.length });
 }
 
-function newClassesEmailHtml({ profile, newClasses, baseUrl, tz }) {
+function newClassesEmailHtml({ profile, newClasses, baseUrl, tz, unsubscribeUrl }) {
   const classRows = newClasses.map(c => {
     const date = new Date(c.date_time).toLocaleDateString('en-US', {
       weekday: 'long', month: 'long', day: 'numeric', timeZone: tz,
@@ -115,6 +118,8 @@ function newClassesEmailHtml({ profile, newClasses, baseUrl, tz }) {
           <p style="margin:0;color:#9B8070;font-size:12px;line-height:1.5;">
             You're following ${profile.full_name} on Instruktor.<br>
             <a href="${baseUrl}/${profile.handle}" style="color:#C4683A;text-decoration:none;">View full schedule</a>
+            &nbsp;·&nbsp;
+            <a href="${unsubscribeUrl}" style="color:#9B8070;text-decoration:underline;">Unsubscribe</a>
           </p>
         </td></tr>
 

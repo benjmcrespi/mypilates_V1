@@ -32,6 +32,7 @@ export async function POST(request) {
   const url = new URL(request.url);
   const baseUrl = `${url.protocol}//${url.host}`;
   const confirmUrl = `${baseUrl}/api/follow/confirm?id=${follower.id}&handle=${handle}`;
+  const unsubscribeUrl = `${baseUrl}/unfollow?token=${follower.unsubscribe_token}`;
 
   // Send confirmation email
   try {
@@ -39,7 +40,7 @@ export async function POST(request) {
       from: 'Instruktor <noreply@instruktor.ca>',
       to: emailLower,
       subject: `Confirm: Follow ${instructor_name} on Instruktor`,
-      html: confirmEmailHtml({ instructor_name, confirmUrl, handle, baseUrl }),
+      html: confirmEmailHtml({ instructor_name, confirmUrl, handle, baseUrl, unsubscribeUrl }),
     });
   } catch (emailError) {
     console.error('Confirmation email failed:', emailError);
@@ -49,7 +50,7 @@ export async function POST(request) {
   return Response.json({ status: 'pending_confirmation' });
 }
 
-function confirmEmailHtml({ instructor_name, confirmUrl, handle, baseUrl }) {
+function confirmEmailHtml({ instructor_name, confirmUrl, handle, baseUrl, unsubscribeUrl }) {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -82,6 +83,8 @@ function confirmEmailHtml({ instructor_name, confirmUrl, handle, baseUrl }) {
           <p style="margin:0;color:#9B8070;font-size:12px;line-height:1.5;">
             If you didn't request this, you can safely ignore it.<br>
             <a href="${baseUrl}/${handle}" style="color:#C4683A;text-decoration:none;">View ${instructor_name}'s schedule</a>
+            &nbsp;·&nbsp;
+            <a href="${unsubscribeUrl}" style="color:#9B8070;text-decoration:underline;">Unsubscribe</a>
           </p>
         </td></tr>
 

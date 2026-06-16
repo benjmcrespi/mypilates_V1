@@ -62,6 +62,11 @@ export default function InstructorProfile() {
   const [followState, setFollowState] = useState('idle'); // idle | submitting | done | confirmed | already | error
   const followParam = searchParams?.get('follow');
 
+  // Unfollow widget state
+  const [showUnfollow, setShowUnfollow] = useState(false);
+  const [unfollowEmail, setUnfollowEmail] = useState('');
+  const [unfollowState, setUnfollowState] = useState('idle'); // idle | submitting | done | error
+
   useEffect(() => {
     const fetchData = async () => {
       if (!params?.handle) return;
@@ -128,6 +133,20 @@ export default function InstructorProfile() {
     } else {
       setFollowState('done');
     }
+  };
+
+  const handleUnfollow = async (e) => {
+    e.preventDefault();
+    if (!unfollowEmail || !instructor) return;
+    setUnfollowState('submitting');
+
+    const res = await fetch('/api/unfollow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: unfollowEmail, instructor_id: instructor.id }),
+    });
+
+    setUnfollowState(res.ok ? 'done' : 'error');
   };
 
   const handleBookClick = (classItem) => {
@@ -274,6 +293,44 @@ export default function InstructorProfile() {
           )}
           {followState === 'error' && (
             <p className="text-red-600 text-xs mt-2 text-center">Something went wrong. Please try again.</p>
+          )}
+
+          {/* Unfollow section */}
+          {unfollowState === 'done' ? (
+            <p className="text-stone text-xs mt-3 text-center">You've been unfollowed from {instructor.full_name?.split(' ')[0]}.</p>
+          ) : (
+            <div className="mt-3 text-center">
+              {!showUnfollow ? (
+                <button
+                  type="button"
+                  onClick={() => setShowUnfollow(true)}
+                  className="text-xs text-stone hover:text-bark underline decoration-dotted transition-colors"
+                >
+                  Already following? Unfollow
+                </button>
+              ) : (
+                <form onSubmit={handleUnfollow} className="flex gap-2 justify-center mt-1">
+                  <input
+                    type="email"
+                    required
+                    placeholder="your@email.com"
+                    value={unfollowEmail}
+                    onChange={e => setUnfollowEmail(e.target.value)}
+                    className="border border-sand rounded-lg px-3 py-2 text-xs outline-none focus:border-stone bg-white w-48"
+                  />
+                  <button
+                    type="submit"
+                    disabled={unfollowState === 'submitting'}
+                    className="text-xs text-stone border border-sand bg-white px-3 py-2 rounded-lg hover:bg-sand/40 transition-colors disabled:opacity-60 whitespace-nowrap"
+                  >
+                    {unfollowState === 'submitting' ? 'Removing…' : 'Unfollow'}
+                  </button>
+                </form>
+              )}
+              {unfollowState === 'error' && (
+                <p className="text-red-600 text-xs mt-1">Something went wrong. Please try again.</p>
+              )}
+            </div>
           )}
         </div>
       </div>
