@@ -416,14 +416,14 @@ export default function Dashboard() {
       fetchMyClasses(user.id);
       setSelectedDraftIds(prev => prev.filter(id => !ids.includes(id)));
 
-      // Notify confirmed followers about new classes (fire and forget)
+      // Queue classes for batched follower digest (fire and forget)
       if (followerCount > 0) {
         const { data: { session } } = await supabase.auth.getSession();
-        fetch('/api/notify-followers', {
+        fetch('/api/queue-notification', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
           body: JSON.stringify({ classIds: ids }),
-        }).catch(err => console.error('Notify followers failed:', err));
+        }).catch(err => console.error('Queue notification failed:', err));
       }
     } else {
       alert("Error publishing: " + error.message);
