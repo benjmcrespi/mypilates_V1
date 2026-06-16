@@ -48,7 +48,7 @@ export async function GET(request) {
         const url = new URL(request.url);
         const baseUrl = `${url.protocol}//${url.host}`;
         await resend.emails.send({
-          from: 'Instruktor <onboarding@resend.dev>',
+          from: 'Instruktor <noreply@instruktor.ca>',
           to: user.email,
           subject: `You hit ${count} follower${count > 1 ? 's' : ''} on Instruktor!`,
           html: milestoneEmailHtml({ count, profile, baseUrl }),

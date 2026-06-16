@@ -36,7 +36,7 @@ export async function POST(request) {
   // Send confirmation email
   try {
     await resend.emails.send({
-      from: 'Instruktor <onboarding@resend.dev>',
+      from: 'Instruktor <noreply@instruktor.ca>',
       to: emailLower,
       subject: `Confirm: Follow ${instructor_name} on Instruktor`,
       html: confirmEmailHtml({ instructor_name, confirmUrl, handle, baseUrl }),

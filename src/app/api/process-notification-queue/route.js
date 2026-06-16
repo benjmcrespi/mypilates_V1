@@ -95,7 +95,7 @@ export async function GET(request) {
     const tz = profile.timezone || 'America/Vancouver';
 
     const emails = followers.map(f => ({
-      from: 'Instruktor <onboarding@resend.dev>',
+      from: 'Instruktor <noreply@instruktor.ca>',
       to: f.email,
       subject: `${profile.full_name} just added new classes`,
       html: digestEmailHtml({ profile, classes, baseUrl, tz }),

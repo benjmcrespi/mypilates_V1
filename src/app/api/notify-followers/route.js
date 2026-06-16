@@ -55,7 +55,7 @@ export async function POST(request) {
 
   // Resend batch API — max 100 per batch
   const emails = followers.map(f => ({
-    from: 'Instruktor <onboarding@resend.dev>',
+    from: 'Instruktor <noreply@instruktor.ca>',
     to: f.email,
     subject: `New classes from ${profile.full_name}`,
     html: newClassesEmailHtml({ profile, newClasses, baseUrl, tz }),
