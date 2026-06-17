@@ -65,7 +65,7 @@ export async function GET(request) {
 function milestoneEmailHtml({ count, profile, baseUrl }) {
   const messages = {
     1:  { headline: 'Your first follower!', body: 'Someone just confirmed they want to be notified when you add new classes. Your professional presence is working.' },
-    10: { headline: '10 followers!', body: 'Ten people are now following your schedule. Keep publishing consistently — this is how you build a portable following.' },
+    10: { headline: '10 followers!', body: 'Ten people are now following your schedule. Keep publishing consistently. This is how you build a portable following.' },
     25: { headline: '25 followers!', body: 'Twenty-five people trust you enough to hand over their email. That\'s a real audience you own.' },
     50: { headline: '50 followers!', body: 'Fifty people following your schedule. You\'re building something real here.' },
   };

@@ -12,7 +12,7 @@ export async function POST(request) {
 
   const emailLower = email.toLowerCase().trim();
 
-  // Insert follower — ignore if already following
+  // Insert follower. Ignore if already following.
   const { data: follower, error } = await supabaseAdmin
     .from('followers')
     .insert({ email: emailLower, instructor_id })
@@ -21,7 +21,7 @@ export async function POST(request) {
 
   if (error) {
     if (error.code === '23505') {
-      // Already following — don't re-send confirmation, just acknowledge
+      // Already following. Do not re-send confirmation, just acknowledge.
       return Response.json({ status: 'already_following' });
     }
     console.error('Follow insert error:', error);
@@ -44,7 +44,7 @@ export async function POST(request) {
     });
   } catch (emailError) {
     console.error('Confirmation email failed:', emailError);
-    // Don't fail the whole request — follower is saved, email is best-effort
+    // Do not fail the whole request. Follower is saved, email is best-effort.
   }
 
   return Response.json({ status: 'pending_confirmation' });

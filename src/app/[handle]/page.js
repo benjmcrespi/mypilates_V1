@@ -150,7 +150,7 @@ export default function InstructorProfile() {
   };
 
   const handleBookClick = (classItem) => {
-    // Log the click — fire and forget, never block the booking flow
+    // Log the click. Fire and forget. Never block the booking flow.
     fetch('/api/track-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -184,7 +184,7 @@ export default function InstructorProfile() {
   return (
     <div className="min-h-screen bg-linen text-bark pb-20">
 
-      {/* BIO HEADER — dark espresso per brand spec */}
+      {/* BIO HEADER: dark espresso per brand spec */}
       <div className="bg-espresso text-linen py-12 px-6 text-center">
         <div className="w-24 h-24 rounded-full mx-auto mb-4 overflow-hidden border-2 border-white/20 bg-bark flex items-center justify-center">
           {instructor.avatar_url
@@ -271,7 +271,7 @@ export default function InstructorProfile() {
             <form onSubmit={handleFollow} className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1">
                 <label className="block text-xs font-semibold text-stone uppercase tracking-wider mb-2">
-                  Follow {instructor.full_name?.split(' ')[0]} — get notified when new classes are added
+                  Follow {instructor.full_name?.split(' ')[0]} and get notified when new classes are added
                 </label>
                 <input
                   type="email"
@@ -394,7 +394,7 @@ export default function InstructorProfile() {
       {/* VIRAL FOOTER */}
       <footer className="text-center pb-8 px-4">
         <Link href="/" className="text-xs text-stone hover:text-clay transition-colors">
-          Build your own schedule page — Instruktor.ca
+          Build your own schedule page at Instruktor.ca
         </Link>
       </footer>
 

@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 const CARDS = [
   {
     title: 'You became an Instruktor.',
-    body: "Welcome. You're not just on a studio's schedule anymore — you have a professional home of your own.",
+    body: "Welcome. You're not just on a studio's schedule anymore. You have a professional home of your own.",
   },
   {
     title: 'One link. Every class.',
@@ -12,7 +12,7 @@ const CARDS = [
   },
   {
     title: 'Your brand. Your page.',
-    body: 'instruktor.ca/yourhandle is yours. Your photo, your bio, your schedule — built around you, not the studio.',
+    body: 'instruktor.ca/yourhandle is yours. Your photo, your bio, your schedule, built around you and not the studio.',
   },
   {
     title: 'Your students follow you.',

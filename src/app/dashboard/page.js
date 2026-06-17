@@ -663,8 +663,8 @@ export default function Dashboard() {
             <div className="bg-white rounded-xl border border-sand p-5 shadow-sm col-span-2 sm:col-span-1">
               <p className="text-2xl font-bold text-bark leading-none truncate">
                 {clickStats.topClassId
-                  ? (myClasses.find(c => c.id === clickStats.topClassId)?.class_name || '—')
-                  : '—'}
+                  ? (myClasses.find(c => c.id === clickStats.topClassId)?.class_name || 'N/A')
+                  : 'N/A'}
               </p>
               <p className="text-xs text-stone uppercase tracking-wider mt-1.5">
                 Top class{clickStats.topCount > 0 ? ` · ${clickStats.topCount} click${clickStats.topCount !== 1 ? 's' : ''}` : ''}
@@ -745,7 +745,7 @@ export default function Dashboard() {
         {activeTab === 'add' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* Sync Drafts panel — first on mobile so Pull + Publish All are immediately visible */}
+            {/* Sync Drafts panel: first on mobile so Pull + Publish All are immediately visible */}
             <div data-tour="publish-all-panel" className="order-1 lg:order-2 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
               <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
@@ -829,7 +829,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Publish form — second on mobile, first column on desktop */}
+            {/* Publish form: second on mobile, first column on desktop */}
             <div ref={formRef} className={`order-2 lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
@@ -946,7 +946,7 @@ export default function Dashboard() {
                     required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
                 </div>
 
-                {/* Booking context — collapsible override */}
+                {/* Booking context: collapsible override */}
                 <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
                   <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Context (shown to students)</p>
                   <div>
@@ -1102,7 +1102,7 @@ export default function Dashboard() {
                             default_category_other: val === 'other' ? (studio.default_category_other || '') : null,
                           })}
                           onOtherChange={val => handleUpdateStudio(studio.id, { default_category_other: val })}
-                          placeholder={{ value: '', label: 'No default — tag each class manually', disabled: false }}
+                          placeholder={{ value: '', label: 'No default. Tag each class manually.', disabled: false }}
                           className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm"
                         />
                         <p className="text-[11px] text-stone mt-1.5">Synced classes from this studio will be auto-tagged with this type.</p>

@@ -24,7 +24,7 @@
   font-family: var(--font-serif);
 }
 
-/* Product tour (Driver.js) — branded espresso/linen/clay styling */
+/* Product tour (Driver.js): branded espresso/linen/clay styling */
 .instruktor-tour-popover.driver-popover {
   background-color: var(--color-espresso);
   color: var(--color-linen);

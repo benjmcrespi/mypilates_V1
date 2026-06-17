@@ -56,7 +56,7 @@ export default function ForgotPassword() {
 
           {submitted ? (
             <div className="p-3 bg-sage-light border border-sage text-bark text-sm rounded-lg font-medium text-center">
-              Check your inbox — we've sent a password reset link to {email}.
+              Check your inbox. We've sent a password reset link to {email}.
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">

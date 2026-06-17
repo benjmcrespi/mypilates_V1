@@ -11,7 +11,7 @@ export default function AddToHomeScreen() {
   useEffect(() => {
     if (localStorage.getItem(DISMISS_KEY)) return;
 
-    // Already installed / running standalone — nothing to prompt
+    // Already installed / running standalone. Nothing to prompt.
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true;
@@ -55,7 +55,7 @@ export default function AddToHomeScreen() {
       <div className="flex-1">
         {platform === 'ios' ? (
           <p className="text-sm">
-            Add Instruktor to your home screen — tap{' '}
+            Add Instruktor to your home screen. Tap{' '}
             <span className="font-bold">Share</span> then{' '}
             <span className="font-bold">Add to Home Screen</span>.
           </p>

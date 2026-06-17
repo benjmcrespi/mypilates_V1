@@ -9,7 +9,7 @@ const TOUR_STEPS = [
     element: '[data-tour="settings-tab"]',
     popover: {
       title: 'Your Profile',
-      description: 'This is where you manage your photo, bio, and certifications — the professional profile students see.',
+      description: 'This is where you manage your photo, bio, and certifications. It is the professional profile students see.',
     },
   },
   {
@@ -17,7 +17,7 @@ const TOUR_STEPS = [
     element: '[data-tour="add-studio"]',
     popover: {
       title: 'Add Your Studios',
-      description: 'Add each studio you teach at — name, platform, booking type, URL, and ICS feed — once.',
+      description: 'Add each studio you teach at once, including the name, platform, booking type, URL, and ICS feed.',
     },
   },
   {
@@ -25,7 +25,7 @@ const TOUR_STEPS = [
     element: '[data-tour="add-drafts-tab"]',
     popover: {
       title: 'Add & Drafts',
-      description: 'Pull your schedule here — all classes from all studios populate in one tap.',
+      description: 'Pull your schedule here. All classes from all studios populate in one tap.',
     },
   },
   {
@@ -43,7 +43,7 @@ const TOUR_STEPS = [
     element: '[data-tour="analytics-cards"]',
     popover: {
       title: 'Your Analytics',
-      description: 'Track followers and Book Spot clicks here — instrumented from day one so your data is never lost.',
+      description: 'Track followers and Book Spot clicks here. Your data is instrumented from day one so it is never lost.',
     },
   },
   {

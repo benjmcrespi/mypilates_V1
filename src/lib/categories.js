@@ -1,5 +1,5 @@
 // Keyword rules for auto-inferring a class category from its name.
-// Order matters — more specific matches (e.g. "inferno", "hot yoga") must come before broader ones.
+// Order matters: more specific matches (e.g. "inferno", "hot yoga") must come before broader ones.
 const CATEGORY_KEYWORD_RULES = [
   { test: (n) => n.includes('reformer'), slug: 'reformer-pilates' },
   { test: (n) => n.includes('mat'), slug: 'mat-pilates' },

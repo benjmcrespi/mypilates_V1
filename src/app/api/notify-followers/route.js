@@ -53,7 +53,7 @@ export async function POST(request) {
   const baseUrl = `${url.protocol}//${url.host}`;
   const tz = profile.timezone || 'America/Vancouver';
 
-  // Resend batch API — max 100 per batch
+  // Resend batch API: max 100 per batch
   const emails = followers.map(f => ({
     from: 'Instruktor <noreply@instruktor.ca>',
     to: f.email,

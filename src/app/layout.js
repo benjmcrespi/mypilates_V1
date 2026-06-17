@@ -15,7 +15,7 @@ const cormorant = Cormorant_Garamond({
 
 export const metadata = {
   title: 'Instruktor',
-  description: 'Become an Instruktor — your classes, every studio, one link.',
+  description: 'Become an Instruktor. Your classes, every studio, one link.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
