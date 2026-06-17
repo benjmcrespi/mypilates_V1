@@ -105,6 +105,7 @@ export default function Dashboard() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
+  const [studioSearchKey, setStudioSearchKey] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishingAll, setIsPublishingAll] = useState(false);
   const [isPublishingSelected, setIsPublishingSelected] = useState(false);
@@ -302,7 +303,7 @@ export default function Dashboard() {
       setTimeout(() => setSuccessMessage(''), 3000);
       setNewStudioName('');
       setNewStudioUrl('');
-      if (settingsStudioRef.current) settingsStudioRef.current.value = '';
+      setStudioSearchKey(k => k + 1);
       fetchSavedStudios();
     }
     setIsSaving(false);
@@ -1145,6 +1146,7 @@ export default function Dashboard() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1">
                     <Autocomplete
+                      key={studioSearchKey}
                       apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
                       options={{ types: ["establishment"], fields: ["name", "url"] }}
                       libraries={["places"]}

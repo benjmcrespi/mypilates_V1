@@ -108,7 +108,10 @@ export function startProductTour({ setActiveTab, onFinish }) {
   });
 
   setActiveTab(TOUR_STEPS[0].tab);
-  setTimeout(() => driverObj.drive(), 150);
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    driverObj.drive();
+  }, 150);
 
   return driverObj;
 }

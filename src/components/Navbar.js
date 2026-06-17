@@ -27,9 +27,18 @@ export default function Navbar() {
     checkUser();
 
     // Listen silently in the background for logins/logouts
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user || null);
-      if (!session?.user) setHandle(null);
+      if (!session?.user) {
+        setHandle(null);
+      } else {
+        const { data } = await supabase
+          .from('profiles')
+          .select('handle')
+          .eq('id', session.user.id)
+          .single();
+        setHandle(data?.handle || null);
+      }
     });
 
     return () => subscription.unsubscribe();
