@@ -47,11 +47,11 @@ const TOUR_STEPS = [
     },
   },
   {
-    tab: 'schedule',
-    element: '[data-tour="view-live-site"]',
+    tab: 'settings',
+    element: '[data-tour="your-page-link"]',
     popover: {
-      title: 'Share Your Page',
-      description: 'Share instruktor.ca/[username] in your Instagram bio so students can find every class you teach.',
+      title: 'Your Link',
+      description: 'This is your link. Copy it and put it in your Instagram bio.',
     },
   },
 ];

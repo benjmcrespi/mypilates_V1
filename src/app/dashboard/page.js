@@ -106,6 +106,7 @@ export default function Dashboard() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const [studioSearchKey, setStudioSearchKey] = useState(0);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishingAll, setIsPublishingAll] = useState(false);
   const [isPublishingSelected, setIsPublishingSelected] = useState(false);
@@ -467,6 +468,12 @@ export default function Dashboard() {
     if (profile?.tour_completed) return;
     await supabase.from('profiles').update({ tour_completed: true }).eq('id', user.id);
     setProfile(prev => ({ ...prev, tour_completed: true }));
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`https://instruktor.ca/${profile?.handle}`);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const handleStartTour = () => {
@@ -973,6 +980,34 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Instructor Profile</h2>
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
+
+              {/* Your Page */}
+              <div data-tour="your-page-link">
+                <label className="block text-sm font-medium mb-1">Your Page</label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 border border-sand rounded-lg px-4 py-2 bg-linen text-bark text-sm font-medium select-all overflow-hidden text-ellipsis whitespace-nowrap">
+                    instruktor.ca/{profile?.handle}
+                  </div>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="p-2.5 border border-sand rounded-lg bg-linen hover:bg-clay-light transition-colors"
+                      aria-label="Copy link"
+                    >
+                      <svg className="w-4 h-4 text-stone" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                      </svg>
+                    </button>
+                    {copiedLink && (
+                      <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-bark text-linen text-xs px-2.5 py-1.5 rounded-lg whitespace-nowrap pointer-events-none">
+                        Copied!
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Profile Photo */}
               <div>
