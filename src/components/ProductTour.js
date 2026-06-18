@@ -24,7 +24,7 @@ const TOUR_STEPS = [
     tab: 'settings',
     element: '[data-tour="add-drafts-tab"]',
     popover: {
-      title: 'Add & Drafts',
+      title: 'My Classes',
       description: 'Pull your schedule here. All classes from all studios populate in one tap.',
     },
   },

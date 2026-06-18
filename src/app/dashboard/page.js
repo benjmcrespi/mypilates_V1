@@ -110,6 +110,9 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishingAll, setIsPublishingAll] = useState(false);
   const [isPublishingSelected, setIsPublishingSelected] = useState(false);
+  const [isPublishingThisWeek, setIsPublishingThisWeek] = useState(false);
+  const [isPublishingNextWeek, setIsPublishingNextWeek] = useState(false);
+  const [savedFields, setSavedFields] = useState({});
   const [selectedDraftIds, setSelectedDraftIds] = useState([]);
   const [showLaterDrafts, setShowLaterDrafts] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -173,13 +176,11 @@ export default function Dashboard() {
     if (data) setCategories(data);
   };
 
-  const fetchSavedStudios = async () => {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) return;
+  const fetchSavedStudios = async (userId) => {
     const { data } = await supabase
       .from('studios')
       .select('*')
-      .eq('instructor_id', user.id);
+      .eq('instructor_id', userId);
     if (data) setSavedStudios(data);
   };
 
@@ -193,7 +194,7 @@ export default function Dashboard() {
       setUser(session.user);
 
       fetchCategories();
-      fetchSavedStudios();
+      fetchSavedStudios(session.user.id);
       fetchMyClasses(session.user.id);
       fetchFollowerCount(session.user.id);
       fetchClickStats(session.user.id);
@@ -277,12 +278,15 @@ export default function Dashboard() {
   };
 
   // ── Studio CRUD ──────────────────────────────────────────────────────────────
-  const handleUpdateStudio = async (studioId, updates) => {
+  const markFieldSaved = (fieldKey) => {
+    setSavedFields(prev => ({ ...prev, [fieldKey]: (prev[fieldKey] || 0) + 1 }));
+  };
+
+  const handleUpdateStudio = async (studioId, updates, fieldKey = null) => {
     const { error } = await supabase.from('studios').update(updates).eq('id', studioId);
     if (!error) {
       setSavedStudios(prev => prev.map(s => s.id === studioId ? { ...s, ...updates } : s));
-      setSuccessMessage('Studio settings saved!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      if (fieldKey) markFieldSaved(fieldKey);
     } else {
       alert("Error saving: " + error.message);
     }
@@ -305,7 +309,7 @@ export default function Dashboard() {
       setNewStudioName('');
       setNewStudioUrl('');
       setStudioSearchKey(k => k + 1);
-      fetchSavedStudios();
+      fetchSavedStudios(user.id);
     }
     setIsSaving(false);
   };
@@ -317,7 +321,7 @@ export default function Dashboard() {
     if (!error) {
       setSuccessMessage('Studio removed from your profile!');
       setTimeout(() => setSuccessMessage(''), 3000);
-      fetchSavedStudios();
+      fetchSavedStudios(user.id);
     } else {
       alert("Error: " + error.message);
     }
@@ -449,6 +453,26 @@ export default function Dashboard() {
     setIsPublishingSelected(true);
     await publishClassIds(selectedDraftIds);
     setIsPublishingSelected(false);
+  };
+
+  const handlePublishThisWeek = async () => {
+    const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
+    const timezone = settingsData.timezone || 'America/Vancouver';
+    const { thisWeek } = groupByWeek(drafts, timezone);
+    if (thisWeek.length === 0) return;
+    setIsPublishingThisWeek(true);
+    await publishClassIds(thisWeek.map(d => d.id));
+    setIsPublishingThisWeek(false);
+  };
+
+  const handlePublishNextWeek = async () => {
+    const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
+    const timezone = settingsData.timezone || 'America/Vancouver';
+    const { nextWeek } = groupByWeek(drafts, timezone);
+    if (nextWeek.length === 0) return;
+    setIsPublishingNextWeek(true);
+    await publishClassIds(nextWeek.map(d => d.id));
+    setIsPublishingNextWeek(false);
   };
 
   const toggleDraftSelection = (id) => {
@@ -595,6 +619,7 @@ export default function Dashboard() {
 
   const tz = settingsData.timezone || 'America/Vancouver';
   const pendingDrafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
+  const { thisWeek: thisWeekDrafts, nextWeek: nextWeekDrafts } = groupByWeek(pendingDrafts, tz);
 
   if (isChecking) return <div className="min-h-screen bg-linen"></div>;
 
@@ -613,7 +638,7 @@ export default function Dashboard() {
         <div className="flex gap-5 sm:gap-8 mb-8 border-b border-sand">
           {[
             ['schedule', 'Schedule', 'Live Schedule'],
-            ['add', 'Add & Drafts', 'Add & Drafts'],
+            ['add', 'My Classes', 'My Classes'],
             ['settings', 'Settings', 'Instructor Settings'],
           ].map(([tab, mobileLabel, desktopLabel]) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
@@ -752,9 +777,9 @@ export default function Dashboard() {
         {activeTab === 'add' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* Sync Drafts panel: first on mobile so Pull + Publish All are immediately visible */}
+            {/* Sync Classes panel: first on mobile so Pull + Publish All are immediately visible */}
             <div data-tour="publish-all-panel" className="order-1 lg:order-2 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
-              <h2 className="text-xl font-bold mb-2">Sync Drafts</h2>
+              <h2 className="text-xl font-bold mb-2">Sync Classes</h2>
               <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
 
               <button onClick={handleSync} disabled={isSyncing}
@@ -763,18 +788,46 @@ export default function Dashboard() {
               </button>
 
               {pendingDrafts.length > 0 && (
-                <div className="flex flex-col sm:flex-row gap-2 mb-6">
-                  <button onClick={handlePublishAll} disabled={isPublishingAll || isPublishingSelected}
-                    data-tour="publish-all-btn"
-                    className="flex-1 bg-clay text-white font-bold py-3 rounded-lg shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
-                    {isPublishingAll ? "Publishing..." : `✓ Publish All ${pendingDrafts.length} Drafts`}
-                  </button>
-                  {selectedDraftIds.length > 0 && (
-                    <button onClick={handlePublishSelected} disabled={isPublishingAll || isPublishingSelected}
-                      className="flex-1 bg-bark text-white font-bold py-3 rounded-lg shadow-sm hover:bg-espresso transition-colors disabled:opacity-50">
-                      {isPublishingSelected ? "Publishing..." : `Publish Selected (${selectedDraftIds.length})`}
+                <div className="flex flex-col gap-2 mb-6">
+                  {thisWeekDrafts.length > 0 ? (
+                    <button onClick={handlePublishThisWeek}
+                      disabled={isPublishingThisWeek || isPublishingNextWeek || isPublishingAll || isPublishingSelected}
+                      data-tour="publish-all-btn"
+                      className="w-full bg-clay text-white font-bold py-3 rounded-lg shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
+                      {isPublishingThisWeek ? "Publishing..." : `✓ Publish This Week's Schedule (${thisWeekDrafts.length})`}
+                    </button>
+                  ) : (
+                    <button disabled className="w-full bg-sand/50 text-stone font-medium py-3 rounded-lg text-sm cursor-not-allowed">
+                      Nothing to publish this week
                     </button>
                   )}
+
+                  {nextWeekDrafts.length > 0 ? (
+                    <button onClick={handlePublishNextWeek}
+                      disabled={isPublishingThisWeek || isPublishingNextWeek || isPublishingAll || isPublishingSelected}
+                      className="w-full border border-clay text-clay font-semibold py-2.5 rounded-lg hover:bg-clay-light transition-colors disabled:opacity-50 text-sm">
+                      {isPublishingNextWeek ? "Publishing..." : `Publish Next Week's Schedule (${nextWeekDrafts.length})`}
+                    </button>
+                  ) : (
+                    <button disabled className="w-full border border-sand text-stone font-medium py-2.5 rounded-lg text-sm cursor-not-allowed">
+                      Nothing to publish next week
+                    </button>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    {selectedDraftIds.length > 0 ? (
+                      <button onClick={handlePublishSelected}
+                        disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
+                        className="text-xs font-semibold text-bark border border-sand hover:bg-linen px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                        {isPublishingSelected ? "Publishing..." : `Publish Selected (${selectedDraftIds.length})`}
+                      </button>
+                    ) : <span />}
+                    <button onClick={handlePublishAll}
+                      disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
+                      className="text-xs text-stone hover:text-bark underline transition-colors disabled:opacity-50 ml-auto">
+                      {isPublishingAll ? "Publishing..." : `Publish all ${pendingDrafts.length} drafts`}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -840,7 +893,7 @@ export default function Dashboard() {
             <div ref={formRef} className={`order-2 lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
-                  {editingDraftId ? "📝 Finish Publishing Draft" : "Publish a New Class"}
+                  {editingDraftId ? "📝 Finish Publishing Draft" : "Add a New Class"}
                 </h2>
                 {editingDraftId && (
                   <button type="button" onClick={cancelEdit} className="text-sm font-medium text-red-500 hover:underline">Cancel</button>
@@ -955,7 +1008,7 @@ export default function Dashboard() {
 
                 {/* Booking context: collapsible override */}
                 <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
-                  <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Context (shown to students)</p>
+                  <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Note (optional)</p>
                   <div>
                     <label className="block text-xs font-medium text-stone mb-1">Booking Note <span className="font-normal">(optional)</span></label>
                     <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
@@ -1118,11 +1171,16 @@ export default function Dashboard() {
                           defaultValue={studio.booking_note || ''}
                           onBlur={e => {
                             if (e.target.value !== (studio.booking_note || '')) {
-                              handleUpdateStudio(studio.id, { booking_note: e.target.value });
+                              handleUpdateStudio(studio.id, { booking_note: e.target.value }, `${studio.id}_booking_note`);
                             }
                           }}
                           className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm" />
-                        <p className="text-[11px] text-stone mt-1.5">Short note shown on each class card. Auto-saves on blur.</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <p className="text-[11px] text-stone">Short note shown on each class card.</p>
+                          {savedFields[`${studio.id}_booking_note`] && (
+                            <span key={savedFields[`${studio.id}_booking_note`]} className="text-[11px] text-sage font-semibold" style={{animation:'checkFade 1.5s ease-out forwards'}} onAnimationEnd={() => setSavedFields(prev => { const next = {...prev}; delete next[`${studio.id}_booking_note`]; return next; })}>✓ Saved</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Default class type */}
@@ -1145,16 +1203,21 @@ export default function Dashboard() {
 
                       {/* Default booking URL */}
                       <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Default Booking URL</label>
+                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Default Booking Link</label>
                         <input type="url" placeholder="https://studiobooking.com/schedule"
                           defaultValue={studio.default_booking_url || ''}
                           onBlur={e => {
                             if (e.target.value !== (studio.default_booking_url || '')) {
-                              handleUpdateStudio(studio.id, { default_booking_url: e.target.value });
+                              handleUpdateStudio(studio.id, { default_booking_url: e.target.value }, `${studio.id}_default_booking_url`);
                             }
                           }}
                           className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm" />
-                        <p className="text-[11px] text-stone mt-1.5">Used for studios like Mindbody where all classes share one booking page. Auto-saves on blur.</p>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <p className="text-[11px] text-stone">Used for studios like Mindbody where all classes share one booking page.</p>
+                          {savedFields[`${studio.id}_default_booking_url`] && (
+                            <span key={savedFields[`${studio.id}_default_booking_url`]} className="text-[11px] text-sage font-semibold" style={{animation:'checkFade 1.5s ease-out forwards'}} onAnimationEnd={() => setSavedFields(prev => { const next = {...prev}; delete next[`${studio.id}_default_booking_url`]; return next; })}>✓ Saved</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* iCal link */}
@@ -1164,11 +1227,13 @@ export default function Dashboard() {
                           defaultValue={studio.calendar_url || ''}
                           onBlur={e => {
                             if (e.target.value !== (studio.calendar_url || '')) {
-                              handleUpdateStudio(studio.id, { calendar_url: e.target.value });
+                              handleUpdateStudio(studio.id, { calendar_url: e.target.value }, `${studio.id}_calendar_url`);
                             }
                           }}
                           className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm" />
-                        <p className="text-[11px] text-stone mt-1.5">Auto-saves on blur.</p>
+                        {savedFields[`${studio.id}_calendar_url`] && (
+                          <span key={savedFields[`${studio.id}_calendar_url`]} className="block text-[11px] text-sage font-semibold mt-1.5" style={{animation:'checkFade 1.5s ease-out forwards'}} onAnimationEnd={() => setSavedFields(prev => { const next = {...prev}; delete next[`${studio.id}_calendar_url`]; return next; })}>✓ Saved</span>
+                        )}
                       </div>
                     </div>
                   ))

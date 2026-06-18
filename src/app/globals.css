@@ -98,6 +98,12 @@
   border-left-color: transparent;
 }
 
+@keyframes checkFade {
+  0%   { opacity: 1; }
+  65%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 .instruktor-tour-popover .driver-popover-arrow-side-bottom {
   border-left-color: transparent;
   border-top-color: transparent;
