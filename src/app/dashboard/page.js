@@ -890,7 +890,7 @@ export default function Dashboard() {
             </div>
 
             {/* Publish form: second on mobile, first column on desktop */}
-            <div ref={formRef} className={`order-2 lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
+            <div data-tour="add-class-form" ref={formRef} className={`order-2 lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
                   {editingDraftId ? "📝 Finish Publishing Draft" : "Add a New Class"}
@@ -1030,7 +1030,7 @@ export default function Dashboard() {
 
         {/* ══ SETTINGS TAB ══ */}
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
+          <div data-tour="your-profile" className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Instructor Profile</h2>
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
 
@@ -1148,7 +1148,7 @@ export default function Dashboard() {
             </form>
 
             {/* ── Studios & Calendars ── */}
-            <div className="mt-10 pt-8 border-t border-sand">
+            <div data-tour="saved-studios" className="mt-10 pt-8 border-t border-sand">
               <h2 className="text-xl font-bold mb-6">My Saved Studios & Calendars</h2>
               <div className="mb-8 space-y-4">
                 {savedStudios.length === 0 ? (
