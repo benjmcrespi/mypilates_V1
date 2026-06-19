@@ -17,26 +17,15 @@ export default function Login() {
     setIsLoading(true);
     setErrorMsg('');
 
-    try {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timed out. Check your connection and try again.')), 10000)
-      );
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-      const { data, error } = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
-        timeout,
-      ]);
-
-      if (error) {
-        setErrorMsg(error.message);
-      } else {
-        router.push('/dashboard');
-      }
-    } catch (err) {
-      setErrorMsg(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
+    if (error) {
+      setErrorMsg(error.message);
+    } else {
+      router.push('/dashboard');
     }
+
+    setIsLoading(false);
   };
 
   return (
