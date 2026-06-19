@@ -150,56 +150,60 @@ export default function Dashboard() {
       const uid = session.user.id;
       setUser(session.user);
 
-      const [
-        { data: profileData },
-        { data: studiosData },
-        { data: classesData },
-        { data: categoriesData },
-        { count: followerCount },
-        { data: clickData },
-      ] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', uid).single(),
-        supabase.from('studios').select('*').eq('instructor_id', uid),
-        supabase.from('classes').select('*').eq('instructor_id', uid).order('date_time', { ascending: true }),
-        supabase.from('class_categories').select('*').eq('active', true).order('sort_order', { ascending: true }),
-        supabase.from('followers').select('*', { count: 'exact', head: true }).eq('instructor_id', uid).eq('confirmed', true),
-        supabase.from('analytics_events').select('class_id, created_at').eq('instructor_id', uid).eq('event_type', 'book_spot_click'),
-      ]);
+      try {
+        const [
+          { data: profileData },
+          { data: studiosData },
+          { data: classesData },
+          { data: categoriesData },
+          { count: followerCount },
+          { data: clickData },
+        ] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', uid).single(),
+          supabase.from('studios').select('*').eq('instructor_id', uid),
+          supabase.from('classes').select('*').eq('instructor_id', uid).order('date_time', { ascending: true }),
+          supabase.from('class_categories').select('*').eq('active', true).order('sort_order', { ascending: true }),
+          supabase.from('followers').select('*', { count: 'exact', head: true }).eq('instructor_id', uid).eq('confirmed', true),
+          supabase.from('analytics_events').select('class_id, created_at').eq('instructor_id', uid).eq('event_type', 'book_spot_click'),
+        ]);
 
-      if (profileData) {
-        setProfile(profileData);
-        setSettingsData({
-          bio: profileData.bio || '',
-          timezone: profileData.timezone || 'America/Vancouver',
-          years_experience: profileData.years_experience ?? '',
-          instagram_handle: profileData.instagram_handle || '',
-          certifications: profileData.certifications || [],
-        });
-        if (profileData.avatar_url) setAvatarPreview(profileData.avatar_url);
-        if (!profileData.onboarding_completed) setShowOnboarding(true);
+        if (profileData) {
+          setProfile(profileData);
+          setSettingsData({
+            bio: profileData.bio || '',
+            timezone: profileData.timezone || 'America/Vancouver',
+            years_experience: profileData.years_experience ?? '',
+            instagram_handle: profileData.instagram_handle || '',
+            certifications: profileData.certifications || [],
+          });
+          if (profileData.avatar_url) setAvatarPreview(profileData.avatar_url);
+          if (!profileData.onboarding_completed) setShowOnboarding(true);
+        }
+
+        if (studiosData) setSavedStudios(studiosData);
+        if (classesData) setMyClasses(classesData);
+        if (categoriesData) setCategories(categoriesData);
+        setFollowerCount(followerCount ?? 0);
+
+        if (clickData) {
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          const perClass = {};
+          let weekTotal = 0;
+          clickData.forEach(ev => {
+            perClass[ev.class_id] = (perClass[ev.class_id] || 0) + 1;
+            if (new Date(ev.created_at) >= weekAgo) weekTotal++;
+          });
+          let topClassId = null, topCount = 0;
+          Object.entries(perClass).forEach(([id, count]) => {
+            if (count > topCount) { topCount = count; topClassId = id; }
+          });
+          setClickStats({ total: clickData.length, weekTotal, perClass, topClassId, topCount });
+        }
+      } catch (err) {
+        console.error('Dashboard load error:', err);
+      } finally {
+        setIsChecking(false);
       }
-
-      if (studiosData) setSavedStudios(studiosData);
-      if (classesData) setMyClasses(classesData);
-      if (categoriesData) setCategories(categoriesData);
-      setFollowerCount(followerCount ?? 0);
-
-      if (clickData) {
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        const perClass = {};
-        let weekTotal = 0;
-        clickData.forEach(ev => {
-          perClass[ev.class_id] = (perClass[ev.class_id] || 0) + 1;
-          if (new Date(ev.created_at) >= weekAgo) weekTotal++;
-        });
-        let topClassId = null, topCount = 0;
-        Object.entries(perClass).forEach(([id, count]) => {
-          if (count > topCount) { topCount = count; topClassId = id; }
-        });
-        setClickStats({ total: clickData.length, weekTotal, perClass, topClassId, topCount });
-      }
-
-      setIsChecking(false);
     };
 
     loadDashboard();

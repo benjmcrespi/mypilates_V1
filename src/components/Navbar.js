@@ -26,19 +26,26 @@ export default function Navbar() {
     };
     checkUser();
 
-    // Listen silently in the background for logins/logouts
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Listen silently in the background for logins/logouts.
+    // The callback MUST stay synchronous: supabase-js holds the auth-token lock
+    // while notifying listeners, so awaiting another Supabase call here deadlocks
+    // signInWithPassword (it never resolves and login hangs on "Verifying..."").
+    // Defer the profile fetch with setTimeout so the callback returns and the
+    // lock is released before the query runs.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
       if (!session?.user) {
         setHandle(null);
-      } else {
+        return;
+      }
+      setTimeout(async () => {
         const { data } = await supabase
           .from('profiles')
           .select('handle')
           .eq('id', session.user.id)
           .single();
         setHandle(data?.handle || null);
-      }
+      }, 0);
     });
 
     return () => subscription.unsubscribe();
