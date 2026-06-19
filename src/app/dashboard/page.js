@@ -761,10 +761,10 @@ export default function Dashboard() {
 
         {/* ══ ADD & DRAFTS TAB ══ */}
         {activeTab === 'add' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8">
 
             {/* Sync Classes panel: first on mobile so Pull + Publish All are immediately visible */}
-            <div data-tour="publish-all-panel" className="order-1 lg:order-2 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
+            <div data-tour="publish-all-panel" className="lg:order-3 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Classes</h2>
               <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
 
@@ -875,8 +875,15 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Publish form: second on mobile, first column on desktop */}
-            <div data-tour="add-class-form" ref={formRef} className={`order-2 lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
+            {/* OR divider: the two cards are alternative ways to add classes (horizontal on mobile, vertical on desktop) */}
+            <div className="lg:order-2 flex items-center justify-center gap-3 lg:flex-col lg:gap-4">
+              <span className="h-px w-12 bg-sand lg:h-12 lg:w-px" aria-hidden="true" />
+              <span className="text-xs font-bold uppercase tracking-widest text-stone">or</span>
+              <span className="h-px w-12 bg-sand lg:h-12 lg:w-px" aria-hidden="true" />
+            </div>
+
+            {/* Publish form: alternative to syncing, first column on desktop */}
+            <div data-tour="add-class-form" ref={formRef} className={`lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
                   {editingDraftId ? "📝 Finish Publishing Draft" : "Add a New Class"}
@@ -1016,7 +1023,7 @@ export default function Dashboard() {
 
         {/* ══ SETTINGS TAB ══ */}
         {activeTab === 'settings' && (
-          <div data-tour="your-profile" className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Instructor Profile</h2>
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
 
@@ -1047,6 +1054,9 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* Profile fields: the area highlighted by step 1 of the product tour */}
+              <div data-tour="your-profile" className="space-y-6">
 
               {/* Profile Photo */}
               <div>
@@ -1131,6 +1141,7 @@ export default function Dashboard() {
                 className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-4 hover:bg-clay-dark disabled:opacity-50">
                 {isUploadingAvatar ? "Uploading photo..." : isSaving ? "Saving..." : "Save Profile"}
               </button>
+              </div>
             </form>
 
             {/* ── Studios & Calendars ── */}

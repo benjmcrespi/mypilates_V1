@@ -20,7 +20,8 @@ const TOUR_STEPS = [
     },
   },
   {
-    tab: 'settings',
+    // tab: 'add' so the tour opens the My Classes page before highlighting its tab.
+    tab: 'add',
     element: '[data-tour="add-drafts-tab"]',
     popover: {
       title: 'My Classes',
@@ -29,18 +30,18 @@ const TOUR_STEPS = [
   },
   {
     tab: 'add',
-    element: '[data-tour="add-class-form"]',
-    popover: {
-      title: 'Add a New Class',
-      description: 'Create classes one at a time.',
-    },
-  },
-  {
-    tab: 'add',
     element: '[data-tour="publish-all-panel"]',
     popover: {
       title: 'Sync Classes',
       description: 'Add classes from your calendar link. Press Pull Latest Schedule to auto-populate your classes from all your studios.',
+    },
+  },
+  {
+    tab: 'add',
+    element: '[data-tour="add-class-form"]',
+    popover: {
+      title: 'Add a New Class',
+      description: 'Choose to create classes individually.',
     },
   },
   {
