@@ -131,50 +131,6 @@ export default function Dashboard() {
     if (data) setMyClasses(data);
   };
 
-  const fetchFollowerCount = async (userId) => {
-    const { count } = await supabase
-      .from('followers')
-      .select('*', { count: 'exact', head: true })
-      .eq('instructor_id', userId)
-      .eq('confirmed', true);
-    setFollowerCount(count ?? 0);
-  };
-
-  const fetchClickStats = async (userId) => {
-    const { data } = await supabase
-      .from('analytics_events')
-      .select('class_id, created_at')
-      .eq('instructor_id', userId)
-      .eq('event_type', 'book_spot_click');
-
-    if (!data) return;
-
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const perClass = {};
-    let weekTotal = 0;
-
-    data.forEach(ev => {
-      perClass[ev.class_id] = (perClass[ev.class_id] || 0) + 1;
-      if (new Date(ev.created_at) >= weekAgo) weekTotal++;
-    });
-
-    let topClassId = null;
-    let topCount = 0;
-    Object.entries(perClass).forEach(([id, count]) => {
-      if (count > topCount) { topCount = count; topClassId = id; }
-    });
-
-    setClickStats({ total: data.length, weekTotal, perClass, topClassId, topCount });
-  };
-
-  const fetchCategories = async () => {
-    const { data } = await supabase
-      .from('class_categories')
-      .select('*')
-      .eq('active', true)
-      .order('sort_order', { ascending: true });
-    if (data) setCategories(data);
-  };
 
   const fetchSavedStudios = async (userId) => {
     const { data } = await supabase
@@ -191,19 +147,24 @@ export default function Dashboard() {
         router.push('/login');
         return;
       }
+      const uid = session.user.id;
       setUser(session.user);
 
-      fetchCategories();
-      fetchSavedStudios(session.user.id);
-      fetchMyClasses(session.user.id);
-      fetchFollowerCount(session.user.id);
-      fetchClickStats(session.user.id);
-
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const [
+        { data: profileData },
+        { data: studiosData },
+        { data: classesData },
+        { data: categoriesData },
+        { count: followerCount },
+        { data: clickData },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', uid).single(),
+        supabase.from('studios').select('*').eq('instructor_id', uid),
+        supabase.from('classes').select('*').eq('instructor_id', uid).order('date_time', { ascending: true }),
+        supabase.from('class_categories').select('*').eq('active', true).order('sort_order', { ascending: true }),
+        supabase.from('followers').select('*', { count: 'exact', head: true }).eq('instructor_id', uid).eq('confirmed', true),
+        supabase.from('analytics_events').select('class_id, created_at').eq('instructor_id', uid).eq('event_type', 'book_spot_click'),
+      ]);
 
       if (profileData) {
         setProfile(profileData);
@@ -217,6 +178,27 @@ export default function Dashboard() {
         if (profileData.avatar_url) setAvatarPreview(profileData.avatar_url);
         if (!profileData.onboarding_completed) setShowOnboarding(true);
       }
+
+      if (studiosData) setSavedStudios(studiosData);
+      if (classesData) setMyClasses(classesData);
+      if (categoriesData) setCategories(categoriesData);
+      setFollowerCount(followerCount ?? 0);
+
+      if (clickData) {
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const perClass = {};
+        let weekTotal = 0;
+        clickData.forEach(ev => {
+          perClass[ev.class_id] = (perClass[ev.class_id] || 0) + 1;
+          if (new Date(ev.created_at) >= weekAgo) weekTotal++;
+        });
+        let topClassId = null, topCount = 0;
+        Object.entries(perClass).forEach(([id, count]) => {
+          if (count > topCount) { topCount = count; topClassId = id; }
+        });
+        setClickStats({ total: clickData.length, weekTotal, perClass, topClassId, topCount });
+      }
+
       setIsChecking(false);
     };
 

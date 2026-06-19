@@ -75,7 +75,7 @@ export default function Login() {
                 <label className="block text-sm font-medium text-bark">
                   Password
                 </label>
-                <Link href="/forgot-password" className="text-sm font-medium text-clay hover:underline">
+                <Link href="/forgot-password" prefetch={false} className="text-sm font-medium text-clay hover:underline">
                   Forgot password?
                 </Link>
               </div>
