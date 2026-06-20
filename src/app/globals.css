@@ -17,6 +17,7 @@
   /* Typography system */
   --font-sans: var(--font-dm-sans), system-ui, sans-serif;
   --font-serif: var(--font-cormorant), Georgia, serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, SFMono-Regular, monospace;
   --default-font-family: var(--font-sans);
 }
 
@@ -108,4 +109,18 @@
   border-left-color: transparent;
   border-top-color: transparent;
   border-right-color: transparent;
+}
+
+/* Onboarding walkthrough: gentle crossfade as each card mounts */
+@keyframes onboardingCardIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.onboarding-card-in {
+  animation: onboardingCardIn 280ms ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-card-in { animation: none; }
 }

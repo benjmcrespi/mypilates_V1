@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 
 const CARDS = [
   {
@@ -31,20 +31,56 @@ const CARDS = [
 
 export default function OnboardingFlow({ onComplete }) {
   const [index, setIndex] = useState(0);
+  const indexRef = useRef(0);
+  const onCompleteRef = useRef(onComplete);
   const touchStartX = useRef(null);
 
-  const isLast = index === CARDS.length - 1;
+  const total = CARDS.length;
+  const isLast = index === total - 1;
   const card = CARDS[index];
 
-  const goNext = () => {
-    if (isLast) {
-      onComplete();
-    } else {
-      setIndex(i => Math.min(i + 1, CARDS.length - 1));
-    }
-  };
+  // Keep refs current so the once-bound keyboard listener and the completion
+  // check always read live values instead of a stale render closure.
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
 
-  const goPrev = () => setIndex(i => Math.max(i - 1, 0));
+  // Functional state updates keep these handlers stable (empty deps) and always
+  // correct, so the single `index` state is the only source of truth.
+  const goNext = useCallback(() => {
+    if (indexRef.current >= CARDS.length - 1) {
+      onCompleteRef.current?.();
+      return;
+    }
+    setIndex((i) => Math.min(CARDS.length - 1, i + 1));
+  }, []);
+
+  const goPrev = useCallback(() => {
+    setIndex((i) => Math.max(0, i - 1));
+  }, []);
+
+  // Keyboard navigation: arrow keys / Enter. When a button is focused, let its
+  // own click handler fire instead of double-advancing.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goNext();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      } else if (e.key === 'Enter') {
+        if (document.activeElement?.tagName === 'BUTTON') return;
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [goNext, goPrev]);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
@@ -61,48 +97,88 @@ export default function OnboardingFlow({ onComplete }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-espresso text-linen flex flex-col">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-espresso text-linen select-none">
+      {/* Ambient clay glow, warmer on the final card */}
       <div
-        className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 text-center"
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-3/5"
+        style={{
+          background: isLast
+            ? 'radial-gradient(120% 75% at 50% 0%, rgba(184,90,53,0.30), transparent 62%)'
+            : 'radial-gradient(120% 75% at 50% 0%, rgba(184,90,53,0.14), transparent 62%)',
+          transition: 'background 500ms ease',
+        }}
+      />
+
+      {/* Header: wordmark + step counter */}
+      <header
+        className="relative flex items-center justify-between px-6"
+        style={{ paddingTop: 'max(2rem, calc(env(safe-area-inset-top) + 1rem))' }}
+      >
+        <span className="font-serif text-xl tracking-[0.18em] text-linen">Instruktor</span>
+        <span className="font-mono text-xs tracking-[0.22em] text-smoke">
+          {String(index + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
+        </span>
+      </header>
+
+      {/* Segmented progress bar */}
+      <div className="relative mt-6 px-6">
+        <div className="mx-auto flex max-w-md gap-1.5">
+          {CARDS.map((_, i) => (
+            <div key={i} className="h-[3px] flex-1 overflow-hidden rounded-full bg-linen/15">
+              <div
+                className="h-full rounded-full bg-clay transition-[width] duration-500 ease-out"
+                style={{ width: i <= index ? '100%' : '0%' }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Card content (crossfades in on each step) */}
+      <main
+        className="relative flex flex-1 flex-col justify-center px-6"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="max-w-md mx-auto animate-in fade-in duration-500" key={index}>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4 leading-tight">
+        <div key={index} className="onboarding-card-in mx-auto w-full max-w-md">
+          <h1 className="mb-5 font-serif text-[2.25rem] font-medium leading-[1.05] text-linen sm:text-5xl">
             {card.title}
           </h1>
-          <p className="text-smoke text-base sm:text-lg leading-relaxed">
+          <p className="max-w-[38ch] text-base leading-relaxed text-smoke sm:text-lg">
             {card.body}
           </p>
         </div>
-      </div>
+      </main>
 
-      <div className="px-6 pb-10 sm:pb-12">
-        {/* Progress dots */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          {CARDS.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? 'w-6 bg-clay' : 'w-1.5 bg-smoke/30'
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="max-w-md mx-auto">
+      {/* Footer controls */}
+      <footer
+        className="relative px-6 pt-4"
+        style={{ paddingBottom: 'max(2.5rem, calc(env(safe-area-inset-bottom) + 1.5rem))' }}
+      >
+        <div className="mx-auto w-full max-w-md">
           <button
             onClick={goNext}
-            className={`w-full font-bold py-4 rounded-xl transition-all active:scale-[0.98] ${
-              card.cta
-                ? 'bg-clay text-linen hover:bg-clay-dark'
-                : 'bg-bark text-linen hover:bg-bark/70 border border-white/10'
+            className={`w-full rounded-xl py-4 font-semibold tracking-wide transition-transform duration-150 active:scale-[0.98] ${
+              isLast
+                ? 'bg-clay text-linen hover:bg-clay-dark shadow-[0_12px_34px_-10px_rgba(184,90,53,0.6)]'
+                : 'bg-linen text-espresso hover:bg-white'
             }`}
           >
-            {card.cta ? "Let's go →" : 'Next'}
+            {isLast ? 'Build my profile →' : 'Continue'}
           </button>
+          <div className="mt-3 flex h-6 items-center justify-center">
+            {index > 0 && (
+              <button
+                onClick={goPrev}
+                className="font-mono text-xs uppercase tracking-[0.2em] text-smoke transition-colors hover:text-linen"
+              >
+                Back
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

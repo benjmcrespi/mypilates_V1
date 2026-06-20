@@ -1,4 +1,4 @@
-import { DM_Sans, Cormorant_Garamond } from 'next/font/google';
+import { DM_Sans, Cormorant_Garamond, DM_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import AddToHomeScreen from '@/components/AddToHomeScreen';
@@ -9,8 +9,13 @@ const dmSans = DM_Sans({
 });
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['400'],
+  weight: ['400', '500'],
   variable: '--font-cormorant',
+});
+const dmMono = DM_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-dm-mono',
 });
 
 export const metadata = {
@@ -30,7 +35,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${cormorant.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${cormorant.variable} ${dmMono.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
