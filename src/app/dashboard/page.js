@@ -693,11 +693,26 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
 
-            {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).length === 0 ? (
-              <p className="text-stone text-center p-8 bg-white rounded-xl border border-sand">No live classes currently published.</p>
-            ) : (
-              <div className="space-y-4">
-                {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).map((c) => (
+            {(() => {
+              const publishedClasses = myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date());
+
+              if (publishedClasses.length === 0) {
+                return <p className="text-stone text-center p-8 bg-white rounded-xl border border-sand">No live classes currently published.</p>;
+              }
+
+              const { thisWeek, nextWeek, later } = groupByWeek(publishedClasses, tz);
+              const sections = [
+                { label: "This Week's Classes", items: thisWeek },
+                { label: "Next Week's Classes", items: nextWeek },
+                { label: 'Future Classes', items: later },
+              ];
+
+              return (
+                <div className="space-y-6">
+                  {sections.filter(s => s.items.length > 0).map(section => (
+                    <div key={section.label} className="space-y-4">
+                      <h3 className="text-xs font-bold text-stone uppercase tracking-wider">{section.label}</h3>
+                      {section.items.map((c) => (
                   <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-xl border border-sand shadow-sm transition-all hover:shadow-md">
                     <div className="mb-4 sm:mb-0">
                       <div className="flex items-center space-x-3 mb-1">
@@ -752,9 +767,12 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           </div>
         )}

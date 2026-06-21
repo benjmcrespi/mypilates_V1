@@ -8,7 +8,7 @@ const CARDS = [
   },
   {
     title: 'One link. Every class.',
-    body: 'Every class you teach, at every studio, lives in one place. Share a single link instead of three different booking pages.',
+    body: 'Every class you teach, at every studio, lives in one place. Share a single link instead of multiple booking links.',
   },
   {
     title: 'Your brand. Your page.',
