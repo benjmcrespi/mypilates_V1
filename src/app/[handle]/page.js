@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-const WEEKDAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+const WEEKDAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
 // Returns { year, month, day, weekday } for a date as observed in the given timezone
 function getTZDateParts(date, timeZone) {
@@ -16,13 +16,13 @@ function getTZDateParts(date, timeZone) {
   return obj;
 }
 
-// Groups classes into "this week" (through Sunday), "next week" (Mon-Sun), and "later",
+// Groups classes into "this week" (through Saturday), "next week" (Sun-Sat), and "later",
 // based on calendar days in the instructor's timezone.
 function groupClassesByWeek(classes, timeZone) {
   const todayParts = getTZDateParts(new Date(), timeZone);
   const todayUTC = Date.UTC(+todayParts.year, +todayParts.month - 1, +todayParts.day);
   const todayDow = WEEKDAY_INDEX[todayParts.weekday] ?? 0;
-  const thisWeekEnd = 6 - todayDow; // days from today through Sunday
+  const thisWeekEnd = 6 - todayDow; // days from today through Saturday
   const nextWeekEnd = thisWeekEnd + 7;
 
   const groups = { thisWeek: [], nextWeek: [], later: [] };
