@@ -44,6 +44,57 @@ function groupByWeek(items, timeZone) {
   return groups;
 }
 
+// Returns weekday index/label and 12-hour time label for a date_time, as observed in the given timezone
+function getWeekdayTimeInfo(dateTimeStr, timeZone) {
+  const date = new Date(dateTimeStr);
+  const { weekday } = getTZDateParts(date, timeZone);
+  const dayIndex = WEEKDAY_INDEX[weekday] ?? 0;
+  const weekdayLong = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone }).format(date);
+
+  const parts12 = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(date);
+  const hour12 = parts12.find(p => p.type === 'hour').value;
+  const minute = parts12.find(p => p.type === 'minute').value;
+  const meridiem = parts12.find(p => p.type === 'dayPeriod').value.toLowerCase();
+  const time = `${hour12}:${minute}${meridiem}`;
+
+  const hour24 = Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).formatToParts(date).find(p => p.type === 'hour').value);
+  const minutesOfDay = hour24 * 60 + Number(minute);
+
+  return { dayIndex, weekdayLong, time, minutesOfDay };
+}
+
+// Derives the recurring schedule summary for a studio from its series records:
+// a deduped, day-sorted "Wednesdays 7:00pm, Thursdays 4:00pm" line, and a per-series breakdown.
+function getStudioSeriesSummary(studio, myClasses, timeZone) {
+  const seriesGroups = {};
+  myClasses.forEach(c => {
+    if (c.series_id && c.studio_name === studio.name) {
+      (seriesGroups[c.series_id] ||= []).push(c);
+    }
+  });
+
+  const series = Object.values(seriesGroups).map(classesInSeries => {
+    const sorted = [...classesInSeries].sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
+    const first = sorted[0];
+    const { dayIndex, weekdayLong, time, minutesOfDay } = getWeekdayTimeInfo(first.date_time, timeZone);
+    let cadence = 'weekly';
+    if (sorted.length > 1) {
+      const gapDays = Math.round((new Date(sorted[1].date_time) - new Date(first.date_time)) / 86400000);
+      cadence = gapDays >= 11 ? 'biweekly' : 'weekly';
+    }
+    return { seriesId: first.series_id, className: first.class_name, dayIndex, weekdayLong, time, minutesOfDay, cadence };
+  }).sort((a, b) => a.dayIndex - b.dayIndex || a.minutesOfDay - b.minutesOfDay);
+
+  const comboMap = new Map();
+  series.forEach(s => {
+    const key = `${s.dayIndex}_${s.minutesOfDay}`;
+    if (!comboMap.has(key)) comboMap.set(key, { dayIndex: s.dayIndex, minutesOfDay: s.minutesOfDay, weekdayLong: s.weekdayLong, time: s.time });
+  });
+  const combos = Array.from(comboMap.values()).sort((a, b) => a.dayIndex - b.dayIndex || a.minutesOfDay - b.minutesOfDay);
+  const summaryLine = combos.map(c => `${c.weekdayLong}s ${c.time}`).join(', ');
+
+  return { summaryLine, series };
+}
 
 const TIMEZONES = [
   { value: 'America/Vancouver',   label: 'Pacific Time (Vancouver)' },
@@ -70,6 +121,7 @@ export default function Dashboard() {
   const [newStudioName, setNewStudioName] = useState('');
   const [newStudioUrl, setNewStudioUrl] = useState('');
   const [expandedStudios, setExpandedStudios] = useState({});
+  const [expandedStudioSummaries, setExpandedStudioSummaries] = useState({});
   const settingsStudioRef = useRef(null);
   const formRef = useRef(null);
 
@@ -305,6 +357,10 @@ export default function Dashboard() {
 
   const toggleStudioExpanded = (studioId) => {
     setExpandedStudios(prev => ({ ...prev, [studioId]: !prev[studioId] }));
+  };
+
+  const toggleStudioSummaryExpanded = (studioId) => {
+    setExpandedStudioSummaries(prev => ({ ...prev, [studioId]: !prev[studioId] }));
   };
 
   const handleDeleteStudio = async (studioId) => {
@@ -1209,16 +1265,43 @@ export default function Dashboard() {
                 ) : (
                   savedStudios.map(studio => {
                     const isStudioOpen = !!expandedStudios[studio.id];
+                    const isSummaryOpen = !!expandedStudioSummaries[studio.id];
+                    const { summaryLine, series } = getStudioSeriesSummary(studio, myClasses, tz);
+                    const hasIcalLine = !!studio.calendar_url;
+                    const hasSummaryContent = !!summaryLine || hasIcalLine;
                     return (
                     <div key={studio.id} className="bg-linen border border-sand rounded-lg shadow-sm overflow-hidden">
                       <button type="button" onClick={() => toggleStudioExpanded(studio.id)}
-                        className="w-full flex justify-between items-center p-5 text-left">
+                        className={`w-full flex justify-between items-center text-left ${hasSummaryContent ? 'px-5 pt-5 pb-2' : 'p-5'}`}>
                         <span className="font-bold text-lg">{studio.name}</span>
                         <svg className={`w-5 h-5 text-stone shrink-0 transition-transform ${isStudioOpen ? 'rotate-180' : ''}`}
                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
+
+                      {hasSummaryContent && (
+                        <div className="px-5 pb-4">
+                          {summaryLine && (
+                            <button type="button" onClick={() => toggleStudioSummaryExpanded(studio.id)}
+                              className="text-xs text-stone hover:text-bark transition-colors text-left">
+                              {summaryLine}
+                            </button>
+                          )}
+                          {hasIcalLine && (
+                            <p className="text-xs text-stone mt-0.5">Schedule linked to studio booking</p>
+                          )}
+                          {isSummaryOpen && (
+                            <div className="mt-2 space-y-1 border-t border-sand/70 pt-2">
+                              {series.map(s => (
+                                <p key={s.seriesId} className="text-xs text-stone">
+                                  {s.className}, {s.weekdayLong}s {s.time}, {s.cadence}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {isStudioOpen && (
                       <div className="px-5 pb-5 space-y-4">
