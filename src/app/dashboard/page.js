@@ -69,6 +69,7 @@ export default function Dashboard() {
   const [savedStudios, setSavedStudios] = useState([]);
   const [newStudioName, setNewStudioName] = useState('');
   const [newStudioUrl, setNewStudioUrl] = useState('');
+  const [expandedStudios, setExpandedStudios] = useState({});
   const settingsStudioRef = useRef(null);
   const formRef = useRef(null);
 
@@ -115,6 +116,8 @@ export default function Dashboard() {
   const [savedFields, setSavedFields] = useState({});
   const [selectedDraftIds, setSelectedDraftIds] = useState([]);
   const [showLaterDrafts, setShowLaterDrafts] = useState(false);
+  const [showDeleteAllDraftsModal, setShowDeleteAllDraftsModal] = useState(false);
+  const [isDeletingAllDrafts, setIsDeletingAllDrafts] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [myClasses, setMyClasses] = useState([]);
   const [followerCount, setFollowerCount] = useState(null);
@@ -300,6 +303,10 @@ export default function Dashboard() {
     setIsSaving(false);
   };
 
+  const toggleStudioExpanded = (studioId) => {
+    setExpandedStudios(prev => ({ ...prev, [studioId]: !prev[studioId] }));
+  };
+
   const handleDeleteStudio = async (studioId) => {
     if (!window.confirm("Are you sure you want to remove this studio? This won't affect classes you've already published there.")) return;
     setIsSaving(true);
@@ -327,6 +334,24 @@ export default function Dashboard() {
       if (editingDraftId === classId) cancelEdit();
     }
     setIsSaving(false);
+  };
+
+  const handleDeleteAllDrafts = async () => {
+    const draftIds = myClasses.filter(c => c.status === 'draft').map(c => c.id);
+    if (draftIds.length === 0) { setShowDeleteAllDraftsModal(false); return; }
+    setIsDeletingAllDrafts(true);
+    const { error } = await supabase.from('classes').delete().in('id', draftIds);
+    if (!error) {
+      setSuccessMessage(`${draftIds.length} draft${draftIds.length > 1 ? 's' : ''} deleted.`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setMyClasses(prev => prev.filter(c => !draftIds.includes(c.id)));
+      setSelectedDraftIds(prev => prev.filter(id => !draftIds.includes(id)));
+      if (editingDraftId && draftIds.includes(editingDraftId)) cancelEdit();
+      setShowDeleteAllDraftsModal(false);
+    } else {
+      alert("Error deleting drafts: " + error.message);
+    }
+    setIsDeletingAllDrafts(false);
   };
 
   const handleClassSubmit = async (e) => {
@@ -605,6 +630,7 @@ export default function Dashboard() {
 
   const tz = settingsData.timezone || 'America/Vancouver';
   const pendingDrafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
+  const draftClasses = myClasses.filter(c => c.status === 'draft');
   const { thisWeek: thisWeekDrafts, nextWeek: nextWeekDrafts } = groupByWeek(pendingDrafts, tz);
 
   if (isChecking) return <div className="min-h-screen bg-linen"></div>;
@@ -612,6 +638,27 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-linen text-bark py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />}
+
+      {showDeleteAllDraftsModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <p className="text-bark font-medium mb-6">
+              Delete all {draftClasses.length} draft{draftClasses.length !== 1 ? 's' : ''}? This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setShowDeleteAllDraftsModal(false)}
+                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={handleDeleteAllDrafts} disabled={isDeletingAllDrafts}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50">
+                {isDeletingAllDrafts ? "Deleting..." : "Delete All"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
 
         {successMessage && (
@@ -872,6 +919,15 @@ export default function Dashboard() {
                     </div>
                   );
                 })()
+              )}
+
+              {draftClasses.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-sand text-right">
+                  <button type="button" onClick={() => setShowDeleteAllDraftsModal(true)}
+                    className="text-xs text-stone hover:text-red-600 underline transition-colors">
+                    Delete All Drafts
+                  </button>
+                </div>
               )}
             </div>
 
@@ -1151,10 +1207,22 @@ export default function Dashboard() {
                 {savedStudios.length === 0 ? (
                   <p className="text-sm text-stone">You haven't saved any studios yet.</p>
                 ) : (
-                  savedStudios.map(studio => (
-                    <div key={studio.id} className="p-5 bg-linen border border-sand rounded-lg shadow-sm space-y-4">
-                      <div className="flex justify-between items-center">
+                  savedStudios.map(studio => {
+                    const isStudioOpen = !!expandedStudios[studio.id];
+                    return (
+                    <div key={studio.id} className="bg-linen border border-sand rounded-lg shadow-sm overflow-hidden">
+                      <button type="button" onClick={() => toggleStudioExpanded(studio.id)}
+                        className="w-full flex justify-between items-center p-5 text-left">
                         <span className="font-bold text-lg">{studio.name}</span>
+                        <svg className={`w-5 h-5 text-stone shrink-0 transition-transform ${isStudioOpen ? 'rotate-180' : ''}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {isStudioOpen && (
+                      <div className="px-5 pb-5 space-y-4">
+                      <div className="flex justify-end -mt-1">
                         <button onClick={() => handleDeleteStudio(studio.id)}
                           className="text-stone hover:text-red-500 transition-all px-2 py-1 text-xs font-bold uppercase tracking-wider">
                           ✕ Remove
@@ -1232,8 +1300,11 @@ export default function Dashboard() {
                           <span key={savedFields[`${studio.id}_calendar_url`]} className="block text-[11px] text-sage font-semibold mt-1.5" style={{animation:'checkFade 1.5s ease-out forwards'}} onAnimationEnd={() => setSavedFields(prev => { const next = {...prev}; delete next[`${studio.id}_calendar_url`]; return next; })}>✓ Saved</span>
                         )}
                       </div>
+                      </div>
+                      )}
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
