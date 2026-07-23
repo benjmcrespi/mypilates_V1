@@ -17,41 +17,57 @@
 
 ---
 
-## Current State (what is already built and working)
+## Current State (verified against codebase)
 
-- instruktor.ca live, deployed on Vercel, full domain migration complete
+### Built and working
+
+**Core platform**
+- instruktor.ca live on Vercel, migrated from mypilates.ca
+- Instructor auth, signup, dashboard
+- Instructor profile: photo upload, bio, certifications, years of experience, Instagram handle, timezone
+- Forgot password and /reset-password pages, both tested end to end
+- Typography: DM Sans and Cormorant Garamond via next/font/google
 - Hybrid colour palette applied throughout
-- Instructor authentication, sign up, and dashboard
-- Instructor profile — photo upload, bio, certifications, years of experience, Instagram handle, timezone
-- Studio management — name, platform, booking type, booking note, default booking URL, ICS feed URL
-- ICS calendar sync — pull latest schedule, auto-populates booking URL/type/note from studio defaults
-- Duplicate detection on ICS pull
-- Draft class system — edit individual drafts, Publish All button
-- Multi-select delete on drafts
-- Student-facing page at instruktor.ca/[username] — dark header, linen body, hybrid palette
-- Classes grouped by week on student page (This week / Next week / Later collapsed)
-- Bio truncated with Read More / Show Less toggle
-- Email follow mechanic — email capture, confirmation email, follower notifications on new publish
-- Follower count on instructor dashboard
-- Click-through tracking on every Book Spot button — logged to analytics_events table
-- Analytics dashboard cards — confirmed followers, total clicks, clicks this week, top class
-- Booking context shown on student page class cards (booking type and note)
-- Mobile responsive on both dashboard and student-facing page
-- Recurring class creation — weekly and bi-weekly repeat options, generates independent draft instances with series_id, works with Publish All
-- Forgot password flow — "Forgot password?" link on sign-in, reset email via Resend, /reset-password page
-- Typography — DM Sans (UI font) and Cormorant Garamond (display/brand) implemented throughout
+- Mobile responsive on dashboard and student-facing page
 
-**Not yet built (build in order below):**
-- Recurring class creation for manual studios
-- Forgot password + /reset-password page
-- Typography system (DM Sans + Cormorant Garamond)
-- Landing/marketing page at instruktor.ca
-- Product tour (Driver.js)
-- Post-class attendance prompt
-- Onboarding card carousel
-- Viral footer CTA
+**Classes and studios**
+- Studio management with full CRUD
+- ICS calendar sync at /api/sync, auto-populates booking link, note, and category from studio defaults
+- Duplicate detection on ICS pull (upsert on external_uid)
+- Draft class system with individual edit and per-row delete
+- Recurring class creation, weekly and bi-weekly, generates independent drafts with series_id
+- Class category system: CategorySelect component, categories.js with auto-inference and grouping, class_categories queries in dashboard and sync, category_id FK on classes
+- Publish This Week's Schedule / Publish Next Week's Schedule, with tertiary "Publish all X drafts" link
+- Green checkmark auto-save confirmation, 1.5s fade
 
----
+**Student-facing**
+- Student page at /[handle], dark header, linen body
+- Classes grouped by week: This week / Next week / Later collapsed
+- Bio truncation with Read More / Show Less
+- Booking note and type shown on class cards
+- Viral footer: "Build your own schedule page at Instruktor.ca"
+
+**Growth and analytics**
+- Email follow mechanic: /api/follow, /api/follow/confirm, /api/notify-followers
+- Unfollow: /api/unfollow, /unfollow page, unfollow widget on student page
+- Async notification queue: /api/queue-notification, /api/process-notification-queue
+- Book Spot click tracking to analytics_events via /api/track-click
+- Analytics cards: confirmed followers, total clicks, clicks this week, top class
+
+**Onboarding**
+- Landing page at instruktor.ca, all six sections
+- Onboarding card carousel, 6 cards, triggered when onboarding_completed is false
+- Product tour with Driver.js, 7 steps, programmatic tab navigation, re-triggerable from Settings
+- PWA: next-pwa, manifest.json, icons, AddToHomeScreen banner with iOS/Android detection
+
+**Terminology sweep complete:** My Classes, Sync Classes, Add a New Class, Booking Note (optional), Default Booking Link all confirmed in the dashboard.
+
+### Not built
+- Post-class attendance prompt, no UI and no attendance_reports queries anywhere
+- Multi-select delete on drafts. Selection exists but drives "Publish Selected", not bulk delete. Session A adds Delete All Drafts, which is different from multi-select delete. Decide whether multi-select delete is still wanted.
+
+### Needs review
+- **/classes discovery page** exists with category filtering. This was never specified in any session and is not part of the MVP plan. Determine whether it is intentional, a leftover from mypilates.ca, or speculative work. Either document it or remove it.
 
 ## Tech Stack
 
@@ -209,7 +225,7 @@ Install DM Sans and Cormorant Garamond from Google Fonts. Update `tailwind.confi
 
 ---
 
-### Next — Class Category System
+### ✅ Next — Class Category System — COMPLETE
 
 **The problem:** Free-text categories create 1000s of variations ("Hot Yoga", "hot yoga", "hot yoga class") that break search and discovery when the student discovery feature is built.
 
@@ -269,7 +285,7 @@ ON CONFLICT (slug) DO NOTHING;
 
 ---
 
-### Session — PWA (Progressive Web App)
+### ✅ Session — PWA (Progressive Web App) — COMPLETE
 
 Makes instruktor.ca installable on iOS and Android home screens. Looks and behaves like a native app — no browser chrome, standalone display, branded splash screen. Users tap "Add to Home Screen" and it sits on their device with the Instruktor logo.
 
@@ -323,7 +339,47 @@ Disable in development (disable: process.env.NODE_ENV === 'development') to avoi
 Test by opening instruktor.ca on a real phone and confirming "Add to Home Screen" prompt appears and the installed app opens without browser chrome.
 
 ---
-### Session 1 — Terminology Sweep (copy changes only, no logic changes)
+### Session A — Delete All Drafts + Collapsed Studio Cards
+
+**Delete All Drafts:** Add a "Delete All Drafts" button to My Classes, styled as a subtle text link, not a primary button, positioned away from the publish buttons so it cannot be misclicked. On click show a confirmation modal: "Delete all [N] drafts? This cannot be undone." with Cancel and Delete All buttons, where N is the actual draft count. Only deletes drafts, never published classes.
+
+**Collapsed studio cards:** In Instructor Settings, collapse each studio in My Saved Studios and Calendars into a single row showing the studio name and a chevron. Clicking the row expands to reveal the existing four fields. All studios start collapsed. Multiple studios can be open at once, expanding one does not collapse others. Keep all existing field behaviour and auto-save unchanged.
+
+---
+
+### Session B — Series Editing and Deletion
+
+Applies to manually created recurring classes (classes with a series_id).
+
+**Editing:** When editing a class with a series_id, show a modal before saving: "Edit this class only" or "Edit this and all future classes in the series". "All future" means this class and every later class in the series, both drafts and published. Never modify classes whose date has already passed.
+
+**Day of week changes:** Series edits must support changing the day of week, not just the time. If the day of week changes, recalculate the date of every affected class to the new weekday within its own week. Do not shift any class into a different week. Verify the resulting dates match the new weekday before saving. This is the highest-risk part of this session.
+
+**Published class confirmation:** If any affected classes are published, confirm before applying: "This will update [N] classes. [M] are live on your page and will change immediately for students."
+
+**No follower emails on edits:** Series edits must not trigger follower notification emails. Followers are only notified about newly published classes, never about edits to existing ones.
+
+**Deleting:** Same modal pattern: "Delete this class only" or "Delete this and all future classes in the series". Same rules, never touch past classes, confirm if published classes are affected, no follower emails.
+
+**ICS field locking:** For classes synced from an iCal feed, lock the class name, date, and time fields as read-only and greyed out. Booking Link, Booking Note, and Category remain fully editable. Under the locked fields show: "Synced from your studio calendar. Contact your studio to change class times." Do not block editing of the whole class, the instructor must still be able to add booking details before publishing.
+
+---
+
+### Session C — Studio Schedule Summary (run after Session A)
+
+In the collapsed studio row, below the studio name, show a light-weight summary line in stone colour listing the recurring days and times for that studio, derived from the series records belonging to it. Format: "Wednesdays 7:00pm, Thursdays 4:00pm". Group by weekday and time, sorted by day of week.
+
+If the studio has an iCal link saved, also show: "Schedule linked to studio booking". If a studio has both manual series and an iCal link, show both lines.
+
+The summary line is itself expandable. Expanding it reveals a breakdown listing each series with its class name, day, time, and cadence, for example "Reformer Elevate, Wednesdays 7:00pm, weekly". This nested expansion is independent of the studio card expansion and does not open or close the studio's field panel.
+
+If a studio has no recurring series and no iCal link, show nothing, no empty state text.
+
+**Known limitation:** because the summary reads from series records, one-off manually created classes will not appear. Acceptable for now, revisit if instructors report missing classes.
+
+---
+
+### ✅ Session 1 — Terminology Sweep — COMPLETE
 All label and copy changes across the entire product in one pass:
 - Rename "Add & Drafts" tab to "My Classes" everywhere
 - Rename "Publish a New Class" to "Add a New Class"
@@ -335,7 +391,7 @@ All label and copy changes across the entire product in one pass:
 
 ---
 
-### Session 2 — Green Checkmark + Publish by Week
+### ✅ Session 2 — Green Checkmark + Publish by Week — COMPLETE
 Two interaction-level changes:
 
 **Green checkmark auto-save confirmation:** Replace all "Auto-saves on blur" patterns with a vanishing sage green checkmark that appears for 1.5 seconds after a field saves, then fades. Apply to all auto-saving fields across the dashboard.
@@ -348,12 +404,12 @@ If no drafts exist for that week, the relevant button is greyed out with "Nothin
 
 ---
 
-### Session 3 — Product Tour Overhaul
+### ✅ Session 3 — Product Tour Overhaul — COMPLETE
 Seven steps as defined in the Product Tour section of this document. Critical requirement: the tour must programmatically click the correct tab before highlighting any element. Use Driver.js's onHighlightStarted callback to navigate to the correct tab, wait for the DOM to update, then highlight the element. Scroll to top before driver.drive() is called. Test on mobile.
 
 ---
 
-### Session — Landing Page (instruktor.ca homepage)
+### ✅ Session — Landing Page (instruktor.ca homepage) — COMPLETE
 
 Six sections using brand tokens throughout. Mobile responsive.
 
@@ -378,7 +434,7 @@ Footer: Instruktor wordmark, © 2025, Privacy, instruktor.ca
 
 ---
 
-### Session — Product Tour (Driver.js)
+### ✅ Session — Product Tour (Driver.js) — COMPLETE
 
 Install Driver.js. Trigger once after first login post-onboarding. Store `tour_completed` boolean on profiles table. Re-triggerable from Instructor Settings → "Watch product tour."
 
@@ -407,7 +463,7 @@ Show on dashboard: attendance per class, average fill rate over time.
 
 ---
 
-### Session 7 — Onboarding Card Carousel
+### ✅ Session 7 — Onboarding Card Carousel — COMPLETE
 
 Shown once after signup, before dashboard. Cannot be skipped. Re-accessible from Settings → "Watch walkthrough again."
 
@@ -423,7 +479,7 @@ Track `onboarding_completed` boolean on profiles table.
 
 ---
 
-### Session 8 — Viral Footer
+### ✅ Session 8 — Viral Footer — COMPLETE
 
 Subtle footer on every student-facing page:
 *"Build your own schedule page — Instruktor.ca"*
@@ -501,6 +557,10 @@ ALTER TABLE classes ADD COLUMN IF NOT EXISTS category_other TEXT;
 **Mobile is the primary surface.** Design mobile first, always.
 
 **Reduce every interaction to its minimum.** Weekly sync in under 60 seconds.
+
+**Follower emails are for new classes only.** Editing or deleting an existing class, published or not, never triggers a follower notification. Only newly published classes generate emails.
+
+**The instructor owns booking details, the studio owns the facts.** For iCal-synced classes the studio owns class name, date, and time. The instructor owns Booking Link, Booking Note, and Category. Never lock an entire synced class, that would block publishing.
 
 **Auto-save confirmation.** Never show "Auto-saves on blur" text anywhere in the product. All auto-saved fields show a vanishing green checkmark (sage) after saving — appears for 1.5 seconds then fades. No text explanation needed.
 
