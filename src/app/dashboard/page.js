@@ -44,6 +44,98 @@ function groupByWeek(items, timeZone) {
   return groups;
 }
 
+// Returns weekday index/label and 12-hour time label for a date_time, as observed in the given timezone
+function getWeekdayTimeInfo(dateTimeStr, timeZone) {
+  const date = new Date(dateTimeStr);
+  const { weekday } = getTZDateParts(date, timeZone);
+  const dayIndex = WEEKDAY_INDEX[weekday] ?? 0;
+  const weekdayLong = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone }).format(date);
+
+  const parts12 = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(date);
+  const hour12 = parts12.find(p => p.type === 'hour').value;
+  const minute = parts12.find(p => p.type === 'minute').value;
+  const meridiem = parts12.find(p => p.type === 'dayPeriod').value.toLowerCase();
+  const time = `${hour12}:${minute}${meridiem}`;
+
+  const hour24 = Number(new Intl.DateTimeFormat('en-US', { timeZone, hour: '2-digit', hourCycle: 'h23' }).formatToParts(date).find(p => p.type === 'hour').value);
+  const minutesOfDay = hour24 * 60 + Number(minute);
+
+  return { dayIndex, weekdayLong, time, minutesOfDay };
+}
+
+// Derives the recurring schedule summary for a studio from its series records:
+// a deduped, day-sorted "Wednesdays 7:00pm, Thursdays 4:00pm" line, and a per-series breakdown.
+function getStudioSeriesSummary(studio, myClasses, timeZone) {
+  const seriesGroups = {};
+  myClasses.forEach(c => {
+    if (c.series_id && c.studio_name === studio.name) {
+      (seriesGroups[c.series_id] ||= []).push(c);
+    }
+  });
+
+  const series = Object.values(seriesGroups).map(classesInSeries => {
+    const sorted = [...classesInSeries].sort((a, b) => new Date(a.date_time) - new Date(b.date_time));
+    const first = sorted[0];
+    const { dayIndex, weekdayLong, time, minutesOfDay } = getWeekdayTimeInfo(first.date_time, timeZone);
+    let cadence = 'weekly';
+    if (sorted.length > 1) {
+      const gapDays = Math.round((new Date(sorted[1].date_time) - new Date(first.date_time)) / 86400000);
+      cadence = gapDays >= 11 ? 'biweekly' : 'weekly';
+    }
+    return { seriesId: first.series_id, className: first.class_name, dayIndex, weekdayLong, time, minutesOfDay, cadence };
+  }).sort((a, b) => a.dayIndex - b.dayIndex || a.minutesOfDay - b.minutesOfDay);
+
+  const comboMap = new Map();
+  series.forEach(s => {
+    const key = `${s.dayIndex}_${s.minutesOfDay}`;
+    if (!comboMap.has(key)) comboMap.set(key, { dayIndex: s.dayIndex, minutesOfDay: s.minutesOfDay, weekdayLong: s.weekdayLong, time: s.time });
+  });
+  const combos = Array.from(comboMap.values()).sort((a, b) => a.dayIndex - b.dayIndex || a.minutesOfDay - b.minutesOfDay);
+  const summaryLine = combos.map(c => `${c.weekdayLong}s ${c.time}`).join(', ');
+
+  return { summaryLine, series };
+}
+
+// Returns the timeZone's UTC offset (in minutes, local minus UTC) at the given instant.
+function getTZOffsetMinutes(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(date).reduce((acc, p) => { if (p.type !== 'literal') acc[p.type] = p.value; return acc; }, {});
+  const asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return (asUTC - date.getTime()) / 60000;
+}
+
+// Converts a wall-clock date/time (year, month 1-12, day, hour 0-23, minute) observed in timeZone
+// into the real UTC instant it represents, correcting for that date's DST offset.
+function zonedTimeToUtc(year, month, day, hour, minute, timeZone) {
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
+  const offset1 = getTZOffsetMinutes(new Date(guess), timeZone);
+  let utc = guess - offset1 * 60000;
+  const offset2 = getTZOffsetMinutes(new Date(utc), timeZone);
+  if (offset2 !== offset1) utc = guess - offset2 * 60000;
+  return new Date(utc);
+}
+
+// Recalculates a class's date_time so it falls on targetDayIndex (Mon=0..Sun=6) at hour:minute
+// (as observed in timeZone), within the same calendar week the class originally occurred in.
+// Returns null if the recalculated date doesn't actually land on targetDayIndex (defensive check).
+function recalcDateInOwnWeek(originalDateTimeStr, targetDayIndex, hour, minute, timeZone) {
+  const { year, month, day, weekday } = getTZDateParts(new Date(originalDateTimeStr), timeZone);
+  const originalDayIndex = WEEKDAY_INDEX[weekday] ?? 0;
+  const mondayUTC = Date.UTC(+year, +month - 1, +day) - originalDayIndex * 86400000;
+  const targetCalendarDay = new Date(mondayUTC + targetDayIndex * 86400000);
+
+  const newDate = zonedTimeToUtc(
+    targetCalendarDay.getUTCFullYear(), targetCalendarDay.getUTCMonth() + 1, targetCalendarDay.getUTCDate(),
+    hour, minute, timeZone
+  );
+
+  const check = getTZDateParts(newDate, timeZone);
+  if ((WEEKDAY_INDEX[check.weekday] ?? -1) !== targetDayIndex) return null;
+  return newDate;
+}
 
 const TIMEZONES = [
   { value: 'America/Vancouver',   label: 'Pacific Time (Vancouver)' },
@@ -70,12 +162,16 @@ export default function Dashboard() {
   const [newStudioName, setNewStudioName] = useState('');
   const [newStudioUrl, setNewStudioUrl] = useState('');
   const [expandedStudios, setExpandedStudios] = useState({});
+  const [expandedStudioSummaries, setExpandedStudioSummaries] = useState({});
   const settingsStudioRef = useRef(null);
   const formRef = useRef(null);
 
   const [editingDraftId, setEditingDraftId] = useState(null);
   const [categoryAutoSet, setCategoryAutoSet] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isIcsLocked, setIsIcsLocked] = useState(false);
+  const [seriesAction, setSeriesAction] = useState(null);
+  const [isProcessingSeriesAction, setIsProcessingSeriesAction] = useState(false);
 
   const [categories, setCategories] = useState([]);
 
@@ -251,6 +347,7 @@ export default function Dashboard() {
       locationUrl: matchedStudio.location_url || '',
     });
     setCategoryAutoSet(!draft.category_id && !draft.category_other);
+    setIsIcsLocked(!!draft.external_uid);
 
     setEditingDraftId(draft.id);
   };
@@ -258,6 +355,7 @@ export default function Dashboard() {
   const cancelEdit = () => {
     setEditingDraftId(null);
     setCategoryAutoSet(true);
+    setIsIcsLocked(false);
     setClassData({
       categoryId: '', categoryOther: '', className: '', dateTime: '',
       bookingUrl: '', bookingType: 'direct', bookingNote: '',
@@ -307,6 +405,10 @@ export default function Dashboard() {
     setExpandedStudios(prev => ({ ...prev, [studioId]: !prev[studioId] }));
   };
 
+  const toggleStudioSummaryExpanded = (studioId) => {
+    setExpandedStudioSummaries(prev => ({ ...prev, [studioId]: !prev[studioId] }));
+  };
+
   const handleDeleteStudio = async (studioId) => {
     if (!window.confirm("Are you sure you want to remove this studio? This won't affect classes you've already published there.")) return;
     setIsSaving(true);
@@ -323,6 +425,12 @@ export default function Dashboard() {
 
   // ── Class CRUD ───────────────────────────────────────────────────────────────
   const handleDeleteClass = async (classId) => {
+    const target = myClasses.find(c => c.id === classId);
+    if (target?.series_id) {
+      setSeriesAction({ kind: 'delete', step: 'choose', classId, seriesId: target.series_id });
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to delete this class? This cannot be undone.")) return;
     setIsSaving(true);
     const { error } = await supabase.from('classes').delete().eq('id', classId);
@@ -334,6 +442,97 @@ export default function Dashboard() {
       if (editingDraftId === classId) cancelEdit();
     }
     setIsSaving(false);
+  };
+
+  // Applies independent field updates to one or more classes; returns true if all succeeded.
+  const applyClassUpdates = async (rows) => {
+    const results = await Promise.all(rows.map(({ id, updates }) => supabase.from('classes').update(updates).eq('id', id)));
+    const firstError = results.find(r => r.error)?.error;
+    if (firstError) {
+      alert("Error saving: " + firstError.message);
+      return false;
+    }
+    return true;
+  };
+
+  // Determines which classes in a series are affected by the chosen scope (this one, or this and
+  // all future occurrences), then either applies immediately or asks for confirmation if any of
+  // the affected classes are already published and live for students.
+  const handleSeriesScopeChosen = (scope) => {
+    const seriesClasses = myClasses.filter(c => c.series_id === seriesAction.seriesId);
+    const anchor = seriesClasses.find(c => c.id === seriesAction.classId);
+    if (!anchor) { setSeriesAction(null); return; }
+    const now = new Date();
+
+    const affected = scope === 'only'
+      ? [anchor]
+      : seriesClasses.filter(c => c.id === anchor.id || (new Date(c.date_time) > new Date(anchor.date_time) && new Date(c.date_time) >= now));
+
+    const publishedCount = affected.filter(c => c.status === 'published').length;
+    const next = { ...seriesAction, scope, affectedIds: affected.map(c => c.id), publishedCount, totalCount: affected.length };
+
+    if (publishedCount > 0) {
+      setSeriesAction({ ...next, step: 'confirm' });
+    } else {
+      setSeriesAction(null);
+      executeSeriesAction(next);
+    }
+  };
+
+  // Carries out a confirmed series edit or delete across all affected classes. Never touches
+  // status on classes other than the one explicitly opened, and never queues follower emails.
+  const executeSeriesAction = async (action) => {
+    setIsProcessingSeriesAction(true);
+    const timezone = settingsData.timezone || 'America/Vancouver';
+
+    if (action.kind === 'delete') {
+      const { error } = await supabase.from('classes').delete().in('id', action.affectedIds);
+      if (!error) {
+        setSuccessMessage(`${action.totalCount} class${action.totalCount !== 1 ? 'es' : ''} deleted.`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        setMyClasses(prev => prev.filter(c => !action.affectedIds.includes(c.id)));
+        setSelectedDraftIds(prev => prev.filter(id => !action.affectedIds.includes(id)));
+        if (editingDraftId && action.affectedIds.includes(editingDraftId)) cancelEdit();
+      } else {
+        alert("Error deleting: " + error.message);
+      }
+      setIsProcessingSeriesAction(false);
+      return;
+    }
+
+    const futureIds = action.affectedIds.filter(id => id !== action.classId);
+    const anchorUpdates = action.publish ? { ...action.payload, status: 'published' } : { ...action.payload };
+    const updates = [{ id: action.classId, updates: anchorUpdates }];
+
+    if (futureIds.length > 0) {
+      const anchorInfo = getWeekdayTimeInfo(action.payload.date_time, timezone);
+      const hour = Math.floor(anchorInfo.minutesOfDay / 60);
+      const minute = anchorInfo.minutesOfDay % 60;
+
+      let recalcFailed = false;
+      futureIds.forEach(id => {
+        const cls = myClasses.find(c => c.id === id);
+        if (!cls) return;
+        const newDate = recalcDateInOwnWeek(cls.date_time, anchorInfo.dayIndex, hour, minute, timezone);
+        if (!newDate) { recalcFailed = true; return; }
+        updates.push({ id, updates: { ...action.payload, date_time: newDate.toISOString() } });
+      });
+
+      if (recalcFailed) {
+        alert("Could not safely recalculate one or more class dates. No changes were saved.");
+        setIsProcessingSeriesAction(false);
+        return;
+      }
+    }
+
+    const ok = await applyClassUpdates(updates);
+    if (ok) {
+      setSuccessMessage(`${action.totalCount} class${action.totalCount !== 1 ? 'es' : ''} updated.`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      cancelEdit();
+      fetchMyClasses(user.id);
+    }
+    setIsProcessingSeriesAction(false);
   };
 
   const handleDeleteAllDrafts = async () => {
@@ -354,32 +553,68 @@ export default function Dashboard() {
     setIsDeletingAllDrafts(false);
   };
 
+  const buildClassPayload = () => ({
+    category_id: classData.categoryId && classData.categoryId !== 'other' ? classData.categoryId : null,
+    category_other: classData.categoryId === 'other' ? classData.categoryOther : null,
+    class_name: classData.className,
+    date_time: new Date(classData.dateTime).toISOString(),
+    booking_url: classData.bookingUrl,
+    booking_type: classData.bookingType || 'direct',
+    booking_note: classData.bookingNote || null,
+    studio_name: classData.studioName,
+    location_url: classData.locationUrl,
+  });
+
+  // Saves edits to a draft without publishing it, keeping its status as 'draft'.
+  const handleSaveDraft = async () => {
+    if (!editingDraftId) return;
+    const basePayload = buildClassPayload();
+    const current = myClasses.find(c => c.id === editingDraftId);
+
+    if (current?.series_id) {
+      setSeriesAction({ kind: 'edit', step: 'choose', classId: editingDraftId, seriesId: current.series_id, payload: basePayload, publish: false });
+      return;
+    }
+
+    setIsSaving(true);
+    const ok = await applyClassUpdates([{ id: editingDraftId, updates: basePayload }]);
+    if (ok) {
+      setSuccessMessage("Draft saved.");
+      setTimeout(() => setSuccessMessage(''), 3000);
+      cancelEdit();
+      fetchMyClasses(user.id);
+    }
+    setIsSaving(false);
+  };
+
   const handleClassSubmit = async (e) => {
     e.preventDefault();
-    setIsSaving(true);
 
-    const payload = {
-      category_id: classData.categoryId && classData.categoryId !== 'other' ? classData.categoryId : null,
-      category_other: classData.categoryId === 'other' ? classData.categoryOther : null,
-      class_name: classData.className,
-      date_time: new Date(classData.dateTime).toISOString(),
-      booking_url: classData.bookingUrl,
-      booking_type: classData.bookingType || 'direct',
-      booking_note: classData.bookingNote || null,
-      studio_name: classData.studioName,
-      location_url: classData.locationUrl,
-      status: 'published',
-    };
+    const basePayload = buildClassPayload();
 
     if (editingDraftId) {
-      const { error } = await supabase.from('classes').update(payload).eq('id', editingDraftId);
-      if (!error) {
-        setSuccessMessage("Success! Class published to live schedule.");
+      const current = myClasses.find(c => c.id === editingDraftId);
+      if (current?.series_id) {
+        setSeriesAction({ kind: 'edit', step: 'choose', classId: editingDraftId, seriesId: current.series_id, payload: basePayload, publish: true });
+        return;
+      }
+
+      setIsSaving(true);
+      const wasPublished = current?.status === 'published';
+      const ok = await applyClassUpdates([{ id: editingDraftId, updates: { ...basePayload, status: 'published' } }]);
+      if (ok) {
+        setSuccessMessage(wasPublished ? "Changes saved." : "Success! Class published to live schedule.");
         setTimeout(() => setSuccessMessage(''), 3000);
         cancelEdit();
         fetchMyClasses(user.id);
       }
-    } else if (classData.repeatFrequency !== 'none') {
+      setIsSaving(false);
+      return;
+    }
+
+    setIsSaving(true);
+
+    if (classData.repeatFrequency !== 'none') {
       const intervalDays = classData.repeatFrequency === 'biweekly' ? 14 : 7;
       const startDate = new Date(classData.dateTime);
 
@@ -397,7 +632,7 @@ export default function Dashboard() {
       while (occurrence <= endBoundary) {
         rows.push({
           instructor_id: user.id,
-          ...payload,
+          ...basePayload,
           date_time: occurrence.toISOString(),
           status: 'draft',
           series_id: seriesId,
@@ -413,7 +648,7 @@ export default function Dashboard() {
         fetchMyClasses(user.id);
       }
     } else {
-      const { error } = await supabase.from('classes').insert([{ instructor_id: user.id, ...payload }]);
+      const { error } = await supabase.from('classes').insert([{ instructor_id: user.id, ...basePayload, status: 'published' }]);
       if (!error) {
         setSuccessMessage("Success! Class published manually.");
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -632,6 +867,7 @@ export default function Dashboard() {
   const pendingDrafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
   const draftClasses = myClasses.filter(c => c.status === 'draft');
   const { thisWeek: thisWeekDrafts, nextWeek: nextWeekDrafts } = groupByWeek(pendingDrafts, tz);
+  const isEditingDraft = !!editingDraftId && myClasses.find(c => c.id === editingDraftId)?.status === 'draft';
 
   if (isChecking) return <div className="min-h-screen bg-linen"></div>;
 
@@ -653,6 +889,51 @@ export default function Dashboard() {
               <button type="button" onClick={handleDeleteAllDrafts} disabled={isDeletingAllDrafts}
                 className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50">
                 {isDeletingAllDrafts ? "Deleting..." : "Delete All"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seriesAction?.step === 'choose' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <p className="text-bark font-medium mb-6">This class is part of a recurring series.</p>
+            <div className="flex flex-col gap-2">
+              <button type="button" onClick={() => handleSeriesScopeChosen('only')}
+                className="w-full px-4 py-2.5 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                {seriesAction.kind === 'delete' ? 'Delete this class only' : 'Edit this class only'}
+              </button>
+              <button type="button" onClick={() => handleSeriesScopeChosen('future')}
+                className="w-full px-4 py-2.5 rounded-lg bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors">
+                {seriesAction.kind === 'delete' ? 'Delete this and all future classes in the series' : 'Edit this and all future classes in the series'}
+              </button>
+              <button type="button" onClick={() => setSeriesAction(null)}
+                className="w-full px-4 py-2 text-xs text-stone hover:text-bark transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seriesAction?.step === 'confirm' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <p className="text-bark font-medium mb-6">
+              This will {seriesAction.kind === 'delete' ? 'delete' : 'update'} {seriesAction.totalCount} class{seriesAction.totalCount !== 1 ? 'es' : ''}.{' '}
+              {seriesAction.publishedCount} {seriesAction.publishedCount !== 1 ? 'are' : 'is'} live on your page and will{' '}
+              {seriesAction.kind === 'delete' ? 'be removed' : 'change'} immediately for students.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setSeriesAction(null)}
+                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={() => { const action = seriesAction; setSeriesAction(null); executeSeriesAction(action); }}
+                disabled={isProcessingSeriesAction}
+                className="px-4 py-2 rounded-lg bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors disabled:opacity-50">
+                {isProcessingSeriesAction ? "Saving..." : "Continue"}
               </button>
             </div>
           </div>
@@ -792,6 +1073,7 @@ export default function Dashboard() {
                           studioName: c.studio_name || '',
                           locationUrl: c.location_url || '',
                         });
+                        setIsIcsLocked(!!c.external_uid);
                         setActiveTab('add');
                       }}
                         className="text-sm font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-lg transition-colors active:scale-95">
@@ -953,6 +1235,7 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Specific Class Name</label>
                   <input type="text" value={classData.className}
+                    disabled={isIcsLocked}
                     onChange={e => {
                       const className = e.target.value;
                       const inferred = inferCategoryId(className, categories, null);
@@ -962,7 +1245,7 @@ export default function Dashboard() {
                         setClassData({ ...classData, className });
                       }
                     }}
-                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
                 </div>
 
                 <div>
@@ -1008,8 +1291,12 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Date & Time</label>
                   <input type="datetime-local" value={classData.dateTime}
+                    disabled={isIcsLocked}
                     onChange={e => setClassData({ ...classData, dateTime: e.target.value })}
-                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
+                  {isIcsLocked && (
+                    <p className="text-xs text-stone mt-1.5">Synced from your studio calendar. Contact your studio to change class times.</p>
+                  )}
                 </div>
 
                 {!editingDraftId && (
@@ -1049,7 +1336,7 @@ export default function Dashboard() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Checkout Link</label>
+                  <label className="block text-sm font-medium mb-1">Booking Link</label>
                   <input type="url" placeholder="https://..." value={classData.bookingUrl}
                     onChange={e => setClassData({ ...classData, bookingUrl: e.target.value })}
                     required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
@@ -1057,7 +1344,6 @@ export default function Dashboard() {
 
                 {/* Booking context: collapsible override */}
                 <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
-                  <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Note (optional)</p>
                   <div>
                     <label className="block text-xs font-medium text-stone mb-1">Booking Note <span className="font-normal">(optional)</span></label>
                     <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
@@ -1067,10 +1353,23 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <button type="submit" disabled={isSaving}
-                  className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
-                  {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
-                </button>
+                {isEditingDraft ? (
+                  <div className="flex gap-3 mt-2">
+                    <button type="button" onClick={handleSaveDraft} disabled={isSaving}
+                      className="flex-1 bg-white border border-sand text-bark font-medium py-3 rounded-lg transition-colors hover:bg-linen disabled:opacity-50">
+                      {isSaving ? "Saving..." : "Save Draft"}
+                    </button>
+                    <button type="submit" disabled={isSaving}
+                      className="flex-1 bg-clay text-white font-medium py-3 rounded-lg transition-colors hover:bg-clay-dark disabled:opacity-50">
+                      {isSaving ? "Saving..." : "Publish Draft Live"}
+                    </button>
+                  </div>
+                ) : (
+                  <button type="submit" disabled={isSaving}
+                    className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
+                    {isSaving ? "Saving..." : (editingDraftId ? "Save Changes" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
+                  </button>
+                )}
               </form>
             </div>
 
@@ -1209,16 +1508,43 @@ export default function Dashboard() {
                 ) : (
                   savedStudios.map(studio => {
                     const isStudioOpen = !!expandedStudios[studio.id];
+                    const isSummaryOpen = !!expandedStudioSummaries[studio.id];
+                    const { summaryLine, series } = getStudioSeriesSummary(studio, myClasses, tz);
+                    const hasIcalLine = !!studio.calendar_url;
+                    const hasSummaryContent = !!summaryLine || hasIcalLine;
                     return (
                     <div key={studio.id} className="bg-linen border border-sand rounded-lg shadow-sm overflow-hidden">
                       <button type="button" onClick={() => toggleStudioExpanded(studio.id)}
-                        className="w-full flex justify-between items-center p-5 text-left">
+                        className={`w-full flex justify-between items-center text-left ${hasSummaryContent ? 'px-5 pt-5 pb-2' : 'p-5'}`}>
                         <span className="font-bold text-lg">{studio.name}</span>
                         <svg className={`w-5 h-5 text-stone shrink-0 transition-transform ${isStudioOpen ? 'rotate-180' : ''}`}
                           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
+
+                      {hasSummaryContent && (
+                        <div className="px-5 pb-4">
+                          {summaryLine && (
+                            <button type="button" onClick={() => toggleStudioSummaryExpanded(studio.id)}
+                              className="text-xs text-stone hover:text-bark transition-colors text-left">
+                              {summaryLine}
+                            </button>
+                          )}
+                          {hasIcalLine && (
+                            <p className="text-xs text-stone mt-0.5">Schedule linked to studio booking</p>
+                          )}
+                          {isSummaryOpen && (
+                            <div className="mt-2 space-y-1 border-t border-sand/70 pt-2">
+                              {series.map(s => (
+                                <p key={s.seriesId} className="text-xs text-stone">
+                                  {s.className}, {s.weekdayLong}s {s.time}, {s.cadence}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {isStudioOpen && (
                       <div className="px-5 pb-5 space-y-4">
