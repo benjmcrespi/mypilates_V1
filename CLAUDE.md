@@ -34,8 +34,12 @@
 - Studio management with full CRUD
 - ICS calendar sync at /api/sync, auto-populates booking link, note, and category from studio defaults
 - Duplicate detection on ICS pull (upsert on external_uid)
-- Draft class system with individual edit and per-row delete
+- Draft class system with individual edit and per-row delete, plus a "Delete All Drafts" bulk action with confirmation modal
 - Recurring class creation, weekly and bi-weekly, generates independent drafts with series_id
+- Series editing and deletion: "this class only" vs "this and all future classes" scope modal, day-of-week recalculation that keeps each affected class in its own original week, confirmation when published classes are affected, never touches past classes or triggers follower emails
+- ICS-synced classes lock their class name, date, and time fields as read-only when edited; booking link, booking note, and category remain editable
+- "Save Draft" button to persist edits to a draft without publishing it
+- Collapsible studio cards in Instructor Settings (My Saved Studios & Calendars), each showing an expandable recurring-schedule summary derived from series records, with an independent nested breakdown by series
 - Class category system: CategorySelect component, categories.js with auto-inference and grouping, class_categories queries in dashboard and sync, category_id FK on classes
 - Publish This Week's Schedule / Publish Next Week's Schedule, with tertiary "Publish all X drafts" link
 - Green checkmark auto-save confirmation, 1.5s fade
@@ -60,11 +64,11 @@
 - Product tour with Driver.js, 7 steps, programmatic tab navigation, re-triggerable from Settings
 - PWA: next-pwa, manifest.json, icons, AddToHomeScreen banner with iOS/Android detection
 
-**Terminology sweep complete:** My Classes, Sync Classes, Add a New Class, Booking Note (optional), Default Booking Link all confirmed in the dashboard.
+**Terminology sweep complete:** My Classes, Sync Classes, Add a New Class, Booking Link, Booking Note (optional), Default Booking Link all confirmed in the dashboard.
 
 ### Not built
 - Post-class attendance prompt, no UI and no attendance_reports queries anywhere
-- Multi-select delete on drafts. Selection exists but drives "Publish Selected", not bulk delete. Session A adds Delete All Drafts, which is different from multi-select delete. Decide whether multi-select delete is still wanted.
+- Multi-select delete on drafts. Selection exists but drives "Publish Selected", not bulk delete. Session A added Delete All Drafts, which is different from multi-select delete. Decide whether multi-select delete is still wanted.
 
 ### Needs review
 - **/classes discovery page** exists with category filtering. This was never specified in any session and is not part of the MVP plan. Determine whether it is intentional, a leftover from mypilates.ca, or speculative work. Either document it or remove it.
@@ -339,7 +343,16 @@ Disable in development (disable: process.env.NODE_ENV === 'development') to avoi
 Test by opening instruktor.ca on a real phone and confirming "Add to Home Screen" prompt appears and the installed app opens without browser chrome.
 
 ---
-### Session A — Delete All Drafts + Collapsed Studio Cards
+
+### ✅ Session — Onboarding Copy Fix + Weekly Grouping for Published Classes — COMPLETE
+
+Shipped as an ad hoc fix, not originally specified in this document:
+- Onboarding slide 2 no longer references "three different booking pages"; reads "Share a single link instead of multiple booking links."
+- Live Schedule's Published Classes list is grouped under "This Week's Classes," "Next Week's Classes," and "Future Classes" headers.
+- "This Week's Classes" uses a Sunday-start week boundary (Sun-Sat) for this grouping only, independent of the Monday-Sunday week used by the Publish This/Next Week's Schedule buttons and the My Classes tab, which are unchanged.
+
+---
+### ✅ Session A — Delete All Drafts + Collapsed Studio Cards — COMPLETE
 
 **Delete All Drafts:** Add a "Delete All Drafts" button to My Classes, styled as a subtle text link, not a primary button, positioned away from the publish buttons so it cannot be misclicked. On click show a confirmation modal: "Delete all [N] drafts? This cannot be undone." with Cancel and Delete All buttons, where N is the actual draft count. Only deletes drafts, never published classes.
 
@@ -347,7 +360,7 @@ Test by opening instruktor.ca on a real phone and confirming "Add to Home Screen
 
 ---
 
-### Session B — Series Editing and Deletion
+### ✅ Session B — Series Editing and Deletion — COMPLETE
 
 Applies to manually created recurring classes (classes with a series_id).
 
@@ -363,9 +376,14 @@ Applies to manually created recurring classes (classes with a series_id).
 
 **ICS field locking:** For classes synced from an iCal feed, lock the class name, date, and time fields as read-only and greyed out. Booking Link, Booking Note, and Category remain fully editable. Under the locked fields show: "Synced from your studio calendar. Contact your studio to change class times." Do not block editing of the whole class, the instructor must still be able to add booking details before publishing.
 
+**Shipped alongside this session:**
+- **Save Draft button:** a secondary "Save Draft" button next to "Publish Draft Live" when editing a draft, so edits can be persisted without publishing. Goes through the same series scope modal above when the draft belongs to a series, without forcing its status to published.
+- **Save button/message fix for published classes:** editing an already-published class now shows "Save Changes" / "Changes saved." instead of "Publish Draft Live" / "Class published to live schedule," which read as if the class were newly going live.
+- **Label fixes:** "Checkout Link" renamed to "Booking Link" to match the canonical terminology table (was the only instance in the app); removed a duplicated "Booking Note (optional)" section header on the class edit form so the label appears once.
+
 ---
 
-### Session C — Studio Schedule Summary (run after Session A)
+### ✅ Session C — Studio Schedule Summary (run after Session A) — COMPLETE
 
 In the collapsed studio row, below the studio name, show a light-weight summary line in stone colour listing the recurring days and times for that studio, derived from the series records belonging to it. Format: "Wednesdays 7:00pm, Thursdays 4:00pm". Group by weekday and time, sorted by day of week.
 
