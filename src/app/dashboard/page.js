@@ -600,9 +600,10 @@ export default function Dashboard() {
       }
 
       setIsSaving(true);
+      const wasPublished = current?.status === 'published';
       const ok = await applyClassUpdates([{ id: editingDraftId, updates: { ...basePayload, status: 'published' } }]);
       if (ok) {
-        setSuccessMessage("Success! Class published to live schedule.");
+        setSuccessMessage(wasPublished ? "Changes saved." : "Success! Class published to live schedule.");
         setTimeout(() => setSuccessMessage(''), 3000);
         cancelEdit();
         fetchMyClasses(user.id);
@@ -1366,7 +1367,7 @@ export default function Dashboard() {
                 ) : (
                   <button type="submit" disabled={isSaving}
                     className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
-                    {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
+                    {isSaving ? "Saving..." : (editingDraftId ? "Save Changes" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
                   </button>
                 )}
               </form>
