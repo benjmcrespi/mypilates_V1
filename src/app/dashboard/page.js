@@ -8,7 +8,8 @@ import { startProductTour } from '@/components/ProductTour';
 import CategorySelect from '@/components/CategorySelect';
 import { inferCategoryId, categoryLabel } from '@/lib/categories';
 
-const WEEKDAY_INDEX = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+const WEEKDAY_INDEX_MON = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+const WEEKDAY_INDEX_SUN = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
 // Returns { year, month, day, weekday } for a date as observed in the given timezone
 function getTZDateParts(date, timeZone) {
@@ -20,13 +21,15 @@ function getTZDateParts(date, timeZone) {
   return obj;
 }
 
-// Groups items with a date_time into "this week" (through Sunday), "next week" (Mon-Sun), and "later",
-// based on calendar days in the given timezone.
-function groupByWeek(items, timeZone) {
+// Groups items with a date_time into "this week", "next week", and "later",
+// based on calendar days in the given timezone. weekStartsOn controls whether
+// the week boundary falls on Monday (default) or Sunday.
+function groupByWeek(items, timeZone, weekStartsOn = 'Mon') {
+  const WEEKDAY_INDEX = weekStartsOn === 'Sun' ? WEEKDAY_INDEX_SUN : WEEKDAY_INDEX_MON;
   const todayParts = getTZDateParts(new Date(), timeZone);
   const todayUTC = Date.UTC(+todayParts.year, +todayParts.month - 1, +todayParts.day);
   const todayDow = WEEKDAY_INDEX[todayParts.weekday] ?? 0;
-  const thisWeekEnd = 6 - todayDow; // days from today through Sunday
+  const thisWeekEnd = 6 - todayDow; // days from today through the end of this week
   const nextWeekEnd = thisWeekEnd + 7;
 
   const groups = { thisWeek: [], nextWeek: [], later: [] };
@@ -1021,11 +1024,26 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
 
-            {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).length === 0 ? (
-              <p className="text-stone text-center p-8 bg-white rounded-xl border border-sand">No live classes currently published.</p>
-            ) : (
-              <div className="space-y-4">
-                {myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date()).map((c) => (
+            {(() => {
+              const publishedClasses = myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date());
+
+              if (publishedClasses.length === 0) {
+                return <p className="text-stone text-center p-8 bg-white rounded-xl border border-sand">No live classes currently published.</p>;
+              }
+
+              const { thisWeek, nextWeek, later } = groupByWeek(publishedClasses, tz, 'Sun');
+              const sections = [
+                { label: "This Week's Classes", items: thisWeek },
+                { label: "Next Week's Classes", items: nextWeek },
+                { label: 'Future Classes', items: later },
+              ];
+
+              return (
+                <div className="space-y-6">
+                  {sections.filter(s => s.items.length > 0).map(section => (
+                    <div key={section.label} className="space-y-4">
+                      <h3 className="text-xs font-bold text-stone uppercase tracking-wider">{section.label}</h3>
+                      {section.items.map((c) => (
                   <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-xl border border-sand shadow-sm transition-all hover:shadow-md">
                     <div className="mb-4 sm:mb-0">
                       <div className="flex items-center space-x-3 mb-1">
@@ -1081,9 +1099,12 @@ export default function Dashboard() {
                       </button>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
           </div>
         )}
