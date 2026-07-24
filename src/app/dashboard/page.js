@@ -96,6 +96,47 @@ function getStudioSeriesSummary(studio, myClasses, timeZone) {
   return { summaryLine, series };
 }
 
+// Returns the timeZone's UTC offset (in minutes, local minus UTC) at the given instant.
+function getTZOffsetMinutes(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  }).formatToParts(date).reduce((acc, p) => { if (p.type !== 'literal') acc[p.type] = p.value; return acc; }, {});
+  const asUTC = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+  return (asUTC - date.getTime()) / 60000;
+}
+
+// Converts a wall-clock date/time (year, month 1-12, day, hour 0-23, minute) observed in timeZone
+// into the real UTC instant it represents, correcting for that date's DST offset.
+function zonedTimeToUtc(year, month, day, hour, minute, timeZone) {
+  const guess = Date.UTC(year, month - 1, day, hour, minute);
+  const offset1 = getTZOffsetMinutes(new Date(guess), timeZone);
+  let utc = guess - offset1 * 60000;
+  const offset2 = getTZOffsetMinutes(new Date(utc), timeZone);
+  if (offset2 !== offset1) utc = guess - offset2 * 60000;
+  return new Date(utc);
+}
+
+// Recalculates a class's date_time so it falls on targetDayIndex (Mon=0..Sun=6) at hour:minute
+// (as observed in timeZone), within the same calendar week the class originally occurred in.
+// Returns null if the recalculated date doesn't actually land on targetDayIndex (defensive check).
+function recalcDateInOwnWeek(originalDateTimeStr, targetDayIndex, hour, minute, timeZone) {
+  const { year, month, day, weekday } = getTZDateParts(new Date(originalDateTimeStr), timeZone);
+  const originalDayIndex = WEEKDAY_INDEX[weekday] ?? 0;
+  const mondayUTC = Date.UTC(+year, +month - 1, +day) - originalDayIndex * 86400000;
+  const targetCalendarDay = new Date(mondayUTC + targetDayIndex * 86400000);
+
+  const newDate = zonedTimeToUtc(
+    targetCalendarDay.getUTCFullYear(), targetCalendarDay.getUTCMonth() + 1, targetCalendarDay.getUTCDate(),
+    hour, minute, timeZone
+  );
+
+  const check = getTZDateParts(newDate, timeZone);
+  if ((WEEKDAY_INDEX[check.weekday] ?? -1) !== targetDayIndex) return null;
+  return newDate;
+}
+
 const TIMEZONES = [
   { value: 'America/Vancouver',   label: 'Pacific Time (Vancouver)' },
   { value: 'America/Edmonton',    label: 'Mountain Time (Edmonton)' },
@@ -128,6 +169,9 @@ export default function Dashboard() {
   const [editingDraftId, setEditingDraftId] = useState(null);
   const [categoryAutoSet, setCategoryAutoSet] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isIcsLocked, setIsIcsLocked] = useState(false);
+  const [seriesAction, setSeriesAction] = useState(null);
+  const [isProcessingSeriesAction, setIsProcessingSeriesAction] = useState(false);
 
   const [categories, setCategories] = useState([]);
 
@@ -303,6 +347,7 @@ export default function Dashboard() {
       locationUrl: matchedStudio.location_url || '',
     });
     setCategoryAutoSet(!draft.category_id && !draft.category_other);
+    setIsIcsLocked(!!draft.external_uid);
 
     setEditingDraftId(draft.id);
   };
@@ -310,6 +355,7 @@ export default function Dashboard() {
   const cancelEdit = () => {
     setEditingDraftId(null);
     setCategoryAutoSet(true);
+    setIsIcsLocked(false);
     setClassData({
       categoryId: '', categoryOther: '', className: '', dateTime: '',
       bookingUrl: '', bookingType: 'direct', bookingNote: '',
@@ -379,6 +425,12 @@ export default function Dashboard() {
 
   // ── Class CRUD ───────────────────────────────────────────────────────────────
   const handleDeleteClass = async (classId) => {
+    const target = myClasses.find(c => c.id === classId);
+    if (target?.series_id) {
+      setSeriesAction({ kind: 'delete', step: 'choose', classId, seriesId: target.series_id });
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to delete this class? This cannot be undone.")) return;
     setIsSaving(true);
     const { error } = await supabase.from('classes').delete().eq('id', classId);
@@ -390,6 +442,96 @@ export default function Dashboard() {
       if (editingDraftId === classId) cancelEdit();
     }
     setIsSaving(false);
+  };
+
+  // Applies independent field updates to one or more classes; returns true if all succeeded.
+  const applyClassUpdates = async (rows) => {
+    const results = await Promise.all(rows.map(({ id, updates }) => supabase.from('classes').update(updates).eq('id', id)));
+    const firstError = results.find(r => r.error)?.error;
+    if (firstError) {
+      alert("Error saving: " + firstError.message);
+      return false;
+    }
+    return true;
+  };
+
+  // Determines which classes in a series are affected by the chosen scope (this one, or this and
+  // all future occurrences), then either applies immediately or asks for confirmation if any of
+  // the affected classes are already published and live for students.
+  const handleSeriesScopeChosen = (scope) => {
+    const seriesClasses = myClasses.filter(c => c.series_id === seriesAction.seriesId);
+    const anchor = seriesClasses.find(c => c.id === seriesAction.classId);
+    if (!anchor) { setSeriesAction(null); return; }
+    const now = new Date();
+
+    const affected = scope === 'only'
+      ? [anchor]
+      : seriesClasses.filter(c => c.id === anchor.id || (new Date(c.date_time) > new Date(anchor.date_time) && new Date(c.date_time) >= now));
+
+    const publishedCount = affected.filter(c => c.status === 'published').length;
+    const next = { ...seriesAction, scope, affectedIds: affected.map(c => c.id), publishedCount, totalCount: affected.length };
+
+    if (publishedCount > 0) {
+      setSeriesAction({ ...next, step: 'confirm' });
+    } else {
+      setSeriesAction(null);
+      executeSeriesAction(next);
+    }
+  };
+
+  // Carries out a confirmed series edit or delete across all affected classes. Never touches
+  // status on classes other than the one explicitly opened, and never queues follower emails.
+  const executeSeriesAction = async (action) => {
+    setIsProcessingSeriesAction(true);
+    const timezone = settingsData.timezone || 'America/Vancouver';
+
+    if (action.kind === 'delete') {
+      const { error } = await supabase.from('classes').delete().in('id', action.affectedIds);
+      if (!error) {
+        setSuccessMessage(`${action.totalCount} class${action.totalCount !== 1 ? 'es' : ''} deleted.`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+        setMyClasses(prev => prev.filter(c => !action.affectedIds.includes(c.id)));
+        setSelectedDraftIds(prev => prev.filter(id => !action.affectedIds.includes(id)));
+        if (editingDraftId && action.affectedIds.includes(editingDraftId)) cancelEdit();
+      } else {
+        alert("Error deleting: " + error.message);
+      }
+      setIsProcessingSeriesAction(false);
+      return;
+    }
+
+    const futureIds = action.affectedIds.filter(id => id !== action.classId);
+    const updates = [{ id: action.classId, updates: { ...action.payload, status: 'published' } }];
+
+    if (futureIds.length > 0) {
+      const anchorInfo = getWeekdayTimeInfo(action.payload.date_time, timezone);
+      const hour = Math.floor(anchorInfo.minutesOfDay / 60);
+      const minute = anchorInfo.minutesOfDay % 60;
+
+      let recalcFailed = false;
+      futureIds.forEach(id => {
+        const cls = myClasses.find(c => c.id === id);
+        if (!cls) return;
+        const newDate = recalcDateInOwnWeek(cls.date_time, anchorInfo.dayIndex, hour, minute, timezone);
+        if (!newDate) { recalcFailed = true; return; }
+        updates.push({ id, updates: { ...action.payload, date_time: newDate.toISOString() } });
+      });
+
+      if (recalcFailed) {
+        alert("Could not safely recalculate one or more class dates. No changes were saved.");
+        setIsProcessingSeriesAction(false);
+        return;
+      }
+    }
+
+    const ok = await applyClassUpdates(updates);
+    if (ok) {
+      setSuccessMessage(`${action.totalCount} class${action.totalCount !== 1 ? 'es' : ''} updated.`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      cancelEdit();
+      fetchMyClasses(user.id);
+    }
+    setIsProcessingSeriesAction(false);
   };
 
   const handleDeleteAllDrafts = async () => {
@@ -412,9 +554,8 @@ export default function Dashboard() {
 
   const handleClassSubmit = async (e) => {
     e.preventDefault();
-    setIsSaving(true);
 
-    const payload = {
+    const basePayload = {
       category_id: classData.categoryId && classData.categoryId !== 'other' ? classData.categoryId : null,
       category_other: classData.categoryId === 'other' ? classData.categoryOther : null,
       class_name: classData.className,
@@ -424,18 +565,30 @@ export default function Dashboard() {
       booking_note: classData.bookingNote || null,
       studio_name: classData.studioName,
       location_url: classData.locationUrl,
-      status: 'published',
     };
 
     if (editingDraftId) {
-      const { error } = await supabase.from('classes').update(payload).eq('id', editingDraftId);
-      if (!error) {
+      const current = myClasses.find(c => c.id === editingDraftId);
+      if (current?.series_id) {
+        setSeriesAction({ kind: 'edit', step: 'choose', classId: editingDraftId, seriesId: current.series_id, payload: basePayload });
+        return;
+      }
+
+      setIsSaving(true);
+      const ok = await applyClassUpdates([{ id: editingDraftId, updates: { ...basePayload, status: 'published' } }]);
+      if (ok) {
         setSuccessMessage("Success! Class published to live schedule.");
         setTimeout(() => setSuccessMessage(''), 3000);
         cancelEdit();
         fetchMyClasses(user.id);
       }
-    } else if (classData.repeatFrequency !== 'none') {
+      setIsSaving(false);
+      return;
+    }
+
+    setIsSaving(true);
+
+    if (classData.repeatFrequency !== 'none') {
       const intervalDays = classData.repeatFrequency === 'biweekly' ? 14 : 7;
       const startDate = new Date(classData.dateTime);
 
@@ -453,7 +606,7 @@ export default function Dashboard() {
       while (occurrence <= endBoundary) {
         rows.push({
           instructor_id: user.id,
-          ...payload,
+          ...basePayload,
           date_time: occurrence.toISOString(),
           status: 'draft',
           series_id: seriesId,
@@ -469,7 +622,7 @@ export default function Dashboard() {
         fetchMyClasses(user.id);
       }
     } else {
-      const { error } = await supabase.from('classes').insert([{ instructor_id: user.id, ...payload }]);
+      const { error } = await supabase.from('classes').insert([{ instructor_id: user.id, ...basePayload, status: 'published' }]);
       if (!error) {
         setSuccessMessage("Success! Class published manually.");
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -715,6 +868,51 @@ export default function Dashboard() {
         </div>
       )}
 
+      {seriesAction?.step === 'choose' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <p className="text-bark font-medium mb-6">This class is part of a recurring series.</p>
+            <div className="flex flex-col gap-2">
+              <button type="button" onClick={() => handleSeriesScopeChosen('only')}
+                className="w-full px-4 py-2.5 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                {seriesAction.kind === 'delete' ? 'Delete this class only' : 'Edit this class only'}
+              </button>
+              <button type="button" onClick={() => handleSeriesScopeChosen('future')}
+                className="w-full px-4 py-2.5 rounded-lg bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors">
+                {seriesAction.kind === 'delete' ? 'Delete this and all future classes in the series' : 'Edit this and all future classes in the series'}
+              </button>
+              <button type="button" onClick={() => setSeriesAction(null)}
+                className="w-full px-4 py-2 text-xs text-stone hover:text-bark transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {seriesAction?.step === 'confirm' && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <p className="text-bark font-medium mb-6">
+              This will {seriesAction.kind === 'delete' ? 'delete' : 'update'} {seriesAction.totalCount} class{seriesAction.totalCount !== 1 ? 'es' : ''}.{' '}
+              {seriesAction.publishedCount} {seriesAction.publishedCount !== 1 ? 'are' : 'is'} live on your page and will{' '}
+              {seriesAction.kind === 'delete' ? 'be removed' : 'change'} immediately for students.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setSeriesAction(null)}
+                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={() => { const action = seriesAction; setSeriesAction(null); executeSeriesAction(action); }}
+                disabled={isProcessingSeriesAction}
+                className="px-4 py-2 rounded-lg bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors disabled:opacity-50">
+                {isProcessingSeriesAction ? "Saving..." : "Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
 
         {successMessage && (
@@ -848,6 +1046,7 @@ export default function Dashboard() {
                           studioName: c.studio_name || '',
                           locationUrl: c.location_url || '',
                         });
+                        setIsIcsLocked(!!c.external_uid);
                         setActiveTab('add');
                       }}
                         className="text-sm font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-lg transition-colors active:scale-95">
@@ -1009,6 +1208,7 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Specific Class Name</label>
                   <input type="text" value={classData.className}
+                    disabled={isIcsLocked}
                     onChange={e => {
                       const className = e.target.value;
                       const inferred = inferCategoryId(className, categories, null);
@@ -1018,7 +1218,7 @@ export default function Dashboard() {
                         setClassData({ ...classData, className });
                       }
                     }}
-                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
                 </div>
 
                 <div>
@@ -1064,8 +1264,12 @@ export default function Dashboard() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Date & Time</label>
                   <input type="datetime-local" value={classData.dateTime}
+                    disabled={isIcsLocked}
                     onChange={e => setClassData({ ...classData, dateTime: e.target.value })}
-                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
+                  {isIcsLocked && (
+                    <p className="text-xs text-stone mt-1.5">Synced from your studio calendar. Contact your studio to change class times.</p>
+                  )}
                 </div>
 
                 {!editingDraftId && (
