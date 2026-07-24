@@ -501,7 +501,8 @@ export default function Dashboard() {
     }
 
     const futureIds = action.affectedIds.filter(id => id !== action.classId);
-    const updates = [{ id: action.classId, updates: { ...action.payload, status: 'published' } }];
+    const anchorUpdates = action.publish ? { ...action.payload, status: 'published' } : { ...action.payload };
+    const updates = [{ id: action.classId, updates: anchorUpdates }];
 
     if (futureIds.length > 0) {
       const anchorInfo = getWeekdayTimeInfo(action.payload.date_time, timezone);
@@ -552,25 +553,49 @@ export default function Dashboard() {
     setIsDeletingAllDrafts(false);
   };
 
+  const buildClassPayload = () => ({
+    category_id: classData.categoryId && classData.categoryId !== 'other' ? classData.categoryId : null,
+    category_other: classData.categoryId === 'other' ? classData.categoryOther : null,
+    class_name: classData.className,
+    date_time: new Date(classData.dateTime).toISOString(),
+    booking_url: classData.bookingUrl,
+    booking_type: classData.bookingType || 'direct',
+    booking_note: classData.bookingNote || null,
+    studio_name: classData.studioName,
+    location_url: classData.locationUrl,
+  });
+
+  // Saves edits to a draft without publishing it, keeping its status as 'draft'.
+  const handleSaveDraft = async () => {
+    if (!editingDraftId) return;
+    const basePayload = buildClassPayload();
+    const current = myClasses.find(c => c.id === editingDraftId);
+
+    if (current?.series_id) {
+      setSeriesAction({ kind: 'edit', step: 'choose', classId: editingDraftId, seriesId: current.series_id, payload: basePayload, publish: false });
+      return;
+    }
+
+    setIsSaving(true);
+    const ok = await applyClassUpdates([{ id: editingDraftId, updates: basePayload }]);
+    if (ok) {
+      setSuccessMessage("Draft saved.");
+      setTimeout(() => setSuccessMessage(''), 3000);
+      cancelEdit();
+      fetchMyClasses(user.id);
+    }
+    setIsSaving(false);
+  };
+
   const handleClassSubmit = async (e) => {
     e.preventDefault();
 
-    const basePayload = {
-      category_id: classData.categoryId && classData.categoryId !== 'other' ? classData.categoryId : null,
-      category_other: classData.categoryId === 'other' ? classData.categoryOther : null,
-      class_name: classData.className,
-      date_time: new Date(classData.dateTime).toISOString(),
-      booking_url: classData.bookingUrl,
-      booking_type: classData.bookingType || 'direct',
-      booking_note: classData.bookingNote || null,
-      studio_name: classData.studioName,
-      location_url: classData.locationUrl,
-    };
+    const basePayload = buildClassPayload();
 
     if (editingDraftId) {
       const current = myClasses.find(c => c.id === editingDraftId);
       if (current?.series_id) {
-        setSeriesAction({ kind: 'edit', step: 'choose', classId: editingDraftId, seriesId: current.series_id, payload: basePayload });
+        setSeriesAction({ kind: 'edit', step: 'choose', classId: editingDraftId, seriesId: current.series_id, payload: basePayload, publish: true });
         return;
       }
 
@@ -841,6 +866,7 @@ export default function Dashboard() {
   const pendingDrafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
   const draftClasses = myClasses.filter(c => c.status === 'draft');
   const { thisWeek: thisWeekDrafts, nextWeek: nextWeekDrafts } = groupByWeek(pendingDrafts, tz);
+  const isEditingDraft = !!editingDraftId && myClasses.find(c => c.id === editingDraftId)?.status === 'draft';
 
   if (isChecking) return <div className="min-h-screen bg-linen"></div>;
 
@@ -1309,7 +1335,7 @@ export default function Dashboard() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Checkout Link</label>
+                  <label className="block text-sm font-medium mb-1">Booking Link</label>
                   <input type="url" placeholder="https://..." value={classData.bookingUrl}
                     onChange={e => setClassData({ ...classData, bookingUrl: e.target.value })}
                     required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
@@ -1317,7 +1343,6 @@ export default function Dashboard() {
 
                 {/* Booking context: collapsible override */}
                 <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
-                  <p className="text-xs font-bold text-stone uppercase tracking-wider">Booking Note (optional)</p>
                   <div>
                     <label className="block text-xs font-medium text-stone mb-1">Booking Note <span className="font-normal">(optional)</span></label>
                     <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
@@ -1327,10 +1352,23 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <button type="submit" disabled={isSaving}
-                  className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
-                  {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
-                </button>
+                {isEditingDraft ? (
+                  <div className="flex gap-3 mt-2">
+                    <button type="button" onClick={handleSaveDraft} disabled={isSaving}
+                      className="flex-1 bg-white border border-sand text-bark font-medium py-3 rounded-lg transition-colors hover:bg-linen disabled:opacity-50">
+                      {isSaving ? "Saving..." : "Save Draft"}
+                    </button>
+                    <button type="submit" disabled={isSaving}
+                      className="flex-1 bg-clay text-white font-medium py-3 rounded-lg transition-colors hover:bg-clay-dark disabled:opacity-50">
+                      {isSaving ? "Saving..." : "Publish Draft Live"}
+                    </button>
+                  </div>
+                ) : (
+                  <button type="submit" disabled={isSaving}
+                    className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
+                    {isSaving ? "Saving..." : (editingDraftId ? "Publish Draft Live" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
+                  </button>
+                )}
               </form>
             </div>
 
