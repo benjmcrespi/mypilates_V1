@@ -51,7 +51,7 @@ function groupByWeek(items, timeZone, weekStartsOn = 'Mon') {
 function getWeekdayTimeInfo(dateTimeStr, timeZone) {
   const date = new Date(dateTimeStr);
   const { weekday } = getTZDateParts(date, timeZone);
-  const dayIndex = WEEKDAY_INDEX[weekday] ?? 0;
+  const dayIndex = WEEKDAY_INDEX_MON[weekday] ?? 0;
   const weekdayLong = new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone }).format(date);
 
   const parts12 = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(date);
@@ -126,7 +126,7 @@ function zonedTimeToUtc(year, month, day, hour, minute, timeZone) {
 // Returns null if the recalculated date doesn't actually land on targetDayIndex (defensive check).
 function recalcDateInOwnWeek(originalDateTimeStr, targetDayIndex, hour, minute, timeZone) {
   const { year, month, day, weekday } = getTZDateParts(new Date(originalDateTimeStr), timeZone);
-  const originalDayIndex = WEEKDAY_INDEX[weekday] ?? 0;
+  const originalDayIndex = WEEKDAY_INDEX_MON[weekday] ?? 0;
   const mondayUTC = Date.UTC(+year, +month - 1, +day) - originalDayIndex * 86400000;
   const targetCalendarDay = new Date(mondayUTC + targetDayIndex * 86400000);
 
@@ -136,7 +136,7 @@ function recalcDateInOwnWeek(originalDateTimeStr, targetDayIndex, hour, minute, 
   );
 
   const check = getTZDateParts(newDate, timeZone);
-  if ((WEEKDAY_INDEX[check.weekday] ?? -1) !== targetDayIndex) return null;
+  if ((WEEKDAY_INDEX_MON[check.weekday] ?? -1) !== targetDayIndex) return null;
   return newDate;
 }
 
