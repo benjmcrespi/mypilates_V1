@@ -846,6 +846,7 @@ export default function Dashboard() {
             calendarUrl: studio.calendar_url,
             instructorId: user.id,
             studioName: studio.name,
+            defaultLocationUrl: studio.location_url || '',
             defaultBookingUrl: studio.default_booking_url || '',
             defaultCategoryId: studio.default_category_id || '',
             defaultCategoryOther: studio.default_category_other || '',

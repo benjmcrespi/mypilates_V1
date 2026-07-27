@@ -24,6 +24,7 @@ export async function POST(req) {
       calendarUrl,
       instructorId,
       studioName,
+      defaultLocationUrl,
       defaultBookingUrl,
       defaultCategoryId,
       defaultCategoryOther,
@@ -91,7 +92,7 @@ export async function POST(req) {
               booking_url: bookingUrl,
               booking_type: defaultBookingType || null,
               booking_note: defaultBookingNote || null,
-              location_url: '',
+              location_url: defaultLocationUrl || '',
             });
           }
         }
