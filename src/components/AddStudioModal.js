@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Autocomplete from 'react-google-autocomplete';
 import { supabase } from '@/lib/supabaseClient';
 import { inferCategoryId } from '@/lib/categories';
@@ -41,6 +41,18 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
   const [studioLocationUrl, setStudioLocationUrl] = useState('');
   const [addressFlagged, setAddressFlagged] = useState(false);
   const studioInputRef = useRef(null);
+
+  // Places search degrades to a plain text field instead of Google's own error
+  // dialog when the Maps script can't authenticate (bad key, referrer, billing)
+  // or fails to load at all (network, ad blockers) - manual entry still works.
+  const [mapsUnavailable, setMapsUnavailable] = useState(false);
+  useEffect(() => {
+    window.gm_authFailure = () => setMapsUnavailable(true);
+    const timer = setTimeout(() => {
+      if (!(typeof google !== 'undefined' && google.maps?.places)) setMapsUnavailable(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // >1 entry means the checklist replaces the single class name/time fields below.
   const [parsedClasses, setParsedClasses] = useState([]);
@@ -214,23 +226,30 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
 
           <div>
             <label className="block text-sm font-medium mb-1">Studio Name</label>
-            <Autocomplete
-              apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-              options={{ types: ["establishment"], fields: ["name", "url", "formatted_address"] }}
-              libraries={["places"]}
-              ref={studioInputRef}
-              onKeyUp={() => { setStudioName(''); setStudioLocationUrl(''); }}
-              onPlaceSelected={(place) => {
-                if (place && place.name) {
-                  setStudioName(place.name);
-                  setStudioLocationUrl(place.url || '');
-                  setStudioAddress(place.formatted_address || '');
-                  setAddressFlagged(false);
-                  if (studioInputRef.current) studioInputRef.current.value = place.name;
-                }
-              }}
-              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm"
-              placeholder="Search on Google Maps..." />
+            {mapsUnavailable ? (
+              <input type="text" ref={studioInputRef}
+                onChange={e => setStudioName(e.target.value)}
+                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm"
+                placeholder="e.g. SoulCycle Yaletown" />
+            ) : (
+              <Autocomplete
+                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                options={{ types: ["establishment"], fields: ["name", "url", "formatted_address"] }}
+                libraries={["places"]}
+                ref={studioInputRef}
+                onKeyUp={() => { setStudioName(''); setStudioLocationUrl(''); }}
+                onPlaceSelected={(place) => {
+                  if (place && place.name) {
+                    setStudioName(place.name);
+                    setStudioLocationUrl(place.url || '');
+                    setStudioAddress(place.formatted_address || '');
+                    setAddressFlagged(false);
+                    if (studioInputRef.current) studioInputRef.current.value = place.name;
+                  }
+                }}
+                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm"
+                placeholder="Search on Google Maps..." />
+            )}
           </div>
 
           <div>
