@@ -2,10 +2,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import Autocomplete from 'react-google-autocomplete';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import { startProductTour } from '@/components/ProductTour';
 import CategorySelect from '@/components/CategorySelect';
+import AddStudioModal from '@/components/AddStudioModal';
 import { inferCategoryId, categoryLabel } from '@/lib/categories';
 
 const WEEKDAY_INDEX_MON = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
@@ -162,11 +162,9 @@ export default function Dashboard() {
   const [isChecking, setIsChecking] = useState(true);
 
   const [savedStudios, setSavedStudios] = useState([]);
-  const [newStudioName, setNewStudioName] = useState('');
-  const [newStudioUrl, setNewStudioUrl] = useState('');
   const [expandedStudios, setExpandedStudios] = useState({});
   const [expandedStudioSummaries, setExpandedStudioSummaries] = useState({});
-  const settingsStudioRef = useRef(null);
+  const [showAddStudioModal, setShowAddStudioModal] = useState(false);
   const formRef = useRef(null);
 
   const [editingDraftId, setEditingDraftId] = useState(null);
@@ -187,6 +185,7 @@ export default function Dashboard() {
     bookingType: 'direct',
     bookingNote: '',
     studioName: '',
+    studioId: null,
     locationUrl: '',
     repeatFrequency: 'none',
     repeatDuration: '2weeks',
@@ -205,7 +204,6 @@ export default function Dashboard() {
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  const [studioSearchKey, setStudioSearchKey] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishingAll, setIsPublishingAll] = useState(false);
@@ -327,9 +325,9 @@ export default function Dashboard() {
   // ── Draft editing ────────────────────────────────────────────────────────────
   const handleEditDraft = (draft) => {
     const messyLocation = (draft.studio_name || "").toLowerCase();
-    const matchedStudio = savedStudios.find(s =>
-      messyLocation.includes(s.name.toLowerCase().split(' ')[0])
-    ) || { name: '', location_url: '' };
+    const matchedStudio = savedStudios.find(s => s.id === draft.studio_id)
+      || savedStudios.find(s => messyLocation.includes(s.name.toLowerCase().split(' ')[0]))
+      || { name: '', location_url: '' };
 
     const d = new Date(draft.date_time);
     const tzOffset = d.getTimezoneOffset() * 60000;
@@ -347,6 +345,7 @@ export default function Dashboard() {
       bookingType: draft.booking_type || 'direct',
       bookingNote: draft.booking_note || '',
       studioName: matchedStudio.name,
+      studioId: matchedStudio.id || null,
       locationUrl: matchedStudio.location_url || '',
     });
     setCategoryAutoSet(!draft.category_id && !draft.category_other);
@@ -362,7 +361,7 @@ export default function Dashboard() {
     setClassData({
       categoryId: '', categoryOther: '', className: '', dateTime: '',
       bookingUrl: '', bookingType: 'direct', bookingNote: '',
-      studioName: '', locationUrl: '',
+      studioName: '', studioId: null, locationUrl: '',
       repeatFrequency: 'none', repeatDuration: '2weeks', repeatEndDate: '',
     });
   };
@@ -380,28 +379,6 @@ export default function Dashboard() {
     } else {
       alert("Error saving: " + error.message);
     }
-  };
-
-  const handleAddSavedStudio = async () => {
-    const finalName = newStudioName || settingsStudioRef.current?.value;
-    if (!finalName) return;
-    setIsSaving(true);
-
-    const { error } = await supabase.from('studios').insert([{
-      name: finalName,
-      location_url: newStudioUrl,
-      instructor_id: user.id,
-    }]);
-
-    if (!error) {
-      setSuccessMessage('Studio successfully added to your profile!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      setNewStudioName('');
-      setNewStudioUrl('');
-      setStudioSearchKey(k => k + 1);
-      fetchSavedStudios(user.id);
-    }
-    setIsSaving(false);
   };
 
   const toggleStudioExpanded = (studioId) => {
@@ -565,6 +542,7 @@ export default function Dashboard() {
     booking_type: classData.bookingType || 'direct',
     booking_note: classData.bookingNote || null,
     studio_name: classData.studioName,
+    studio_id: classData.studioId || null,
     location_url: classData.locationUrl,
   });
 
@@ -845,6 +823,7 @@ export default function Dashboard() {
           body: JSON.stringify({
             calendarUrl: studio.calendar_url,
             instructorId: user.id,
+            studioId: studio.id,
             studioName: studio.name,
             defaultBookingUrl: studio.default_booking_url || '',
             defaultCategoryId: studio.default_category_id || '',
@@ -866,6 +845,14 @@ export default function Dashboard() {
     setIsSyncing(false);
   };
 
+  const handleStudioModalSaved = () => {
+    setShowAddStudioModal(false);
+    setSuccessMessage('Studio and classes added to your live schedule!');
+    setTimeout(() => setSuccessMessage(''), 4000);
+    fetchSavedStudios(user.id);
+    fetchMyClasses(user.id);
+  };
+
   const tz = settingsData.timezone || 'America/Vancouver';
   const pendingDrafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
   const draftClasses = myClasses.filter(c => c.status === 'draft');
@@ -877,6 +864,16 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-linen text-bark py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
       {showOnboarding && <OnboardingFlow onComplete={handleOnboardingComplete} />}
+
+      {showAddStudioModal && (
+        <AddStudioModal
+          instructorId={user.id}
+          categories={categories}
+          timeZone={tz}
+          onClose={() => setShowAddStudioModal(false)}
+          onSaved={handleStudioModalSaved}
+        />
+      )}
 
       {showDeleteAllDraftsModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -1089,6 +1086,7 @@ export default function Dashboard() {
                           bookingType: c.booking_type || 'direct',
                           bookingNote: c.booking_note || '',
                           studioName: c.studio_name || '',
+                          studioId: c.studio_id || null,
                           locationUrl: c.location_url || '',
                         });
                         setIsIcsLocked(!!c.external_uid);
@@ -1289,13 +1287,14 @@ export default function Dashboard() {
                     <select value={classData.studioName}
                       onChange={(e) => {
                         if (e.target.value === 'custom') {
-                          setClassData({ ...classData, studioName: 'custom', locationUrl: '' });
+                          setClassData({ ...classData, studioName: 'custom', studioId: null, locationUrl: '' });
                           return;
                         }
                         const s = savedStudios.find(s => s.name === e.target.value);
                         setClassData({
                           ...classData,
                           studioName: s?.name || '',
+                          studioId: s?.id || null,
                           locationUrl: s?.location_url || '',
                           bookingType: s?.booking_type || 'direct',
                           bookingNote: s?.booking_note || '',
@@ -1657,32 +1656,10 @@ export default function Dashboard() {
 
               {/* Add new studio */}
               <div data-tour="add-studio">
-                <h3 className="text-sm font-semibold mb-3">Add a New Studio</h3>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1">
-                    <Autocomplete
-                      key={studioSearchKey}
-                      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-                      options={{ types: ["establishment"], fields: ["name", "url"] }}
-                      libraries={["places"]}
-                      ref={settingsStudioRef}
-                      onKeyUp={() => { setNewStudioName(''); setNewStudioUrl(''); }}
-                      onPlaceSelected={(place) => {
-                        if (place && place.name) {
-                          setNewStudioName(place.name);
-                          setNewStudioUrl(place.url || '');
-                          if (settingsStudioRef.current) settingsStudioRef.current.value = place.name;
-                        }
-                      }}
-                      className="w-full border border-sand rounded-lg px-4 py-3 outline-none focus:border-clay bg-white text-sm shadow-sm"
-                      placeholder="Search on Google Maps..."
-                    />
-                  </div>
-                  <button type="button" onClick={handleAddSavedStudio} disabled={isSaving}
-                    className="w-full sm:w-auto px-6 py-3 bg-clay text-white rounded-lg font-medium hover:bg-clay-dark disabled:opacity-50 transition-colors text-sm whitespace-nowrap shadow-sm">
-                    {isSaving ? 'Saving...' : 'Save Studio'}
-                  </button>
-                </div>
+                <button type="button" onClick={() => setShowAddStudioModal(true)}
+                  className="w-full sm:w-auto px-6 py-3 bg-clay text-white rounded-lg font-medium hover:bg-clay-dark transition-colors text-sm shadow-sm">
+                  + Add a New Studio
+                </button>
               </div>
             </div>
 
