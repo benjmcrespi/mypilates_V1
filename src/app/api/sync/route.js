@@ -1,28 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { inferCategoryId } from '@/lib/categories';
-
-function parseICSDate(icsDate) {
-  if (!icsDate) return null;
-  const str = icsDate.replace(/[-:]/g, '');
-  if (str.length >= 15) {
-    const year = str.substring(0, 4);
-    const month = str.substring(4, 6);
-    const day = str.substring(6, 8);
-    const hour = str.substring(9, 11);
-    const min = str.substring(11, 13);
-    const sec = str.substring(13, 15);
-    const isUTC = str.endsWith('Z');
-    return new Date(`${year}-${month}-${day}T${hour}:${min}:${sec}${isUTC ? 'Z' : ''}`);
-  }
-  return new Date();
-}
+import { parseIcsEvents, isBlockedIcsResponse } from '@/lib/icsParser';
 
 export async function POST(req) {
   try {
     const {
       calendarUrl,
       instructorId,
+      studioId,
       studioName,
       defaultBookingUrl,
       defaultCategoryId,
@@ -53,59 +39,31 @@ export async function POST(req) {
 
     const icsText = await response.text();
 
-    if (icsText.trim().toUpperCase().startsWith('<!DOCTYPE') || icsText.trim().toUpperCase().startsWith('<HTML')) {
+    if (isBlockedIcsResponse(icsText)) {
       return NextResponse.json({ error: "Mindbody firewall blocked the request. Try generating a new link in your app." }, { status: 400 });
     }
 
-    const lines = icsText.split(/\r?\n/);
-    const draftClasses = [];
-    let inEvent = false;
-    let currentEvent = {};
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (line.startsWith('BEGIN:VEVENT')) {
-        inEvent = true;
-        currentEvent = {};
-      } else if (line.startsWith('END:VEVENT')) {
-        inEvent = false;
-
-        if (currentEvent.start) {
-          const eventDate = parseICSDate(currentEvent.start);
-          if (eventDate >= new Date()) {
-            // Prefer native ICS URL over studio default
-            const bookingUrl = currentEvent.url || defaultBookingUrl || '';
-
-            const categoryId = inferCategoryId(currentEvent.summary, categories || [], defaultCategoryId || null);
-
-            draftClasses.push({
-              instructor_id: instructorId,
-              class_name: currentEvent.summary || 'Imported Class',
-              category_id: categoryId,
-              category_other: !categoryId ? (defaultCategoryOther || null) : null,
-              date_time: eventDate.toISOString(),
-              studio_name: studioName || currentEvent.location || 'Studio TBD',
-              external_uid: currentEvent.uid || `auto-${Date.now()}-${Math.random()}`,
-              status: 'draft',
-              booking_url: bookingUrl,
-              booking_type: defaultBookingType || null,
-              booking_note: defaultBookingNote || null,
-              location_url: '',
-            });
-          }
-        }
-      } else if (inEvent) {
-        if (line.startsWith('SUMMARY:')) currentEvent.summary = line.substring(8).trim();
-        else if (line.startsWith('LOCATION:')) currentEvent.location = line.substring(9).trim().replace(/\\,/g, ',').replace(/\\n/gi, ', ');
-        else if (line.startsWith('UID:')) currentEvent.uid = line.substring(4).trim();
-        else if (line.startsWith('URL:')) currentEvent.url = line.substring(4).trim();
-        else if (line.startsWith('DTSTART')) {
-          const parts = line.split(':');
-          if (parts.length > 1) currentEvent.start = parts[1].trim();
-        }
-      }
-    }
+    const now = new Date();
+    const draftClasses = parseIcsEvents(icsText)
+      .filter(event => event.start && event.start >= now)
+      .map(event => {
+        const categoryId = inferCategoryId(event.summary, categories || [], defaultCategoryId || null);
+        return {
+          instructor_id: instructorId,
+          studio_id: studioId || null,
+          class_name: event.summary,
+          category_id: categoryId,
+          category_other: !categoryId ? (defaultCategoryOther || null) : null,
+          date_time: event.start.toISOString(),
+          studio_name: studioName || event.location || 'Studio TBD',
+          external_uid: event.uid || `auto-${Date.now()}-${Math.random()}`,
+          status: 'draft',
+          booking_url: event.url || defaultBookingUrl || '', // Prefer native ICS URL over studio default
+          booking_type: defaultBookingType || null,
+          booking_note: defaultBookingNote || null,
+          location_url: '',
+        };
+      });
 
     if (draftClasses.length === 0) {
       return NextResponse.json({ success: true, count: 0, message: 'No new future classes found.' });
