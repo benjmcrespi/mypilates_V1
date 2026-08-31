@@ -28,6 +28,8 @@
 - A handful of accepted exceptions already exist in the live codebase (destructive buttons using raw red, a few status banners/badges using raw Tailwind colors instead of brand tokens). These are documented as accepted, not as precedent, don't extend them to new UI.
 - Run `/impeccable document` to refresh DESIGN.md whenever the implemented system changes; keep this file and DESIGN.md pointing at each other rather than duplicating token values here.
 
+**Mid-rollout: two registers currently coexist, by design, not drift.** The landing page (`src/app/page.js`, `LandingNav.js`) was redesigned to a Persuade-surface language documented in DESIGN.md's Shapes and Components sections: Cormorant Garamond at weight 600 with slight positive tracking (not the default 400), near-sharp `2px` radius on buttons/CTAs/badges, wide-tracked labels, hairline dividers instead of pill badges, and slower deliberate motion (`.ik-btn-primary` / `.ik-nav-link` in `globals.css`). The dashboard, auth pages (login/signup/forgot-password/reset-password), and the student-facing `[handle]` page still use the original Operate-surface system (8/12/16/24px radius, weight-400 Garamond, the app's faster default motion) and have not been touched. If asked to extend the redesign, apply the landing page's Persuade language to the next surface and update DESIGN.md's scope notes accordingly; if asked for unrelated work on those other pages, leave their existing system alone rather than mixing registers mid-page.
+
 ---
 
 ## Current State (verified against codebase)
