@@ -52,3 +52,4 @@ next-env.d.ts
 # impeccable (design skill) local/session state, not project design system
 .impeccable/config.local.json
 .impeccable/hook.cache.json
+.impeccable/live/roots.json

@@ -19,22 +19,22 @@ export default function LandingNav() {
   }, [open]);
 
   return (
-    <header ref={navRef} className="bg-espresso text-linen sticky top-0 z-50">
-      <div className="max-w-5xl mx-auto flex justify-between items-center px-4 sm:px-6 py-5">
-        <Link href="/" className="font-wordmark text-2xl tracking-[4px]">
+    <header ref={navRef} className="bg-espresso text-linen sticky top-0 z-50 border-b border-linen/10">
+      <div className="max-w-5xl mx-auto flex justify-between items-center px-4 sm:px-10 py-6">
+        <Link href="/" className="font-wordmark font-semibold text-xl sm:text-2xl tracking-[0.14em]">
           Instruktor
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-4 sm:gap-6">
-          <Link href="/login" className="text-sm font-medium text-smoke hover:text-linen transition-colors">
-            Sign in
+        <nav className="hidden md:flex items-center gap-9">
+          <Link href="/login" className="ik-nav-link text-[11px] font-medium tracking-[0.14em] uppercase text-smoke hover:text-linen">
+            Sign In
           </Link>
           <Link
             href="/signup"
-            className="bg-clay text-linen text-sm font-bold py-2.5 px-5 rounded-xl hover:bg-clay-dark transition-colors"
+            className="text-[11px] font-bold tracking-[0.14em] uppercase text-linen border border-linen/35 rounded-[2px] py-2.5 px-5 hover:border-linen hover:bg-linen/5 transition-colors duration-[450ms]"
           >
-            Create your page
+            Create Your Page
           </Link>
         </nav>
 
@@ -54,20 +54,20 @@ export default function LandingNav() {
           open ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <div className="px-4 sm:px-6 pb-5 flex flex-col items-end gap-3 text-right">
+        <div className="px-4 sm:px-10 pb-6 flex flex-col items-end gap-4 text-right">
           <Link
             href="/login"
             onClick={() => setOpen(false)}
-            className="text-sm font-medium text-linen"
+            className="text-[11px] font-medium tracking-[0.14em] uppercase text-linen"
           >
-            Sign in
+            Sign In
           </Link>
           <Link
             href="/signup"
             onClick={() => setOpen(false)}
-            className="text-sm font-medium text-clay"
+            className="text-[11px] font-bold tracking-[0.14em] uppercase text-clay"
           >
-            Create your page
+            Create Your Page
           </Link>
         </div>
       </div>
