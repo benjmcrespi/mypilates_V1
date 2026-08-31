@@ -64,6 +64,13 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
   const [recurringWeekly, setRecurringWeekly] = useState(false);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleParseUrl = async (url) => {
     const trimmed = (url || '').trim();
@@ -107,13 +114,14 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setFormError('');
     const showChecklist = parsedClasses.length > 1;
     // Falls back to whatever text is sitting in the search box even if the instructor
     // never clicked a Places suggestion - typing a name manually must work just as well.
     const finalStudioName = studioName.trim() || studioInputRef.current?.value?.trim() || '';
-    if (!finalStudioName) { alert('Please enter a studio name.'); return; }
-    if (!showChecklist && (!className.trim() || !dateTimeLocal)) { alert('Please add a class name and time.'); return; }
-    if (showChecklist && parsedClasses.every(c => !c.checked)) { alert('Select at least one class to save.'); return; }
+    if (!finalStudioName) { setFormError('Please enter a studio name.'); return; }
+    if (!showChecklist && (!className.trim() || !dateTimeLocal)) { setFormError('Please add a class name and time.'); return; }
+    if (showChecklist && parsedClasses.every(c => !c.checked)) { setFormError('Select at least one class to save.'); return; }
 
     setIsSaving(true);
     try {
@@ -190,7 +198,8 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
 
       onSaved();
     } catch (err) {
-      alert('Error saving: ' + err.message);
+      console.error('Error saving studio:', err);
+      setFormError("Couldn't save your studio. Please try again.");
       setIsSaving(false);
       return;
     }
@@ -208,6 +217,12 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
         </div>
 
         <form onSubmit={handleSave} className="space-y-5">
+          {formError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
+              {formError}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">
               Have a booking link? <span className="font-normal normal-case">Paste it here to auto-fill</span>
@@ -220,7 +235,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
                 setTimeout(() => handleParseUrl(text), 0);
               }}
               onBlur={e => handleParseUrl(e.target.value)}
-              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm" />
+              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
             {isParsing && <p className="text-xs text-stone mt-1.5 animate-pulse">Reading your link…</p>}
           </div>
 
@@ -229,7 +244,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
             {mapsUnavailable ? (
               <input type="text" ref={studioInputRef}
                 onChange={e => setStudioName(e.target.value)}
-                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm"
+                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm"
                 placeholder="e.g. SoulCycle Yaletown" />
             ) : (
               <Autocomplete
@@ -247,7 +262,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
                     if (studioInputRef.current) studioInputRef.current.value = place.name;
                   }
                 }}
-                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm"
+                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm"
                 placeholder="Search on Google Maps..." />
             )}
           </div>
@@ -259,7 +274,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
             <input type="text" placeholder="123 Main St, City, Province"
               value={studioAddress}
               onChange={e => { setStudioAddress(e.target.value); setAddressFlagged(false); }}
-              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-linen text-sm" />
+              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
             {addressFlagged && (
               <p className="text-[11px] text-clay-dark mt-1.5">⚠ Pulled from your calendar link. Double-check this.</p>
             )}
@@ -291,19 +306,19 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
               <div>
                 <label className="block text-sm font-medium mb-1">Class Name</label>
                 <input type="text" value={className} onChange={e => setClassName(e.target.value)}
-                  required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                  required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Day & Time</label>
                 <input type="datetime-local" value={dateTimeLocal} onChange={e => setDateTimeLocal(e.target.value)}
-                  required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                  required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Booking Link <span className="text-stone font-normal text-xs">(optional)</span>
                 </label>
                 <input type="url" placeholder="https://..." value={bookingUrl} onChange={e => setBookingUrl(e.target.value)}
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
               </div>
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input type="checkbox" checked={recurringWeekly} onChange={e => setRecurringWeekly(e.target.checked)}

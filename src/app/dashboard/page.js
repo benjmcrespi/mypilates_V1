@@ -170,9 +170,32 @@ export default function Dashboard() {
   const [editingDraftId, setEditingDraftId] = useState(null);
   const [categoryAutoSet, setCategoryAutoSet] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [isIcsLocked, setIsIcsLocked] = useState(false);
   const [seriesAction, setSeriesAction] = useState(null);
   const [isProcessingSeriesAction, setIsProcessingSeriesAction] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [isConfirmActionRunning, setIsConfirmActionRunning] = useState(false);
+
+  // Shows a plain-language error banner in place of a native alert(); logs the real error for debugging.
+  const showError = (message, err) => {
+    if (err) console.error(message, err);
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(''), 5000);
+  };
+
+  // Opens the shared confirm modal in place of a native window.confirm().
+  const askConfirm = (message, onConfirm, opts = {}) => {
+    setConfirmAction({ message, onConfirm, confirmLabel: opts.confirmLabel || 'Confirm', variant: opts.variant || 'default' });
+  };
+
+  const runConfirmedAction = async () => {
+    if (!confirmAction) return;
+    setIsConfirmActionRunning(true);
+    await confirmAction.onConfirm();
+    setIsConfirmActionRunning(false);
+    setConfirmAction(null);
+  };
 
   const [categories, setCategories] = useState([]);
 
@@ -213,6 +236,7 @@ export default function Dashboard() {
   const [savedFields, setSavedFields] = useState({});
   const [selectedDraftIds, setSelectedDraftIds] = useState([]);
   const [showLaterDrafts, setShowLaterDrafts] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
   const [showDeleteAllDraftsModal, setShowDeleteAllDraftsModal] = useState(false);
   const [isDeletingAllDrafts, setIsDeletingAllDrafts] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -315,6 +339,18 @@ export default function Dashboard() {
     }
   }, [editingDraftId, activeTab]);
 
+  // Escape dismisses whichever dashboard modal is currently open, unless it's mid-action.
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      if (confirmAction && !isConfirmActionRunning) setConfirmAction(null);
+      else if (seriesAction && !isProcessingSeriesAction) setSeriesAction(null);
+      else if (showDeleteAllDraftsModal && !isDeletingAllDrafts) setShowDeleteAllDraftsModal(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [confirmAction, isConfirmActionRunning, seriesAction, isProcessingSeriesAction, showDeleteAllDraftsModal, isDeletingAllDrafts]);
+
   // ── Waitlist toggle ──────────────────────────────────────────────────────────
   const handleToggleWaitlist = async (id, currentStatus) => {
     setMyClasses(prev => prev.map(c => c.id === id ? { ...c, is_waitlisted: !currentStatus } : c));
@@ -377,7 +413,7 @@ export default function Dashboard() {
       setSavedStudios(prev => prev.map(s => s.id === studioId ? { ...s, ...updates } : s));
       if (fieldKey) markFieldSaved(fieldKey);
     } else {
-      alert("Error saving: " + error.message);
+      showError("Couldn't save your changes. Please try again.", error);
     }
   };
 
@@ -389,39 +425,53 @@ export default function Dashboard() {
     setExpandedStudioSummaries(prev => ({ ...prev, [studioId]: !prev[studioId] }));
   };
 
-  const handleDeleteStudio = async (studioId) => {
-    if (!window.confirm("Are you sure you want to remove this studio? This won't affect classes you've already published there.")) return;
-    setIsSaving(true);
-    const { error } = await supabase.from('studios').delete().eq('id', studioId);
-    if (!error) {
-      setSuccessMessage('Studio removed from your profile!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      fetchSavedStudios(user.id);
-    } else {
-      alert("Error: " + error.message);
-    }
-    setIsSaving(false);
+  const handleDeleteStudio = (studioId) => {
+    askConfirm(
+      "Are you sure you want to remove this studio? This won't affect classes you've already published there.",
+      async () => {
+        setIsSaving(true);
+        const { error } = await supabase.from('studios').delete().eq('id', studioId);
+        if (!error) {
+          setSuccessMessage('Studio removed from your profile!');
+          setTimeout(() => setSuccessMessage(''), 3000);
+          fetchSavedStudios(user.id);
+        } else {
+          showError("Couldn't remove the studio. Please try again.", error);
+        }
+        setIsSaving(false);
+      },
+      { confirmLabel: 'Remove Studio', variant: 'danger' }
+    );
   };
 
   // ── Class CRUD ───────────────────────────────────────────────────────────────
-  const handleDeleteClass = async (classId) => {
+  const handleDeleteClass = (classId) => {
     const target = myClasses.find(c => c.id === classId);
     if (target?.series_id) {
       setSeriesAction({ kind: 'delete', step: 'choose', classId, seriesId: target.series_id });
       return;
     }
 
-    if (!window.confirm("Are you sure you want to delete this class? This cannot be undone.")) return;
-    setIsSaving(true);
-    const { error } = await supabase.from('classes').delete().eq('id', classId);
-    if (!error) {
-      setSuccessMessage('Class removed successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      fetchMyClasses(user.id);
-      setSelectedDraftIds(prev => prev.filter(id => id !== classId));
-      if (editingDraftId === classId) cancelEdit();
-    }
-    setIsSaving(false);
+    askConfirm(
+      target?.status === 'published'
+        ? "This class is live on your page. Deleting it will remove it immediately for students. This cannot be undone."
+        : "Are you sure you want to delete this class? This cannot be undone.",
+      async () => {
+        setIsSaving(true);
+        const { error } = await supabase.from('classes').delete().eq('id', classId);
+        if (!error) {
+          setSuccessMessage('Class removed successfully!');
+          setTimeout(() => setSuccessMessage(''), 3000);
+          fetchMyClasses(user.id);
+          setSelectedDraftIds(prev => prev.filter(id => id !== classId));
+          if (editingDraftId === classId) cancelEdit();
+        } else {
+          showError("Couldn't delete the class. Please try again.", error);
+        }
+        setIsSaving(false);
+      },
+      { confirmLabel: 'Delete Class', variant: 'danger' }
+    );
   };
 
   // Applies independent field updates to one or more classes; returns true if all succeeded.
@@ -429,7 +479,7 @@ export default function Dashboard() {
     const results = await Promise.all(rows.map(({ id, updates }) => supabase.from('classes').update(updates).eq('id', id)));
     const firstError = results.find(r => r.error)?.error;
     if (firstError) {
-      alert("Error saving: " + firstError.message);
+      showError("Couldn't save your changes. Please try again.", firstError);
       return false;
     }
     return true;
@@ -474,7 +524,7 @@ export default function Dashboard() {
         setSelectedDraftIds(prev => prev.filter(id => !action.affectedIds.includes(id)));
         if (editingDraftId && action.affectedIds.includes(editingDraftId)) cancelEdit();
       } else {
-        alert("Error deleting: " + error.message);
+        showError("Couldn't delete. Please try again.", error);
       }
       setIsProcessingSeriesAction(false);
       return;
@@ -499,7 +549,7 @@ export default function Dashboard() {
       });
 
       if (recalcFailed) {
-        alert("Could not safely recalculate one or more class dates. No changes were saved.");
+        showError("Could not safely recalculate one or more class dates. No changes were saved.");
         setIsProcessingSeriesAction(false);
         return;
       }
@@ -528,7 +578,7 @@ export default function Dashboard() {
       if (editingDraftId && draftIds.includes(editingDraftId)) cancelEdit();
       setShowDeleteAllDraftsModal(false);
     } else {
-      alert("Error deleting drafts: " + error.message);
+      showError("Couldn't delete your drafts. Please try again.", error);
     }
     setIsDeletingAllDrafts(false);
   };
@@ -659,47 +709,67 @@ export default function Dashboard() {
         }).catch(err => console.error('Queue notification failed:', err));
       }
     } else {
-      alert("Error publishing: " + error.message);
+      showError("Couldn't publish. Please try again.", error);
     }
   };
 
-  const handlePublishAll = async () => {
+  const handlePublishAll = () => {
     const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
     if (drafts.length === 0) return;
-    if (!window.confirm(`Publish all ${drafts.length} draft${drafts.length > 1 ? 's' : ''} to your live schedule?`)) return;
-
-    setIsPublishingAll(true);
-    await publishClassIds(drafts.map(d => d.id));
-    setIsPublishingAll(false);
+    askConfirm(
+      `Publish all ${drafts.length} draft${drafts.length > 1 ? 's' : ''} to your live schedule?`,
+      async () => {
+        setIsPublishingAll(true);
+        await publishClassIds(drafts.map(d => d.id));
+        setIsPublishingAll(false);
+      },
+      { confirmLabel: 'Publish' }
+    );
   };
 
-  const handlePublishSelected = async () => {
+  const handlePublishSelected = () => {
     if (selectedDraftIds.length === 0) return;
-    if (!window.confirm(`Publish ${selectedDraftIds.length} selected draft${selectedDraftIds.length > 1 ? 's' : ''} to your live schedule?`)) return;
-
-    setIsPublishingSelected(true);
-    await publishClassIds(selectedDraftIds);
-    setIsPublishingSelected(false);
+    askConfirm(
+      `Publish ${selectedDraftIds.length} selected draft${selectedDraftIds.length > 1 ? 's' : ''} to your live schedule?`,
+      async () => {
+        setIsPublishingSelected(true);
+        await publishClassIds(selectedDraftIds);
+        setIsPublishingSelected(false);
+      },
+      { confirmLabel: 'Publish' }
+    );
   };
 
-  const handlePublishThisWeek = async () => {
+  const handlePublishThisWeek = () => {
     const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
     const timezone = settingsData.timezone || 'America/Vancouver';
     const { thisWeek } = groupByWeek(drafts, timezone);
     if (thisWeek.length === 0) return;
-    setIsPublishingThisWeek(true);
-    await publishClassIds(thisWeek.map(d => d.id));
-    setIsPublishingThisWeek(false);
+    askConfirm(
+      `Publish ${thisWeek.length} class${thisWeek.length > 1 ? 'es' : ''} for this week to your live schedule?${followerCount > 0 ? ' Your followers will be notified.' : ''}`,
+      async () => {
+        setIsPublishingThisWeek(true);
+        await publishClassIds(thisWeek.map(d => d.id));
+        setIsPublishingThisWeek(false);
+      },
+      { confirmLabel: 'Publish' }
+    );
   };
 
-  const handlePublishNextWeek = async () => {
+  const handlePublishNextWeek = () => {
     const drafts = myClasses.filter(c => c.status === 'draft' && new Date(c.date_time) >= new Date());
     const timezone = settingsData.timezone || 'America/Vancouver';
     const { nextWeek } = groupByWeek(drafts, timezone);
     if (nextWeek.length === 0) return;
-    setIsPublishingNextWeek(true);
-    await publishClassIds(nextWeek.map(d => d.id));
-    setIsPublishingNextWeek(false);
+    askConfirm(
+      `Publish ${nextWeek.length} class${nextWeek.length > 1 ? 'es' : ''} for next week to your live schedule?${followerCount > 0 ? ' Your followers will be notified.' : ''}`,
+      async () => {
+        setIsPublishingNextWeek(true);
+        await publishClassIds(nextWeek.map(d => d.id));
+        setIsPublishingNextWeek(false);
+      },
+      { confirmLabel: 'Publish' }
+    );
   };
 
   const toggleDraftSelection = (id) => {
@@ -778,7 +848,7 @@ export default function Dashboard() {
         .upload(path, avatarFile, { upsert: true });
       setIsUploadingAvatar(false);
       if (uploadError) {
-        alert("Photo upload failed: " + uploadError.message);
+        showError("Couldn't upload your photo. Please try again.", uploadError);
         setIsSaving(false);
         return;
       }
@@ -808,7 +878,7 @@ export default function Dashboard() {
   // ── Calendar sync ────────────────────────────────────────────────────────────
   const handleSync = async () => {
     const studiosWithLinks = savedStudios.filter(s => s.calendar_url);
-    if (studiosWithLinks.length === 0) return alert("Please add at least one iCal link to a saved studio in your settings!");
+    if (studiosWithLinks.length === 0) return showError("Add at least one calendar link to a saved studio in your settings before syncing.");
 
     setIsSyncing(true);
     let totalCount = 0;
@@ -840,7 +910,7 @@ export default function Dashboard() {
       setTimeout(() => setSuccessMessage(''), 4000);
       fetchMyClasses(user.id);
     } catch (err) {
-      alert("Error syncing: " + err.message);
+      showError("Couldn't sync your calendar. Please try again.", err);
     }
     setIsSyncing(false);
   };
@@ -940,11 +1010,37 @@ export default function Dashboard() {
         </div>
       )}
 
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <p className="text-bark font-medium mb-6">{confirmAction.message}</p>
+            <div className="flex justify-end gap-3">
+              <button type="button" onClick={() => setConfirmAction(null)} disabled={isConfirmActionRunning}
+                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors disabled:opacity-50">
+                Cancel
+              </button>
+              <button type="button" onClick={runConfirmedAction} disabled={isConfirmActionRunning}
+                className={`px-4 py-2 rounded-lg text-white text-sm font-bold transition-colors disabled:opacity-50 ${
+                  confirmAction.variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-clay hover:bg-clay-dark'
+                }`}>
+                {isConfirmActionRunning ? 'Working...' : confirmAction.confirmLabel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
 
         {successMessage && (
-          <div className="mb-6 p-4 bg-[#EAF5ED] text-[#1D5E34] border border-[#BCE1C7] rounded-xl text-sm font-medium shadow-sm">
+          <div className="mb-6 p-4 bg-sage-light text-bark border border-sage/30 rounded-xl text-sm font-medium shadow-sm">
             {successMessage}
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-medium shadow-sm">
+            {errorMessage}
           </div>
         )}
 
@@ -1148,19 +1244,32 @@ export default function Dashboard() {
                     </button>
                   )}
 
-                  <div className="flex items-center justify-between pt-1">
-                    {selectedDraftIds.length > 0 ? (
-                      <button onClick={handlePublishSelected}
-                        disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
-                        className="text-xs font-semibold text-bark border border-sand hover:bg-linen px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
-                        {isPublishingSelected ? "Publishing..." : `Publish Selected (${selectedDraftIds.length})`}
-                      </button>
-                    ) : <span />}
-                    <button onClick={handlePublishAll}
-                      disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
-                      className="text-xs text-stone hover:text-bark underline transition-colors disabled:opacity-50 ml-auto">
-                      {isPublishingAll ? "Publishing..." : `Publish all ${pendingDrafts.length} drafts`}
+                  <div className="pt-1">
+                    <button type="button" onClick={() => setShowMoreActions(v => !v)}
+                      className="text-xs font-semibold text-stone hover:text-bark transition-colors flex items-center gap-1">
+                      More actions
+                      <svg className={`w-3 h-3 shrink-0 transition-transform ${showMoreActions || selectedDraftIds.length > 0 ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
+
+                    {(showMoreActions || selectedDraftIds.length > 0) && (
+                      <div className="flex items-center justify-between pt-3">
+                        {selectedDraftIds.length > 0 ? (
+                          <button onClick={handlePublishSelected}
+                            disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
+                            className="text-xs font-semibold text-bark border border-sand hover:bg-linen px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                            {isPublishingSelected ? "Publishing..." : `Publish Selected (${selectedDraftIds.length})`}
+                          </button>
+                        ) : <span />}
+                        <button onClick={handlePublishAll}
+                          disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
+                          className="text-xs text-stone hover:text-bark underline transition-colors disabled:opacity-50 ml-auto">
+                          {isPublishingAll ? "Publishing..." : `Publish all ${pendingDrafts.length} drafts`}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1240,10 +1349,10 @@ export default function Dashboard() {
             </div>
 
             {/* Publish form: alternative to syncing, first column on desktop */}
-            <div data-tour="add-class-form" ref={formRef} className={`lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-yellow-400 ring-4 ring-yellow-50' : 'border-sand'}`}>
+            <div data-tour="add-class-form" ref={formRef} className={`lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-clay ring-4 ring-clay/20' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
-                  {editingDraftId ? "📝 Finish Publishing Draft" : "Add a New Class"}
+                  {editingDraftId ? "Finish Publishing Draft" : "Add a New Class"}
                 </h2>
                 {editingDraftId && (
                   <button type="button" onClick={cancelEdit} className="text-sm font-medium text-red-500 hover:underline">Cancel</button>
@@ -1264,7 +1373,7 @@ export default function Dashboard() {
                         setClassData({ ...classData, className });
                       }
                     }}
-                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
+                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
                 </div>
 
                 <div>
@@ -1281,7 +1390,7 @@ export default function Dashboard() {
                       onOtherChange={val => setClassData({ ...classData, categoryOther: val })}
                       placeholder={{ value: '', label: 'Select Category...', disabled: true }}
                       required
-                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen"
+                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen"
                     />
 
                     <select value={classData.studioName}
@@ -1300,7 +1409,7 @@ export default function Dashboard() {
                           bookingNote: s?.booking_note || '',
                         });
                       }}
-                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen appearance-none">
+                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen appearance-none">
                       <option value="" disabled>Select a Studio...</option>
                       {savedStudios.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                       <option value="custom">+ Add One Time Location</option>
@@ -1313,7 +1422,7 @@ export default function Dashboard() {
                   <input type="datetime-local" value={classData.dateTime}
                     disabled={isIcsLocked}
                     onChange={e => setClassData({ ...classData, dateTime: e.target.value })}
-                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
+                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
                   {isIcsLocked && (
                     <p className="text-xs text-stone mt-1.5">Synced from your studio calendar. Contact your studio to change class times.</p>
                   )}
@@ -1325,7 +1434,7 @@ export default function Dashboard() {
                       <label className="block text-sm font-medium mb-1">Repeat</label>
                       <select value={classData.repeatFrequency}
                         onChange={e => setClassData({ ...classData, repeatFrequency: e.target.value })}
-                        className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
+                        className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
                         <option value="none">Does not repeat</option>
                         <option value="weekly">Weekly</option>
                         <option value="biweekly">Every 2 weeks</option>
@@ -1336,7 +1445,7 @@ export default function Dashboard() {
                         <label className="block text-sm font-medium mb-1">Ends</label>
                         <select value={classData.repeatDuration}
                           onChange={e => setClassData({ ...classData, repeatDuration: e.target.value })}
-                          className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
+                          className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
                           <option value="2weeks">Next 2 weeks</option>
                           <option value="4weeks">Next 4 weeks</option>
                           <option value="8weeks">Next 8 weeks</option>
@@ -1349,7 +1458,7 @@ export default function Dashboard() {
                         <label className="block text-sm font-medium mb-1">Repeat Until</label>
                         <input type="date" value={classData.repeatEndDate}
                           onChange={e => setClassData({ ...classData, repeatEndDate: e.target.value })}
-                          required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                          required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
                       </div>
                     )}
                   </div>
@@ -1359,7 +1468,7 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium mb-1">Booking Link</label>
                   <input type="url" placeholder="https://..." value={classData.bookingUrl}
                     onChange={e => setClassData({ ...classData, bookingUrl: e.target.value })}
-                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
                 </div>
 
                 {/* Booking context: collapsible override */}
@@ -1369,7 +1478,7 @@ export default function Dashboard() {
                     <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
                       value={classData.bookingNote}
                       onChange={e => setClassData({ ...classData, bookingNote: e.target.value })}
-                      className="w-full border border-sand rounded-lg px-3 py-2 outline-none focus:border-clay bg-white text-sm" />
+                      className="w-full border border-sand rounded-lg px-3 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                   </div>
                 </div>
 
@@ -1460,7 +1569,7 @@ export default function Dashboard() {
                 <textarea rows="4" value={settingsData.bio}
                   onChange={e => setSettingsData({ ...settingsData, bio: e.target.value })}
                   placeholder="Tell students about your teaching style..."
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen/50" />
+                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen/50" />
               </div>
 
               {/* Certifications */}
@@ -1478,7 +1587,7 @@ export default function Dashboard() {
                   onChange={e => setCertInput(e.target.value)}
                   onKeyDown={handleAddCert}
                   placeholder="Type a certification and press Enter (e.g. STOTT Pilates)"
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen text-sm" />
+                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
                 <p className="text-xs text-stone mt-1">Press Enter or comma to add each certification.</p>
               </div>
 
@@ -1488,7 +1597,7 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium mb-1">Years of Experience</label>
                   <input type="number" min="0" max="60" value={settingsData.years_experience}
                     onChange={e => setSettingsData({ ...settingsData, years_experience: e.target.value })}
-                    placeholder="e.g. 8" className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen" />
+                    placeholder="e.g. 8" className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Instagram Handle</label>
@@ -1506,7 +1615,7 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium mb-1">Your Timezone</label>
                 <select value={settingsData.timezone}
                   onChange={e => setSettingsData({ ...settingsData, timezone: e.target.value })}
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay bg-linen">
+                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
                   {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
                 </select>
                 <p className="text-xs text-stone mt-1">All your class times will display in this timezone.</p>
@@ -1585,7 +1694,7 @@ export default function Dashboard() {
                               handleUpdateStudio(studio.id, { booking_note: e.target.value }, `${studio.id}_booking_note`);
                             }
                           }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm" />
+                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                         <div className="flex items-center gap-2 mt-1.5">
                           <p className="text-[11px] text-stone">Short note shown on each class card.</p>
                           {savedFields[`${studio.id}_booking_note`] && (
@@ -1607,7 +1716,7 @@ export default function Dashboard() {
                           })}
                           onOtherChange={val => handleUpdateStudio(studio.id, { default_category_other: val })}
                           placeholder={{ value: '', label: 'No default. Tag each class manually.', disabled: false }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm"
+                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm"
                         />
                         <p className="text-[11px] text-stone mt-1.5">Synced classes from this studio will be auto-tagged with this type.</p>
                       </div>
@@ -1622,7 +1731,7 @@ export default function Dashboard() {
                               handleUpdateStudio(studio.id, { default_booking_url: e.target.value }, `${studio.id}_default_booking_url`);
                             }
                           }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm" />
+                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                         <div className="flex items-center gap-2 mt-1.5">
                           <p className="text-[11px] text-stone">Used for studios like Mindbody where all classes share one booking page.</p>
                           {savedFields[`${studio.id}_default_booking_url`] && (
@@ -1641,7 +1750,7 @@ export default function Dashboard() {
                               handleUpdateStudio(studio.id, { calendar_url: e.target.value }, `${studio.id}_calendar_url`);
                             }
                           }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay bg-white text-sm" />
+                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                         {savedFields[`${studio.id}_calendar_url`] && (
                           <span key={savedFields[`${studio.id}_calendar_url`]} className="block text-[11px] text-sage font-semibold mt-1.5" style={{animation:'checkFade 1.5s ease-out forwards'}} onAnimationEnd={() => setSavedFields(prev => { const next = {...prev}; delete next[`${studio.id}_calendar_url`]; return next; })}>✓ Saved</span>
                         )}
@@ -1698,11 +1807,11 @@ function DraftRow({ c, tz, isSelected, onToggle, onDelete, onEdit }) {
       </div>
       <div className="flex gap-2 shrink-0">
         <button onClick={onDelete}
-          className="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-md transition-colors">
+          className="text-xs font-medium text-red-600 bg-white border border-sand hover:bg-red-50 px-3 py-2 rounded-lg transition-colors">
           Delete
         </button>
         <button onClick={onEdit}
-          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs font-bold px-4 py-2 rounded-md transition-colors">
+          className="text-xs font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-lg transition-colors">
           Edit
         </button>
       </div>

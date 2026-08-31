@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-30T00:00:00.000Z",
+  "title": "Design System: Instruktor",
+  "extensions": {
+    "colorMeta": {
+      "espresso": { "role": "neutral", "displayName": "Espresso Grounds", "canonical": "oklch(17.8% 0.025 51.9)", "tonalRamp": ["#130803", "#33261e", "#56473e", "#7b6b62", "#a29188", "#c5b3a9", "#e2d0c6", "#fdeae0"] },
+      "bark": { "role": "neutral", "displayName": "Warm Bark", "canonical": "oklch(23.4% 0.036 42.5)", "tonalRamp": ["#170602", "#38231b", "#5c443b", "#81685e", "#a98f84", "#ccb1a6", "#eacdc2", "#ffe7dc"] },
+      "linen": { "role": "neutral", "displayName": "Linen", "canonical": "oklch(96.6% 0.008 73.7)", "tonalRamp": ["#0d0b08", "#2b2825", "#4d4a46", "#716e6a", "#989590", "#bab7b2", "#d7d3cf", "#f2eee9"] },
+      "sand": { "role": "neutral", "displayName": "Sand", "canonical": "oklch(86.2% 0.038 64.7)", "tonalRamp": ["#160700", "#362514", "#594634", "#7f6a57", "#a6917d", "#c9b39e", "#e7d0bb", "#ffead4"] },
+      "stone": { "role": "neutral", "displayName": "Stone", "canonical": "oklch(62.1% 0.041 52.4)", "tonalRamp": ["#180600", "#392315", "#5c4436", "#826859", "#aa8f7e", "#cdb1a0", "#ebcdbc", "#ffe8d6"] },
+      "smoke": { "role": "neutral", "displayName": "Smoke", "canonical": "oklch(72.9% 0.043 48.9)", "tonalRamp": ["#190500", "#3a2215", "#5e4335", "#846859", "#ac8e7e", "#cfb0a0", "#edcdbc", "#ffe7d6"] },
+      "clay": { "role": "primary", "displayName": "Terracotta Clay", "canonical": "oklch(57.5% 0.132 41.3)", "tonalRamp": ["#2f0000", "#580000", "#822800", "#ac4f2a", "#d87752", "#fe9973", "#ffb68f", "#ffd0a8"] },
+      "clay-light": { "role": "primary", "displayName": "Clay Wash", "canonical": "oklch(93.3% 0.016 52.6)", "tonalRamp": ["#110906", "#302722", "#524842", "#776c66", "#9e938c", "#c0b5ae", "#ddd2cb", "#f8ece5"] },
+      "clay-dark": { "role": "primary", "displayName": "Deep Clay", "canonical": "oklch(41.9% 0.102 37.5)", "tonalRamp": ["#290000", "#4f0c00", "#77331e", "#a15842", "#cb7e67", "#f0a088", "#ffbda4", "#ffd7bd"] },
+      "sage": { "role": "secondary", "displayName": "Studio Sage", "canonical": "oklch(63.7% 0.059 137.7)", "tonalRamp": ["#001000", "#1a2f11", "#3a5232", "#5e7755", "#849e7b", "#a6c19c", "#c2deb8", "#dcf9d2"] },
+      "sage-light": { "role": "secondary", "displayName": "Sage Wash", "canonical": "oklch(94.8% 0.015 132.5)", "tonalRamp": ["#090d07", "#262a23", "#474c44", "#6b7168", "#92978e", "#b4b9b0", "#d1d6cd", "#ebf1e7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines and the wordmark only, never below 20px." },
+      "headline": { "displayName": "Headline", "purpose": "Instructor name on the student profile header, section heads needing brand weight." },
+      "body": { "displayName": "Body", "purpose": "Default for the entire app: all UI text, class names, dates, times, buttons, inputs." },
+      "label": { "displayName": "Label", "purpose": "Rare, tracked uppercase micro-labels (onboarding step counter, its Back control)." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Default at-rest elevation for light-surface cards, list rows, and primary buttons." },
+      { "name": "hover", "value": "0 4px 6px rgba(0,0,0,0.07)", "purpose": "Hover/interaction step-up layered on top of resting elevation." },
+      { "name": "modal", "value": "0 20px 25px -5px rgba(0,0,0,0.15)", "purpose": "Confirmation dialogs and the studio-add modal." },
+      { "name": "overlay", "value": "0 25px 50px -12px rgba(0,0,0,0.25)", "purpose": "The single most prominent surface: the mobile booking bottom-sheet." },
+      { "name": "accent-glow", "value": "0 12px 34px -10px rgba(184,90,53,0.6)", "purpose": "Bespoke clay-tinted glow under the onboarding flow's final CTA. Used once, deliberately." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Solid clay fill, the system's only actionable color. Used for every primary action.",
+      "html": "<button class=\"ds-btn-primary\">Publish This Week's Schedule</button>",
+      "css": ".ds-btn-primary { background: #B85A35; color: #F7F3EE; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 700; font-size: 14px; padding: 16px 40px; border-radius: 12px; border: none; transition: background 0.2s, transform 0.15s; cursor: pointer; } .ds-btn-primary:hover { background: #7A3520; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #B85A35; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White fill, sand border. Used for cancel/outline actions beside a primary button.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { background: #FFFFFF; color: #2C1810; font-family: 'DM Sans', system-ui, sans-serif; font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 8px; border: 1px solid #E4CDB8; transition: background 0.2s; cursor: pointer; } .ds-btn-secondary:hover { background: #F7F3EE; } .ds-btn-secondary:focus-visible { outline: 2px solid #B85A35; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard white/sand/shadow-sm light-surface card, the system's default container.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Reformer Elevate</div><div class=\"ds-card-meta\">Wednesdays 7:00pm &middot; Weekly</div></div>",
+      "css": ".ds-card { background: #FFFFFF; border: 1px solid #E4CDB8; border-radius: 12px; padding: 20px 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: box-shadow 0.2s; } .ds-card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.07); } .ds-card-title { font-family: 'DM Sans', system-ui, sans-serif; font-weight: 700; font-size: 16px; color: #2C1810; } .ds-card-meta { font-family: 'DM Sans', system-ui, sans-serif; font-size: 13px; color: #9B8070; margin-top: 4px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard form field: sand border, linen fill, clay focus border. Locked variant shown for studio-synced fields.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Booking link\" />",
+      "css": ".ds-input { width: 100%; background: #F7F3EE; color: #2C1810; border: 1px solid #E4CDB8; border-radius: 8px; padding: 8px 16px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; } .ds-input:focus { border-color: #B85A35; } .ds-input::placeholder { color: #9B8070; } .ds-input:disabled { background: rgba(228,205,184,0.4); color: #9B8070; cursor: not-allowed; }"
+    },
+    {
+      "name": "Category Select",
+      "kind": "input",
+      "description": "Optgroup-grouped native dropdown sharing the text input's border/radius/focus language.",
+      "html": "<select class=\"ds-select\"><optgroup label=\"Pilates\"><option>Reformer Pilates</option><option>Mat Pilates</option></optgroup><optgroup label=\"Yoga\"><option>Hot Yoga</option></optgroup><option value=\"other\">Other</option></select>",
+      "css": ".ds-select { width: 100%; background: #F7F3EE; color: #2C1810; border: 1px solid #E4CDB8; border-radius: 8px; padding: 8px 16px; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; outline: none; appearance: none; transition: border-color 0.2s; } .ds-select:focus { border-color: #B85A35; }"
+    },
+    {
+      "name": "Navigation (Dashboard)",
+      "kind": "nav",
+      "description": "White, sticky, border-bottom plus shadow, the one nav-level border+shadow pairing in the system.",
+      "html": "<header class=\"ds-nav\"><div class=\"ds-nav-inner\"><span class=\"ds-nav-wordmark\">Instruktor</span><nav class=\"ds-nav-links\"><a href=\"#\" class=\"ds-nav-link-active\">Dashboard</a><a href=\"#\" class=\"ds-nav-link\">Instructor Login</a></nav></div></header>",
+      "css": ".ds-nav { background: #FFFFFF; border-bottom: 1px solid #E4CDB8; box-shadow: 0 1px 2px rgba(0,0,0,0.05); padding: 20px 24px; position: sticky; top: 0; } .ds-nav-inner { max-width: 896px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; } .ds-nav-wordmark { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 24px; letter-spacing: 4px; color: #1A0E07; } .ds-nav-links { display: flex; align-items: center; gap: 20px; } .ds-nav-link { font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 500; color: #9B8070; text-decoration: none; transition: color 0.2s; } .ds-nav-link:hover { color: #2C1810; } .ds-nav-link-active { font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; font-weight: 700; color: #2C1810; text-decoration: none; }"
+    },
+    {
+      "name": "Stat Tile",
+      "kind": "custom",
+      "description": "Big bold number over a small uppercase tracked label, the system's one analytics-card convention.",
+      "html": "<div class=\"ds-stat-tile\"><div class=\"ds-stat-number\">128</div><div class=\"ds-stat-label\">Followers</div></div>",
+      "css": ".ds-stat-tile { background: #FFFFFF; border: 1px solid #E4CDB8; border-radius: 12px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); } .ds-stat-number { font-family: 'DM Sans', system-ui, sans-serif; font-weight: 700; font-size: 24px; line-height: 1; color: #2C1810; } .ds-stat-label { font-family: 'DM Sans', system-ui, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #9B8070; margin-top: 6px; }"
+    },
+    {
+      "name": "Toggle Switch",
+      "kind": "custom",
+      "description": "Custom-built waitlist toggle: sand/clay track, white thumb sliding on state change.",
+      "html": "<button class=\"ds-toggle ds-toggle-on\" role=\"switch\" aria-checked=\"true\"><span class=\"ds-toggle-thumb\"></span></button>",
+      "css": ".ds-toggle { width: 40px; height: 24px; border-radius: 9999px; padding: 4px; background: #E4CDB8; border: none; display: inline-flex; align-items: center; transition: background 0.2s; cursor: pointer; } .ds-toggle-on { background: #B85A35; } .ds-toggle-thumb { width: 16px; height: 16px; border-radius: 9999px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: transform 0.2s; } .ds-toggle-on .ds-toggle-thumb { transform: translateX(16px); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Instructor's Portfolio",
+    "overview": "Instruktor reads like a portable professional portfolio, not a SaaS dashboard. An editorial serif (Cormorant Garamond) is reserved for identity moments, the instructor's name, the wordmark, a hero headline, never smaller than 20px and never on anything functional. Everything an instructor actually works in day to day, forms, buttons, class lists, is carried by DM Sans: clean, confident, and out of the way. The palette is warm and earthy (espresso, clay, linen) rather than the cool grey-and-blue of a generic scheduling tool, because the product's whole premise is that the instructor's brand, not a studio's, leads every page.\n\nThe system is deliberately warm over clinical. It is a community platform an instructor is proud to share, not a piece of software they tolerate. Surfaces stay flat and bordered rather than glossy or heavily shadowed; where elevation does appear, it is soft and earns its place through interaction rather than sitting there by default. Nothing in the system should read as corporate, cold, or adversarial toward the studios instructors also work with.",
+    "keyCharacteristics": [
+      "A warm, earthy neutral base (espresso, bark, linen, sand, stone, smoke) standing in for grayscale",
+      "One reserved accent color (clay) for every actionable element; nothing else competes for that attention",
+      "Flat-with-borders elevation on light surfaces, completely flat color-blocking on dark surfaces",
+      "A binary radius language: controls are tight, surfaces are soft, circles are full",
+      "A hard split between the serif (brand/identity, ≥20px) and the sans (everything else)"
+    ],
+    "rules": [
+      { "name": "The Rare Accent Rule", "body": "Clay is the only actionable color in the system. It appears on buttons, links, active states, and focus rings, never as pure decoration. Sage is reserved exclusively for success and positive-verification states; it is never used as a second brand accent.", "section": "colors" },
+      { "name": "The Twenty Pixel Floor Rule", "body": "Cormorant Garamond never appears below 20px, and never on form inputs, buttons, or functional UI. This is a binding brand commitment, not just an observed convention.", "section": "typography" },
+      { "name": "The Flat-Dark Rule", "body": "Shadows never appear on espresso or bark surfaces. Depth there comes from color layering and hairline borders only.", "section": "elevation" },
+      { "name": "The Binary Radius Rule", "body": "Controls get 8px, surfaces get 12px, stepping up to 16px or 24px only for deliberate emphasis, and circles get full. There is no in-between radius value in the system.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do reserve solid Terracotta Clay fill for primary actions only (The Rare Accent Rule).",
+      "Do keep Cormorant Garamond at 20px and above, never on form inputs, buttons, or functional UI (The Twenty Pixel Floor Rule).",
+      "Do use border-sand plus shadow-sm as the default resting state for light-surface cards, elevating to shadow-md only on hover.",
+      "Do keep espresso and bark surfaces completely flat, color blocking and hairline borders only, never a shadow (The Flat-Dark Rule).",
+      "Do pair rounded-lg with controls and rounded-xl with cards and marketing CTAs; reserve 2xl/3xl for a deliberately elevated or sheet-style surface (The Binary Radius Rule)."
+    ],
+    "donts": [
+      "Don't introduce a new accent color. Clay is the system's only actionable color; sage is reserved for success and positive states only.",
+      "Don't apply a shadow to an espresso or bark surface. Use a white/10-20% hairline border instead.",
+      "Don't use \"Auto-saves on blur\" or similar text anywhere in the product. Every auto-saving field shows the fading sage checkmark instead.",
+      "Don't mix the two button-radius conventions on one screen. A screen is either marketing (rounded-xl) or in-app (rounded-lg), consistently."
+    ]
+  }
+}

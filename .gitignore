@@ -48,3 +48,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# impeccable (design skill) local/session state, not project design system
+.impeccable/config.local.json
+.impeccable/hook.cache.json
