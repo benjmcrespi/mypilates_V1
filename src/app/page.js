@@ -10,7 +10,7 @@ export default function LandingPage() {
 
       {/* 2. Hero */}
       <section className="bg-espresso text-linen px-4 sm:px-10 py-24 sm:py-32">
-        <div className="max-w-3xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-3.5 mb-10">
             <span className="inline-block w-7 h-px bg-clay/50" />
             <span className="text-[10.5px] font-medium tracking-[0.22em] uppercase text-clay">
@@ -38,7 +38,7 @@ export default function LandingPage() {
 
       {/* 3. How it works */}
       <section className="bg-linen px-4 sm:px-10 py-24 sm:py-32">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-3.5 mb-4">
             <span className="inline-block w-7 h-px bg-clay-dark/50" />
             <span className="text-[10.5px] font-medium tracking-[0.22em] uppercase text-clay-dark">
@@ -74,7 +74,7 @@ export default function LandingPage() {
 
       {/* 4. The professional case */}
       <section className="bg-bark text-linen px-4 sm:px-10 py-28 sm:py-36">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
           <h2 className="font-serif font-semibold text-4xl sm:text-5xl leading-[1.12] tracking-[0.008em] mb-7">
             Your career, professionally managed.
           </h2>
@@ -86,7 +86,7 @@ export default function LandingPage() {
 
       {/* 5. Coming soon */}
       <section className="bg-linen px-4 sm:px-10 py-24 sm:py-32">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center gap-3.5 mb-4">
             <span className="inline-block w-7 h-px bg-clay-dark/50" />
             <span className="text-[10.5px] font-medium tracking-[0.22em] uppercase text-clay-dark">
@@ -122,7 +122,7 @@ export default function LandingPage() {
 
       {/* 6. Final CTA */}
       <section className="bg-espresso text-linen px-4 sm:px-10 py-28 sm:py-36">
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-3.5 mb-10">
             <span className="inline-block w-7 h-px bg-clay/50" />
             <span className="text-[10.5px] font-medium tracking-[0.22em] uppercase text-clay">
@@ -147,7 +147,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-linen border-t border-sand px-4 sm:px-10 py-11">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-5 text-center sm:text-left">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-5 text-center sm:text-left">
           <span className="font-wordmark text-lg tracking-[0.14em] text-bark">
             Instruktor
           </span>

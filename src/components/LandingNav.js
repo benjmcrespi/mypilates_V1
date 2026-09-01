@@ -20,7 +20,7 @@ export default function LandingNav() {
 
   return (
     <header ref={navRef} className="bg-espresso text-linen sticky top-0 z-50 border-b border-linen/10">
-      <div className="max-w-5xl mx-auto flex justify-between items-center px-4 sm:px-10 py-6">
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-10 py-6">
         <Link href="/" className="font-wordmark font-semibold text-xl sm:text-2xl tracking-[0.14em]">
           Instruktor
         </Link>
