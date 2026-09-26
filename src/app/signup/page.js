@@ -81,31 +81,31 @@ export default function SignUp() {
       </div>
 
       <div className="sm:mx-auto w-full max-w-md text-center px-4">
-        <h2 className="text-3xl font-bold tracking-tight text-bark">
+        <h2 className="font-serif font-semibold text-4xl sm:text-5xl tracking-[0.008em] leading-[1.05] text-bark">
           Instructor Sign Up
         </h2>
-        <p className="mt-2 text-sm text-stone">
+        <p className="mt-4 text-sm text-stone">
           Join the premier hub for independent fitness instructors.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto w-full max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-xl sm:px-10">
+        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-[2px] sm:px-10">
 
           {errorMsg && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-[2px] font-medium">
               {errorMsg}
             </div>
           )}
           {successMsg && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg font-medium">
+            <div className="mb-4 p-3 bg-sage-light border border-sage text-bark text-sm rounded-[2px] font-medium">
               {successMsg}
             </div>
           )}
 
           <form onSubmit={handleSignUp} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-bark mb-1">
+              <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                 Full Name
               </label>
               <input
@@ -114,15 +114,15 @@ export default function SignUp() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Hannah Jane"
-                className="w-full border border-sand rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                className="w-full border border-sand rounded-[2px] px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-bark mb-1">
+              <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                 Your Public URL
               </label>
-              <div className="flex items-center border border-sand rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-clay bg-linen/50">
+              <div className="flex items-center border border-sand rounded-[2px] overflow-hidden focus-within:ring-2 focus-within:ring-clay bg-linen/50">
                 <span className="pl-4 pr-2 text-sm text-stone whitespace-nowrap select-none">
                   instruktor.ca/
                 </span>
@@ -142,7 +142,7 @@ export default function SignUp() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-bark mb-1">
+              <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                 Email Address
               </label>
               <input
@@ -151,12 +151,12 @@ export default function SignUp() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="hannah@example.com"
-                className="w-full border border-sand rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                className="w-full border border-sand rounded-[2px] px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-bark mb-1">
+              <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                 Password
               </label>
               <div className="relative">
@@ -167,7 +167,7 @@ export default function SignUp() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   minLength="6"
-                  className="w-full border border-sand rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                  className="w-full border border-sand rounded-[2px] px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
                 />
                 <button
                   type="button"
@@ -191,9 +191,9 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-clay text-white font-medium py-3 rounded-lg hover:bg-clay-dark transition-colors disabled:opacity-50 mt-2 shadow-sm"
+              className="ik-btn-primary w-full bg-clay text-white text-xs font-bold tracking-[0.16em] uppercase py-3.5 rounded-[2px] disabled:opacity-50 mt-2"
             >
-              {isLoading ? "Creating Account..." : "Create Account"}
+              <span>{isLoading ? "Creating Account..." : "Create Account"}</span>
             </button>
           </form>
 

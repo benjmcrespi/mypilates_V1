@@ -210,7 +210,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+      <div className="bg-white rounded-[2px] shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-bold text-bark">Add a New Studio</h2>
           <button type="button" onClick={onClose} className="text-stone hover:text-bark text-sm px-2 py-1">✕</button>
@@ -218,13 +218,13 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
 
         <form onSubmit={handleSave} className="space-y-5">
           {formError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-[2px] font-medium">
               {formError}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-[0.14em]">
               Have a booking link? <span className="font-normal normal-case">Paste it here to auto-fill</span>
             </label>
             <input type="url" placeholder="Paste your studio's booking or calendar link..."
@@ -235,7 +235,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
                 setTimeout(() => handleParseUrl(text), 0);
               }}
               onBlur={e => handleParseUrl(e.target.value)}
-              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
+              className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
             {isParsing && <p className="text-xs text-stone mt-1.5 animate-pulse">Reading your link…</p>}
           </div>
 
@@ -244,7 +244,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
             {mapsUnavailable ? (
               <input type="text" ref={studioInputRef}
                 onChange={e => setStudioName(e.target.value)}
-                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm"
+                className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm"
                 placeholder="e.g. SoulCycle Yaletown" />
             ) : (
               <Autocomplete
@@ -262,7 +262,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
                     if (studioInputRef.current) studioInputRef.current.value = place.name;
                   }
                 }}
-                className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm"
+                className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm"
                 placeholder="Search on Google Maps..." />
             )}
           </div>
@@ -274,7 +274,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
             <input type="text" placeholder="123 Main St, City, Province"
               value={studioAddress}
               onChange={e => { setStudioAddress(e.target.value); setAddressFlagged(false); }}
-              className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
+              className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
             {addressFlagged && (
               <p className="text-[11px] text-clay-dark mt-1.5">⚠ Pulled from your calendar link. Double-check this.</p>
             )}
@@ -285,7 +285,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
               <label className="block text-sm font-medium mb-2">
                 Classes found ({parsedClasses.filter(c => c.checked).length} selected)
               </label>
-              <div className="border border-sand rounded-lg divide-y divide-sand max-h-64 overflow-y-auto">
+              <div className="border border-sand rounded-[2px] divide-y divide-sand max-h-64 overflow-y-auto">
                 {parsedClasses.map(c => (
                   <label key={c.key} className="flex items-center gap-3 px-4 py-3 text-sm cursor-pointer hover:bg-linen">
                     <input type="checkbox" checked={c.checked} onChange={() => toggleChecklistItem(c.key)}
@@ -294,7 +294,7 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
                       <span className="font-medium text-bark">{c.className}</span>
                       <span className="text-stone"> — {c.dayLabel}s, {c.timeLabel}</span>
                       {c.recurring && (
-                        <span className="ml-2 text-[11px] text-sage font-semibold uppercase tracking-wider">Weekly</span>
+                        <span className="ml-2 text-[11px] text-sage font-semibold uppercase tracking-[0.14em]">Weekly</span>
                       )}
                     </span>
                   </label>
@@ -306,19 +306,19 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
               <div>
                 <label className="block text-sm font-medium mb-1">Class Name</label>
                 <input type="text" value={className} onChange={e => setClassName(e.target.value)}
-                  required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
+                  required className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Day & Time</label>
                 <input type="datetime-local" value={dateTimeLocal} onChange={e => setDateTimeLocal(e.target.value)}
-                  required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
+                  required className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Booking Link <span className="text-stone font-normal text-xs">(optional)</span>
                 </label>
                 <input type="url" placeholder="https://..." value={bookingUrl} onChange={e => setBookingUrl(e.target.value)}
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
+                  className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
               </div>
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input type="checkbox" checked={recurringWeekly} onChange={e => setRecurringWeekly(e.target.checked)}
@@ -329,8 +329,8 @@ export default function AddStudioModal({ instructorId, categories, timeZone, onC
           )}
 
           <button type="submit" disabled={isSaving}
-            className="w-full bg-clay text-white font-medium py-3 rounded-lg hover:bg-clay-dark disabled:opacity-50 transition-colors">
-            {isSaving ? 'Saving...' : 'Save'}
+            className="ik-btn-primary-compact w-full bg-clay text-white font-medium py-3 rounded-[2px] disabled:opacity-50">
+            <span>{isSaving ? 'Saving...' : 'Save'}</span>
           </button>
         </form>
       </div>

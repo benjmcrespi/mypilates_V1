@@ -28,12 +28,12 @@ typography:
     fontWeight: 400
     letterSpacing: "0.2em"
 rounded:
-  control: "8px"
-  card: "12px"
-  card-elevated: "16px"
-  sheet: "24px"
+  sharp: "2px"
   pill: "9999px"
-  persuade: "2px"
+  legacy-control: "8px"
+  legacy-card: "12px"
+  legacy-card-elevated: "16px"
+  legacy-sheet: "24px"
 spacing:
   card-padding: "24px"
   section-y-marketing: "96px"
@@ -43,30 +43,23 @@ components:
   button-primary:
     backgroundColor: "{colors.clay}"
     textColor: "{colors.linen}"
-    rounded: "{rounded.control}"
-    padding: "16px 32px"
-  button-primary-hover:
-    backgroundColor: "{colors.clay-dark}"
-  button-primary-persuade:
-    backgroundColor: "{colors.clay}"
-    textColor: "{colors.linen}"
-    rounded: "{rounded.persuade}"
+    rounded: "{rounded.sharp}"
     padding: "20px 44px"
-  button-primary-persuade-hover:
+  button-primary-hover:
     backgroundColor: "{colors.clay-dark}"
   button-secondary:
     backgroundColor: "#FFFFFF"
     textColor: "{colors.bark}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.sharp}"
     padding: "8px 16px"
   card:
     backgroundColor: "#FFFFFF"
-    rounded: "{rounded.card}"
+    rounded: "{rounded.sharp}"
     padding: "{spacing.card-padding}"
   input:
     backgroundColor: "{colors.linen}"
     textColor: "{colors.bark}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.sharp}"
     padding: "8px 16px"
 ---
 
@@ -84,8 +77,9 @@ The system is deliberately warm over clinical. It is a community platform an ins
 - A warm, earthy neutral base (espresso, bark, linen, sand, stone, smoke) standing in for grayscale
 - One reserved accent color (clay) for every actionable element; nothing else competes for that attention
 - Flat-with-borders elevation on light surfaces, completely flat color-blocking on dark surfaces
-- A binary radius language: controls are tight, surfaces are soft, circles are full
-- A hard split between the serif (brand/identity, ≥20px) and the sans (everything else)
+- A near-sharp `2px` radius everywhere except genuine circles (avatars, toggles, pill-shaped count badges) and the mobile bottom-sheet's native top corners
+- Wide letter-spacing (`0.14em`–`0.22em`) on every label, nav link, and short button, a deliberate move away from the rounded-pill, default-tracking look that read as generic
+- A hard split between the serif (brand/identity, ≥20px, weight 600 with a touch of positive tracking) and the sans (everything else)
 
 ## Colors
 
@@ -117,19 +111,21 @@ The palette is warm and earthy rather than cool or neutral-grey, built from a si
 **Character:** An editorial serif voice for identity moments, set against a clean, confident, entirely functional sans for everything an instructor actually works in. The two never mix on the same element.
 
 ### Hierarchy
-- **Display** (Cormorant Garamond, hero-scale, tight line-height): the Instruktor wordmark and landing-page hero H1s. Never below 20px. Weight 400 on Operate surfaces; the Persuade landing page uses weight 600 with +0.01em tracking for more architectural presence, an explicit, considered choice, not the typeface's default register.
-- **Headline** (Cormorant Garamond 500): instructor name on the student-facing profile header, section headings that need brand weight.
-- **Body** (DM Sans 400): all UI text, class names, dates, times, buttons, inputs, labels, dropdowns, dashboard content, analytics cards. The default for the entire app.
-- **Label** (DM Mono, uppercase, letter-spacing 0.2em): a narrow, deliberately rare usage for tracked micro-labels, the onboarding step counter ("01 / 06"), its "Back" control.
+- **Display** (Cormorant Garamond, hero-scale, tight line-height): the Instruktor wordmark (nav and footer), landing-page hero H1s, and the auth-page headings ("Instructor Workspace," "Instructor Sign Up," etc). Never below 20px. Weight 600 with `0.008em`–`0.01em` positive tracking, more architectural presence than the typeface's default register, an explicit, considered choice.
+- **Headline** (Cormorant Garamond 500–600): instructor name on the student-facing profile header, section headings that need brand weight.
+- **Body** (DM Sans 400): all UI text, class names, dates, times, buttons, inputs, dropdowns, dashboard content, analytics cards. The default for the entire app.
+- **Label** (DM Sans or DM Mono, uppercase, letter-spacing `0.14em`–`0.22em`): form field labels, nav links, eyebrow labels, section headers ("How It Works," "Upcoming Classes"), and short button text. Widely used now, not rare, this tracked-uppercase treatment is one of the system's core identifying moves. DM Mono specifically stays reserved for a handful of genuinely rare micro-labels (the onboarding step counter "01 / 06", its "Back" control, small caption timestamps).
 
 ### Named Rules
 **The Twenty Pixel Floor Rule.** Cormorant Garamond never appears below 20px, and never on form inputs, buttons, or functional UI. This is a binding brand commitment, not just an observed convention.
 
 ## Layout
 
-Containers are centered and width-capped by context: on the Persuade landing page, `max-w-3xl`/`max-w-4xl` for centered text blocks (hero, professional case, final CTA) and `max-w-7xl` for the nav and the full-width 3-column/footer sections, deliberately wider than the Operate system below so the page holds its own on large desktop monitors instead of reading as narrow and centered. On Operate surfaces: `max-w-4xl` for the dashboard's nav wrapper and the student page's main column, `max-w-5xl` for the dashboard's own outer column, `max-w-md`/`max-w-lg`/`max-w-sm` for auth cards and modals. `sm` is the dominant responsive breakpoint for spacing, typography, and stack-to-row changes; `md`/`lg` are reserved for grid step-ups, most notably the dashboard's drafts layout (a custom three-track grid, `1fr auto 1fr`, that collapses to a single stacked column below `lg`).
+Containers are centered and width-capped by context, widened across the board so pages hold their own on large desktop monitors instead of reading as narrow and centered: `max-w-7xl` for the landing nav, the dashboard nav, and the dashboard's own outer column (all were `max-w-5xl`); `max-w-3xl`/`max-w-4xl` for centered text blocks (landing hero, professional case, final CTA); `max-w-4xl` for the student page's main column; `max-w-md`/`max-w-lg`/`max-w-sm` for auth cards and modals, which stay narrow deliberately, a login form shouldn't stretch just because the monitor is wide. `sm` is the dominant responsive breakpoint for spacing, typography, and stack-to-row changes; `md`/`lg` are reserved for grid step-ups, most notably the dashboard's drafts layout (a custom three-track grid, `1fr auto 1fr`, that collapses to a single stacked column below `lg`).
 
 The system's default list-row idiom is a stack-on-mobile, row-on-desktop flex pattern, repeated identically across dashboard class rows, the student page's class cards, and draft rows. Vertical rhythm differs by context: the landing page breathes at `py-24 sm:py-32` for standard sections and `py-28 sm:py-36` for its two highest-emphasis moments (the professional-case section and the final CTA), in-app working screens stay tighter at `py-6 sm:py-12`.
+
+**Not yet migrated to this pass:** the `/classes` discovery page and the standalone `/unfollow` page (distinct from the unfollow widget embedded in the student profile page, which is migrated) still use the pre-redesign rounded-xl/rounded-lg system. Bring them in line if they're ever confirmed as in-scope surfaces; `/classes` in particular is still flagged in CLAUDE.md as unconfirmed MVP scope.
 
 ## Elevation & Depth
 
@@ -147,21 +143,13 @@ A hybrid system. Light surfaces pair a `border-sand` with a soft `shadow-sm` at 
 
 ## Shapes
 
-Operate surfaces (dashboard, in-app UI, auth) and the Persuade surface (the marketing landing page) intentionally use two different radius registers. See the Persuade/Operate split under Components > Buttons for why.
+One near-sharp radius, used everywhere: buttons, cards, inputs, modals, badges, and containers across the landing page, auth pages, student page, and dashboard all use `2px`. This replaced an earlier system where marketing used `rounded-xl`/`rounded-lg` and in-app UI used its own similar scale; both read as generic rounded-everything, and sharpening the corners was one of the two or three biggest levers in fixing that. `/classes` and the standalone `/unfollow` page still carry the old radii, see Layout's migration note.
 
-### Operate surfaces
-- **`rounded-lg` (8px)**: controls, form inputs, in-app and secondary buttons, small badges.
-- **`rounded-xl` (12px)**: standard cards and containers.
-- **`rounded-2xl` (16px)**: a deliberate step up for a handful of elevated or public-facing surfaces (the public class directory cards, the unfollow confirmation card, the desktop variant of the booking sheet).
-- **`rounded-t-3xl`**: the mobile booking bottom-sheet's top corners only, giving it a native iOS-style sheet silhouette.
-- **`rounded-full`**: anything circular or pill-shaped, avatars, category and certification badges, the waitlist toggle's track and thumb, onboarding progress segments, the bottom-sheet drag handle.
+- **`2px` (near-sharp)**: the universal default for every button, card, input, modal, and rectangular badge.
+- **`rounded-full`**: reserved strictly for genuine circles and pills, avatars, the waitlist toggle's track and thumb, count badges, onboarding progress segments, the bottom-sheet drag handle. Certification and category tags that used to be pill-shaped are now `2px` rectangles instead, this was a deliberate part of the fix, not an oversight.
+- **`rounded-t-3xl`**: kept, exactly once, on the mobile booking bottom-sheet's top corners. This is a platform convention (the native iOS/Android sheet silhouette signaling "swipeable"), not decorative rounding, and is the one intentional exception to the 2px rule.
 
-**The Binary Radius Rule.** On Operate surfaces, controls get 8px, surfaces get 12px, stepping up to 16px or 24px only for deliberate emphasis, and circles get full. There is no in-between radius value on these surfaces.
-
-### Persuade surface (landing page)
-- **`2px` (near-sharp)**: every button, CTA, and badge on the landing page, both hero-style solid buttons and the nav's outline button. Deliberately sharper than the Operate register, editorial rather than app-like, chosen specifically to move away from the rounded-everything look that read as generic.
-
-Don't mix registers within a surface: a screen is either Operate (8/12/16/24, full for circles) or Persuade (2px), never both.
+**The Sharp Corner Rule.** Everything is `2px` except a true circle/pill or the one platform-convention exception above. If you're reaching for `rounded-md`/`rounded-lg`/`rounded-xl`/`rounded-2xl`, stop, that's the old system.
 
 ## Components
 
@@ -169,39 +157,36 @@ Buttons, cards, and inputs are meant to feel warm and confident: solid clay fill
 
 ### Buttons
 
-Operate-surface buttons (dashboard, auth, in-app) and the Persuade-surface landing-page buttons are deliberately different systems. Don't cross-apply one to the other.
+Implemented as `.ik-btn-primary`, `.ik-btn-primary-compact`, and `.ik-nav-link` in `globals.css`, used everywhere: landing page, auth pages, student page, dashboard.
 
-**Operate surfaces:**
-- **Shape:** `rounded-lg` for in-app form submit and secondary buttons.
-- **Primary:** solid Terracotta Clay fill, linen or white text, bold weight, generous padding (`py-3` to `py-4`). Hover steps to Deep Clay; press gives `active:scale-[0.98]` feedback.
-- **Secondary / Outline:** white fill, `border-sand`, Warm Bark text, hover shifts background to Linen.
-- **Ghost / Text-link:** no fill or border, clay or stone text, hover underlines or shifts toward bark/clay depending on the surface it sits on.
+- **Shape:** `2px` radius everywhere, no exceptions.
+- **Primary, short fixed labels** (`.ik-btn-primary`, e.g. "Create Your Page," "Sign In," "Follow"): solid Terracotta Clay fill, uppercase text tracked at `0.16em`. On hover, Deep Clay sweeps in from the left over 500ms while the label's tracking widens to `0.22em`; press is a soft `scale(0.985)` + `brightness(0.95)` dim, never a bounce. Used for the one loud CTA per screen (landing hero, final CTA, every auth-page submit, the follow widget).
+- **Primary, long or dynamic labels** (`.ik-btn-primary-compact`, e.g. "Publish This Week's Schedule (5)," "Save Profile," "Publish Draft Live"): the same solid fill and sweep-fill hover and press-dim, but without the letter-spacing widen, a tracking jump on a long dynamic-count label reads as a glitch and risks wrapping. This is the dashboard's default primary-action treatment.
+- **Repeated per-row actions** (e.g. the student page's "Book Spot"/"Join Waitlist" on every class card, dashboard Edit/Delete): sharp `2px` corners and the brand colors, but plain `hover:bg-*`/`active:scale` feedback, not the sweep. A list of many identical animated buttons reads as noise, not craft; this is a deliberate exception, not an inconsistency.
+- **Secondary / Outline** (e.g. the nav's own CTA, modal Cancel buttons): white or transparent fill, `border-sand` (light surfaces) or `border-linen/35` (dark surfaces), text in Bark or Linen, hover shifts background toward Linen or a faint `linen/5` wash. Always quieter than whatever primary CTA is also on screen, on the landing/dashboard navs specifically this is confirmed as the intended hierarchy: one loud CTA per screen, the nav's is deliberately the quiet echo.
+- **Ghost / Text-link:** no fill or border, clay or stone text, hover underlines or shifts toward bark/clay depending on the surface.
 - **Destructive:** uses a plain red rather than a brand token (an accepted exception, not a token to extend).
-
-**Persuade surface (landing page), implemented as `.ik-btn-primary` / `.ik-nav-link` in `globals.css`:**
-- **Shape:** `2px` radius, uppercase label text tracked at `0.16em`, generous padding (`py-5 px-11` on primary CTAs).
-- **Primary:** solid Terracotta Clay fill; on hover, Deep Clay sweeps in from the left over 500ms while the label's tracking widens to `0.22em`; press is a soft `scale(0.985)` + `brightness(0.95)` dim, not the Operate system's bounce. One primary (solid) CTA per screen, in the hero and the final CTA.
-- **Secondary (nav CTA):** transparent fill, `border-linen/35`, hover brightens the border to full linen with a faint `linen/5` wash. Deliberately quieter than the primary so it doesn't compete with the one loud CTA already on screen, confirmed as the intended hierarchy, not an inconsistency to fix.
-- **Nav link:** a hairline underline draws in from the left on hover over 450ms (`currentColor`, so it matches whatever the link's hover color is).
-- **Motion is slower everywhere on this surface**: 400-500ms eased transitions versus the Operate system's near-instant color/scale changes. All new landing-page motion respects `prefers-reduced-motion`.
+- **Nav / tracked links** (`.ik-nav-link`): a hairline underline draws in from the left on hover over 450ms (`currentColor`, so it matches whatever the link's hover color is). Used for every primary nav link (landing nav, dashboard nav).
+- **Motion is slower everywhere now**: 400–500ms eased transitions have replaced the old near-instant color/scale changes across the whole app, not just the landing page. All of it respects `prefers-reduced-motion`.
 
 ### Cards / Containers
-- **Corner style:** `rounded-xl` by default, stepping to `rounded-2xl` for the elevated/public surfaces noted in Shapes.
+- **Corner style:** `2px`, universally (see Shapes).
 - **Background:** white is the dominant light-surface card background. Linen with a `border-sand` is used for nested/secondary panels sitting inside a white card. Clay Wash with a `border-sand` marks the one deliberately accent-tinted panel (Sync Classes). Full-bleed espresso/bark blocks (no border, no shadow) carry marketing sections.
 - **Shadow strategy:** `shadow-sm` at rest, `shadow-md` on hover, see Elevation & Depth.
 - **Border:** `border-sand` on almost every light-surface card; `white/10-20%` hairlines on dark surfaces.
 - **Internal padding:** `p-5` to `p-6` standard, `p-8` to `p-10` for marketing and CTA cards.
 
 ### Inputs / Fields
-- **Style:** `border-sand`, `rounded-lg`, `bg-linen` (public-facing forms use `bg-white` instead).
-- **Focus:** `focus:border-clay` is the dominant pattern; auth pages use `focus:ring-2 focus:ring-clay` instead. One deliberately de-emphasized case (the unfollow email field) uses `focus:border-stone`.
+- **Style:** `border-sand`, `2px` radius, `bg-linen` (public-facing forms use `bg-white` instead).
+- **Focus:** `focus:border-clay` paired with a `focus:ring-2 focus:ring-clay/40` visible ring is now the dashboard/student-page default; auth pages use `focus:ring-2 focus:ring-clay` at full opacity instead. One deliberately de-emphasized case (the unfollow email field) uses `focus:border-stone`.
 - **Locked / read-only** (studio-synced fields): `bg-sand/40`, `text-stone`, `cursor-not-allowed`.
+- **Labels:** uppercase, tracked (`0.14em`), stone-colored micro-labels on auth pages and the student page's follow form, matching the nav/eyebrow label language. Dashboard form labels stay sentence-case (`text-sm font-medium`), a working tool's dense forms read faster with normal-case labels than an all-caps sweep down the page; this is a considered exception, not a gap.
 - **Error:** surfaced as a banner above the form (red background, red border, red text), not an inline red ring on the field itself.
 - **Category select:** a native, optgroup-grouped dropdown sharing the same border/radius/focus language as text inputs, with an "Other" option that reveals a short free-text field.
 
 ### Navigation
-- **Dashboard nav:** white background, sticky, `border-b border-sand` paired with `shadow-sm`, the one place in the Operate system a nav uses both border and shadow together. Wordmark set in the serif.
-- **Landing nav:** dark (espresso background, linen text), sticky, a single `border-linen/10` hairline instead of a shadow. Wordmark set at weight 600 with `0.14em` tracking, heavier than the Operate wordmark treatment. Nav links are uppercase and tracked (`0.14em`) with the underline-draw hover from the Buttons section above; the nav's own CTA uses the quieter outline treatment, never the solid primary fill.
+- **Dashboard nav:** white background, sticky, `border-b border-sand` only now (the shadow was dropped to match the landing nav's cleaner hairline-only separation). Wordmark set in the serif at weight 600 with `0.14em` tracking. Nav links are uppercase, tracked (`0.14em`), and use the underline-draw hover.
+- **Landing nav:** dark (espresso background, linen text), sticky, a single `border-linen/10` hairline. Same wordmark and nav-link treatment as the dashboard nav now; the nav's own CTA uses the quieter outline treatment, never the solid primary fill.
 - **Dashboard tab bar:** a `border-b border-sand` track; the active tab carries `border-b-2 border-clay` and clay text, inactive tabs are stone, hovering to bark.
 
 ### Signature Components
@@ -217,10 +202,12 @@ Operate-surface buttons (dashboard, auth, in-app) and the Persuade-surface landi
 - **Do** keep Cormorant Garamond at 20px and above, never on form inputs, buttons, or functional UI (The Twenty Pixel Floor Rule).
 - **Do** use `border-sand` plus `shadow-sm` as the default resting state for light-surface cards, elevating to `shadow-md` only on hover.
 - **Do** keep espresso and bark surfaces completely flat, color blocking and hairline borders only, never a shadow (The Flat-Dark Rule).
-- **Do** pair `rounded-lg` with controls and `rounded-xl` with cards and marketing CTAs; reserve `2xl`/`3xl` for a deliberately elevated or sheet-style surface (The Binary Radius Rule).
+- **Do** use `2px` radius everywhere except genuine circles/pills and the mobile bottom-sheet's top corners (The Sharp Corner Rule).
+- **Do** widen letter-spacing (`0.14em`–`0.22em`) on labels, nav links, and short buttons; it's the single biggest device separating this system from a generic default.
 
 ### Don't:
 - **Don't** introduce a new accent color. Clay is the system's only actionable color; sage is reserved for success and positive states only.
 - **Don't** apply a shadow to an espresso or bark surface. Use a `white/10-20%` hairline border instead.
 - **Don't** use "Auto-saves on blur" or similar text anywhere in the product. Every auto-saving field shows the fading sage checkmark instead.
-- **Don't** mix the two button-radius conventions on one screen. A screen is either marketing (`rounded-xl`) or in-app (`rounded-lg`), consistently.
+- **Don't** reach for `rounded-md`/`lg`/`xl`/`2xl` on any new UI; that's the pre-redesign system. `/classes` and standalone `/unfollow` still carry it as a known, tracked gap, not a pattern to extend.
+- **Don't** wrap a repeated per-row button (a list of Edit/Delete/Book Spot actions) in the full letter-spacing-widening hover; reserve that for the one primary CTA per screen.

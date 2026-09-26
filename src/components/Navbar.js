@@ -63,36 +63,36 @@ export default function Navbar() {
   if (pathname === '/') return null;
 
   return (
-    <header className="py-5 px-4 sm:px-6 border-b border-sand bg-white sticky top-0 z-50 shadow-sm transition-all">
-      <div className="max-w-4xl mx-auto flex justify-between items-center">
+    <header className="py-6 px-4 sm:px-10 border-b border-sand bg-white sticky top-0 z-50 transition-all">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
 
         {/* THE BRAND: Always takes you home */}
-        <Link href="/" className="font-wordmark text-2xl tracking-[4px] text-espresso hover:opacity-70 transition-opacity">
+        <Link href="/" className="font-wordmark font-semibold text-2xl tracking-[0.14em] text-espresso hover:opacity-70 transition-opacity">
           Instruktor
         </Link>
 
         {/* DYNAMIC LINKS: Changes based on who is looking */}
-        <nav className="flex items-center space-x-6">
+        <nav className="flex items-center gap-6">
           {user ? (
             <>
               {pathname !== '/dashboard' && (
-                <Link href="/dashboard" className="text-sm font-bold text-bark hover:text-stone transition-colors">
+                <Link href="/dashboard" className="ik-nav-link text-[11px] font-bold tracking-[0.14em] uppercase text-bark hover:text-stone">
                   <span className="sm:hidden">Dashboard</span>
                   <span className="hidden sm:inline">Instructor Dashboard</span>
                 </Link>
               )}
               {pathname === '/dashboard' && (
-                <Link href={handle ? `/${handle}` : '/'} data-tour="view-live-site" className="text-sm font-semibold text-stone hover:text-bark transition-colors">
+                <Link href={handle ? `/${handle}` : '/'} data-tour="view-live-site" className="ik-nav-link text-[11px] font-medium tracking-[0.14em] uppercase text-stone hover:text-bark">
                   View Live Site
                 </Link>
               )}
               <span className="text-sand">|</span>
-              <button onClick={handleSignOut} className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
+              <button onClick={handleSignOut} className="text-[11px] font-medium tracking-[0.14em] uppercase text-red-500 hover:text-red-700 transition-colors duration-[400ms]">
                 Sign Out
               </button>
             </>
           ) : (
-            <Link href="/login" className="text-sm font-medium text-stone hover:text-bark transition-colors">
+            <Link href="/login" className="ik-nav-link text-[11px] font-medium tracking-[0.14em] uppercase text-stone hover:text-bark">
               Instructor Login
             </Link>
           )}

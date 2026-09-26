@@ -56,35 +56,35 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-linen text-bark flex flex-col justify-center py-12 sm:px-6 lg:px-8">
 
       <div className="sm:mx-auto w-full max-w-md text-center px-4">
-        <h2 className="text-3xl font-bold tracking-tight text-bark">
+        <h2 className="font-serif font-semibold text-4xl sm:text-5xl tracking-[0.008em] leading-[1.05] text-bark">
           Set a New Password
         </h2>
-        <p className="mt-2 text-sm text-stone">
+        <p className="mt-4 text-sm text-stone">
           Choose a new password for your Instruktor account.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto w-full max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-xl sm:px-10">
+        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-[2px] sm:px-10">
 
           {errorMsg && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-[2px] font-medium">
               {errorMsg}
             </div>
           )}
 
           {success ? (
-            <div className="p-3 bg-sage-light border border-sage text-bark text-sm rounded-lg font-medium text-center">
+            <div className="p-3 bg-sage-light border border-sage text-bark text-sm rounded-[2px] font-medium text-center">
               Your password has been updated. Redirecting to your dashboard...
             </div>
           ) : !isReady ? (
-            <div className="p-3 bg-clay-light border border-sand text-bark text-sm rounded-lg font-medium text-center">
+            <div className="p-3 bg-clay-light border border-sand text-bark text-sm rounded-[2px] font-medium text-center">
               Verifying your reset link...
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-bark mb-1">
+                <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                   New Password
                 </label>
                 <div className="relative">
@@ -94,7 +94,7 @@ export default function ResetPassword() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full border border-sand rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                    className="w-full border border-sand rounded-[2px] px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
                   />
                   <button
                     type="button"
@@ -116,7 +116,7 @@ export default function ResetPassword() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-bark mb-1">
+                <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                   Confirm New Password
                 </label>
                 <input
@@ -125,16 +125,16 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full border border-sand rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                  className="w-full border border-sand rounded-[2px] px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-clay text-white font-medium py-3 rounded-lg hover:bg-clay-dark transition-colors disabled:opacity-50 mt-2 shadow-sm"
+                className="ik-btn-primary w-full bg-clay text-white text-xs font-bold tracking-[0.16em] uppercase py-3.5 rounded-[2px] disabled:opacity-50 mt-2"
               >
-                {isLoading ? "Updating..." : "Update Password"}
+                <span>{isLoading ? "Updating..." : "Update Password"}</span>
               </button>
             </form>
           )}

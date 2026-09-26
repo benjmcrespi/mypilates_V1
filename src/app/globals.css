@@ -125,18 +125,28 @@
   .onboarding-card-in { animation: none; }
 }
 
-/* Landing page (Persuade surface): refined button and link interactions.
-   Sharper, slower, and more deliberate than the app's default snap, reserved
-   for marketing surfaces; dashboard/app UI keeps its existing motion language. */
-.ik-btn-primary {
+/* Unified refined button and link interactions, sharper and slower/more
+   deliberate than the old per-page defaults. Two variants: .ik-btn-primary
+   is for short, fixed-label CTAs (marketing pages, auth submit buttons) and
+   widens its letter-spacing on hover; .ik-btn-primary-compact is for the
+   dashboard's longer, dynamic-length labels ("Publish This Week's Schedule
+   (5)") where a letter-spacing jump would read as a glitch or cause wrapping,
+   so it keeps the fill-sweep and press-dim without touching tracking. */
+.ik-btn-primary,
+.ik-btn-primary-compact {
   position: relative;
   overflow: hidden;
   border: none;
   cursor: pointer;
+  transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ik-btn-primary {
   transition: letter-spacing 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ik-btn-primary::before {
+.ik-btn-primary::before,
+.ik-btn-primary-compact::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -146,7 +156,8 @@
   z-index: 0;
 }
 
-.ik-btn-primary > span {
+.ik-btn-primary > span,
+.ik-btn-primary-compact > span {
   position: relative;
   z-index: 1;
 }
@@ -155,11 +166,13 @@
   letter-spacing: 0.22em;
 }
 
-.ik-btn-primary:hover::before {
+.ik-btn-primary:hover::before,
+.ik-btn-primary-compact:hover::before {
   transform: translateX(0);
 }
 
-.ik-btn-primary:active {
+.ik-btn-primary:active,
+.ik-btn-primary-compact:active {
   transform: scale(0.985);
   filter: brightness(0.95);
 }
@@ -191,6 +204,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ik-btn-primary,
   .ik-btn-primary::before,
+  .ik-btn-primary-compact,
+  .ik-btn-primary-compact::before,
   .ik-nav-link,
   .ik-nav-link::after {
     transition: none;

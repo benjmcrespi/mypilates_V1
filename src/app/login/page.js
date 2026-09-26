@@ -38,26 +38,26 @@ export default function Login() {
       </div>
 
       <div className="sm:mx-auto w-full max-w-md text-center px-4">
-        <h2 className="text-3xl font-bold tracking-tight text-bark">
+        <h2 className="font-serif font-semibold text-4xl sm:text-5xl tracking-[0.008em] leading-[1.05] text-bark">
           Instructor Workspace
         </h2>
-        <p className="mt-2 text-sm text-stone">
+        <p className="mt-4 text-sm text-stone">
           Sign in to manage your public schedules and links.
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto w-full max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-xl sm:px-10">
+        <div className="bg-white py-8 px-6 shadow-sm border border-sand rounded-[2px] sm:px-10">
 
           {errorMsg && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-medium">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-[2px] font-medium">
               {errorMsg}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-bark mb-1">
+              <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                 Email Address
               </label>
               <input
@@ -66,13 +66,13 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="hannah@example.com"
-                className="w-full border border-sand rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                className="w-full border border-sand rounded-[2px] px-4 py-2.5 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
               />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-bark">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone">
                   Password
                 </label>
                 <Link href="/forgot-password" prefetch={false} className="text-sm font-medium text-clay hover:underline">
@@ -86,7 +86,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full border border-sand rounded-lg px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
+                  className="w-full border border-sand rounded-[2px] px-4 py-2.5 pr-10 focus:ring-2 focus:ring-clay outline-none bg-linen/50"
                 />
                 <button
                   type="button"
@@ -110,9 +110,9 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-clay text-white font-medium py-3 rounded-lg hover:bg-clay-dark transition-colors disabled:opacity-50 mt-2 shadow-sm"
+              className="ik-btn-primary w-full bg-clay text-white text-xs font-bold tracking-[0.16em] uppercase py-3.5 rounded-[2px] disabled:opacity-50 mt-2"
             >
-              {isLoading ? "Verifying..." : "Sign In"}
+              <span>{isLoading ? "Verifying..." : "Sign In"}</span>
             </button>
           </form>
 

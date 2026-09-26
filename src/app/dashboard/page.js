@@ -947,17 +947,17 @@ export default function Dashboard() {
 
       {showDeleteAllDraftsModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+          <div className="bg-white rounded-[2px] shadow-xl max-w-sm w-full p-6">
             <p className="text-bark font-medium mb-6">
               Delete all {draftClasses.length} draft{draftClasses.length !== 1 ? 's' : ''}? This cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setShowDeleteAllDraftsModal(false)}
-                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                className="px-4 py-2 rounded-[2px] border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={handleDeleteAllDrafts} disabled={isDeletingAllDrafts}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50">
+                className="px-4 py-2 rounded-[2px] bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition-colors disabled:opacity-50">
                 {isDeletingAllDrafts ? "Deleting..." : "Delete All"}
               </button>
             </div>
@@ -967,15 +967,15 @@ export default function Dashboard() {
 
       {seriesAction?.step === 'choose' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+          <div className="bg-white rounded-[2px] shadow-xl max-w-sm w-full p-6">
             <p className="text-bark font-medium mb-6">This class is part of a recurring series.</p>
             <div className="flex flex-col gap-2">
               <button type="button" onClick={() => handleSeriesScopeChosen('only')}
-                className="w-full px-4 py-2.5 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                className="w-full px-4 py-2.5 rounded-[2px] border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
                 {seriesAction.kind === 'delete' ? 'Delete this class only' : 'Edit this class only'}
               </button>
               <button type="button" onClick={() => handleSeriesScopeChosen('future')}
-                className="w-full px-4 py-2.5 rounded-lg bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors">
+                className="w-full px-4 py-2.5 rounded-[2px] bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors">
                 {seriesAction.kind === 'delete' ? 'Delete this and all future classes in the series' : 'Edit this and all future classes in the series'}
               </button>
               <button type="button" onClick={() => setSeriesAction(null)}
@@ -989,7 +989,7 @@ export default function Dashboard() {
 
       {seriesAction?.step === 'confirm' && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+          <div className="bg-white rounded-[2px] shadow-xl max-w-sm w-full p-6">
             <p className="text-bark font-medium mb-6">
               This will {seriesAction.kind === 'delete' ? 'delete' : 'update'} {seriesAction.totalCount} class{seriesAction.totalCount !== 1 ? 'es' : ''}.{' '}
               {seriesAction.publishedCount} {seriesAction.publishedCount !== 1 ? 'are' : 'is'} live on your page and will{' '}
@@ -997,13 +997,13 @@ export default function Dashboard() {
             </p>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setSeriesAction(null)}
-                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
+                className="px-4 py-2 rounded-[2px] border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors">
                 Cancel
               </button>
               <button type="button" onClick={() => { const action = seriesAction; setSeriesAction(null); executeSeriesAction(action); }}
                 disabled={isProcessingSeriesAction}
-                className="px-4 py-2 rounded-lg bg-clay text-white text-sm font-bold hover:bg-clay-dark transition-colors disabled:opacity-50">
-                {isProcessingSeriesAction ? "Saving..." : "Continue"}
+                className="ik-btn-primary-compact px-4 py-2 rounded-[2px] bg-clay text-white text-sm font-bold disabled:opacity-50">
+                <span>{isProcessingSeriesAction ? "Saving..." : "Continue"}</span>
               </button>
             </div>
           </div>
@@ -1012,34 +1012,36 @@ export default function Dashboard() {
 
       {confirmAction && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+          <div className="bg-white rounded-[2px] shadow-xl max-w-sm w-full p-6">
             <p className="text-bark font-medium mb-6">{confirmAction.message}</p>
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setConfirmAction(null)} disabled={isConfirmActionRunning}
-                className="px-4 py-2 rounded-lg border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors disabled:opacity-50">
+                className="px-4 py-2 rounded-[2px] border border-sand text-bark text-sm font-medium hover:bg-linen transition-colors disabled:opacity-50">
                 Cancel
               </button>
               <button type="button" onClick={runConfirmedAction} disabled={isConfirmActionRunning}
-                className={`px-4 py-2 rounded-lg text-white text-sm font-bold transition-colors disabled:opacity-50 ${
-                  confirmAction.variant === 'danger' ? 'bg-red-600 hover:bg-red-700' : 'bg-clay hover:bg-clay-dark'
+                className={`px-4 py-2 rounded-[2px] text-white text-sm font-bold disabled:opacity-50 ${
+                  confirmAction.variant === 'danger'
+                    ? 'bg-red-600 hover:bg-red-700 transition-colors'
+                    : 'ik-btn-primary-compact bg-clay'
                 }`}>
-                {isConfirmActionRunning ? 'Working...' : confirmAction.confirmLabel}
+                <span>{isConfirmActionRunning ? 'Working...' : confirmAction.confirmLabel}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
 
         {successMessage && (
-          <div className="mb-6 p-4 bg-sage-light text-bark border border-sage/30 rounded-xl text-sm font-medium shadow-sm">
+          <div className="mb-6 p-4 bg-sage-light text-bark border border-sage/30 rounded-[2px] text-sm font-medium shadow-sm">
             {successMessage}
           </div>
         )}
 
         {errorMessage && (
-          <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-medium shadow-sm">
+          <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-[2px] text-sm font-medium shadow-sm">
             {errorMessage}
           </div>
         )}
@@ -1069,7 +1071,7 @@ export default function Dashboard() {
 
           {/* Follower count metric */}
           {followerCount !== null && (
-            <div className="flex items-center gap-4 bg-white rounded-xl border border-sand p-5 shadow-sm">
+            <div className="flex items-center gap-4 bg-white rounded-[2px] border border-sand p-5 shadow-sm">
               <div className="w-10 h-10 rounded-full bg-clay-light flex items-center justify-center shrink-0">
                 <svg className="w-5 h-5 text-clay" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1077,7 +1079,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-bark leading-none">{followerCount}</p>
-                <p className="text-xs text-stone uppercase tracking-wider mt-0.5">Confirmed follower{followerCount !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-stone uppercase tracking-[0.14em] mt-0.5">Confirmed follower{followerCount !== 1 ? 's' : ''}</p>
               </div>
               {profile?.handle && (
                 <a
@@ -1094,34 +1096,34 @@ export default function Dashboard() {
 
           {/* Click-through metrics */}
           <div data-tour="analytics-cards" className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-sand p-5 shadow-sm">
+            <div className="bg-white rounded-[2px] border border-sand p-5 shadow-sm">
               <p className="text-2xl font-bold text-bark leading-none">{clickStats.total}</p>
-              <p className="text-xs text-stone uppercase tracking-wider mt-1.5">Total Book Spot clicks</p>
+              <p className="text-xs text-stone uppercase tracking-[0.14em] mt-1.5">Total Book Spot clicks</p>
             </div>
-            <div className="bg-white rounded-xl border border-sand p-5 shadow-sm">
+            <div className="bg-white rounded-[2px] border border-sand p-5 shadow-sm">
               <p className="text-2xl font-bold text-bark leading-none">{clickStats.weekTotal}</p>
-              <p className="text-xs text-stone uppercase tracking-wider mt-1.5">Clicks this week</p>
+              <p className="text-xs text-stone uppercase tracking-[0.14em] mt-1.5">Clicks this week</p>
             </div>
-            <div className="bg-white rounded-xl border border-sand p-5 shadow-sm col-span-2 sm:col-span-1">
+            <div className="bg-white rounded-[2px] border border-sand p-5 shadow-sm col-span-2 sm:col-span-1">
               <p className="text-2xl font-bold text-bark leading-none truncate">
                 {clickStats.topClassId
                   ? (myClasses.find(c => c.id === clickStats.topClassId)?.class_name || 'N/A')
                   : 'N/A'}
               </p>
-              <p className="text-xs text-stone uppercase tracking-wider mt-1.5">
+              <p className="text-xs text-stone uppercase tracking-[0.14em] mt-1.5">
                 Top class{clickStats.topCount > 0 ? ` · ${clickStats.topCount} click${clickStats.topCount !== 1 ? 's' : ''}` : ''}
               </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+          <div className="bg-white rounded-[2px] shadow-sm border border-sand p-6">
             <h2 className="text-xl font-bold mb-4">Your Published Classes</h2>
 
             {(() => {
               const publishedClasses = myClasses.filter(c => c.status === 'published' && new Date(c.date_time) >= new Date());
 
               if (publishedClasses.length === 0) {
-                return <p className="text-stone text-center p-8 bg-white rounded-xl border border-sand">No live classes currently published.</p>;
+                return <p className="text-stone text-center p-8 bg-white rounded-[2px] border border-sand">No live classes currently published.</p>;
               }
 
               const { thisWeek, nextWeek, later } = groupByWeek(publishedClasses, tz, 'Sun');
@@ -1135,9 +1137,9 @@ export default function Dashboard() {
                 <div className="space-y-6">
                   {sections.filter(s => s.items.length > 0).map(section => (
                     <div key={section.label} className="space-y-4">
-                      <h3 className="text-xs font-bold text-stone uppercase tracking-wider">{section.label}</h3>
+                      <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">{section.label}</h3>
                       {section.items.map((c) => (
-                  <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-xl border border-sand shadow-sm transition-all hover:shadow-md">
+                  <div key={c.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-5 rounded-[2px] border border-sand shadow-sm transition-all hover:shadow-md">
                     <div className="mb-4 sm:mb-0">
                       <div className="flex items-center space-x-3 mb-1">
                         <h4 className="font-bold text-lg text-bark">{c.class_name}</h4>
@@ -1164,7 +1166,7 @@ export default function Dashboard() {
                       <span className="text-sand hidden sm:inline">|</span>
 
                       <button onClick={() => handleDeleteClass(c.id)}
-                        className="text-sm font-medium text-red-600 bg-white border border-sand hover:bg-red-50 px-4 py-2 rounded-lg transition-colors active:scale-95">
+                        className="text-sm font-medium text-red-600 bg-white border border-sand hover:bg-red-50 px-4 py-2 rounded-[2px] transition-colors active:scale-95">
                         Delete
                       </button>
 
@@ -1188,7 +1190,7 @@ export default function Dashboard() {
                         setIsIcsLocked(!!c.external_uid);
                         setActiveTab('add');
                       }}
-                        className="text-sm font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-lg transition-colors active:scale-95">
+                        className="text-sm font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-[2px] transition-colors active:scale-95">
                         Edit
                       </button>
                     </div>
@@ -1208,12 +1210,12 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8">
 
             {/* Sync Classes panel: first on mobile so Pull + Publish All are immediately visible */}
-            <div data-tour="publish-all-panel" className="lg:order-3 bg-clay-light rounded-xl shadow-sm border border-sand p-6 h-fit">
+            <div data-tour="publish-all-panel" className="lg:order-3 bg-clay-light rounded-[2px] shadow-sm border border-sand p-6 h-fit">
               <h2 className="text-xl font-bold mb-2">Sync Classes</h2>
               <p className="text-sm text-stone mb-4">Pull the latest classes directly from your linked calendars.</p>
 
               <button onClick={handleSync} disabled={isSyncing}
-                className="w-full bg-white border border-sand text-bark font-bold py-3 rounded-lg mb-3 shadow-sm hover:bg-linen transition-colors disabled:opacity-50">
+                className="w-full bg-white border border-sand text-bark font-bold py-3 rounded-[2px] mb-3 shadow-sm hover:bg-linen transition-colors disabled:opacity-50">
                 {isSyncing ? "Syncing Calendar..." : "↓ Pull Latest Schedule"}
               </button>
 
@@ -1223,11 +1225,11 @@ export default function Dashboard() {
                     <button onClick={handlePublishThisWeek}
                       disabled={isPublishingThisWeek || isPublishingNextWeek || isPublishingAll || isPublishingSelected}
                       data-tour="publish-all-btn"
-                      className="w-full bg-clay text-white font-bold py-3 rounded-lg shadow-sm hover:bg-clay-dark transition-colors disabled:opacity-50">
-                      {isPublishingThisWeek ? "Publishing..." : `✓ Publish This Week's Schedule (${thisWeekDrafts.length})`}
+                      className="ik-btn-primary-compact w-full bg-clay text-white font-bold py-3 rounded-[2px] shadow-sm disabled:opacity-50">
+                      <span>{isPublishingThisWeek ? "Publishing..." : `✓ Publish This Week's Schedule (${thisWeekDrafts.length})`}</span>
                     </button>
                   ) : (
-                    <button disabled className="w-full bg-sand/50 text-stone font-medium py-3 rounded-lg text-sm cursor-not-allowed">
+                    <button disabled className="w-full bg-sand/50 text-stone font-medium py-3 rounded-[2px] text-sm cursor-not-allowed">
                       Nothing to publish this week
                     </button>
                   )}
@@ -1235,11 +1237,11 @@ export default function Dashboard() {
                   {nextWeekDrafts.length > 0 ? (
                     <button onClick={handlePublishNextWeek}
                       disabled={isPublishingThisWeek || isPublishingNextWeek || isPublishingAll || isPublishingSelected}
-                      className="w-full border border-clay text-clay font-semibold py-2.5 rounded-lg hover:bg-clay-light transition-colors disabled:opacity-50 text-sm">
+                      className="w-full border border-clay text-clay font-semibold py-2.5 rounded-[2px] hover:bg-clay-light transition-colors disabled:opacity-50 text-sm">
                       {isPublishingNextWeek ? "Publishing..." : `Publish Next Week's Schedule (${nextWeekDrafts.length})`}
                     </button>
                   ) : (
-                    <button disabled className="w-full border border-sand text-stone font-medium py-2.5 rounded-lg text-sm cursor-not-allowed">
+                    <button disabled className="w-full border border-sand text-stone font-medium py-2.5 rounded-[2px] text-sm cursor-not-allowed">
                       Nothing to publish next week
                     </button>
                   )}
@@ -1259,7 +1261,7 @@ export default function Dashboard() {
                         {selectedDraftIds.length > 0 ? (
                           <button onClick={handlePublishSelected}
                             disabled={isPublishingAll || isPublishingThisWeek || isPublishingNextWeek || isPublishingSelected}
-                            className="text-xs font-semibold text-bark border border-sand hover:bg-linen px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                            className="text-xs font-semibold text-bark border border-sand hover:bg-linen px-3 py-1.5 rounded-[2px] transition-colors disabled:opacity-50">
                             {isPublishingSelected ? "Publishing..." : `Publish Selected (${selectedDraftIds.length})`}
                           </button>
                         ) : <span />}
@@ -1277,7 +1279,7 @@ export default function Dashboard() {
               {!pendingDrafts.length && <div className="mb-6" />}
 
               {pendingDrafts.length === 0 ? (
-                <div className="bg-white/50 border border-sand border-dashed rounded-lg p-8 text-center text-stone text-sm font-medium">
+                <div className="bg-white/50 border border-sand border-dashed rounded-[2px] p-8 text-center text-stone text-sm font-medium">
                   No pending drafts. You're all caught up!
                 </div>
               ) : (
@@ -1287,7 +1289,7 @@ export default function Dashboard() {
                     <div className="max-h-[600px] overflow-y-auto pr-2 space-y-5">
                       {thisWeek.length > 0 && (
                         <div className="space-y-3">
-                          <h3 className="text-xs font-bold text-stone uppercase tracking-wider">This Week</h3>
+                          <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">This Week</h3>
                           {thisWeek.map((c) => (
                             <DraftRow key={c.id} c={c} tz={tz} isSelected={selectedDraftIds.includes(c.id)}
                               onToggle={() => toggleDraftSelection(c.id)}
@@ -1298,7 +1300,7 @@ export default function Dashboard() {
 
                       {nextWeek.length > 0 && (
                         <div className="space-y-3">
-                          <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Next Week</h3>
+                          <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">Next Week</h3>
                           {nextWeek.map((c) => (
                             <DraftRow key={c.id} c={c} tz={tz} isSelected={selectedDraftIds.includes(c.id)}
                               onToggle={() => toggleDraftSelection(c.id)}
@@ -1309,7 +1311,7 @@ export default function Dashboard() {
 
                       {later.length > 0 && (
                         <div className="space-y-3">
-                          <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Later</h3>
+                          <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">Later</h3>
                           {showLaterDrafts ? (
                             later.map((c) => (
                               <DraftRow key={c.id} c={c} tz={tz} isSelected={selectedDraftIds.includes(c.id)}
@@ -1319,7 +1321,7 @@ export default function Dashboard() {
                           ) : (
                             <button
                               onClick={() => setShowLaterDrafts(true)}
-                              className="w-full bg-white border border-sand text-stone font-semibold text-sm py-3 rounded-lg hover:bg-linen hover:text-bark transition-colors"
+                              className="w-full bg-white border border-sand text-stone font-semibold text-sm py-3 rounded-[2px] hover:bg-linen hover:text-bark transition-colors"
                             >
                               Show {later.length} more draft{later.length !== 1 ? 's' : ''}
                             </button>
@@ -1349,7 +1351,7 @@ export default function Dashboard() {
             </div>
 
             {/* Publish form: alternative to syncing, first column on desktop */}
-            <div data-tour="add-class-form" ref={formRef} className={`lg:order-1 bg-white rounded-xl shadow-sm border p-6 transition-all ${editingDraftId ? 'border-clay ring-4 ring-clay/20' : 'border-sand'}`}>
+            <div data-tour="add-class-form" ref={formRef} className={`lg:order-1 bg-white rounded-[2px] shadow-sm border p-6 transition-all ${editingDraftId ? 'border-clay ring-4 ring-clay/20' : 'border-sand'}`}>
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold">
                   {editingDraftId ? "Finish Publishing Draft" : "Add a New Class"}
@@ -1373,7 +1375,7 @@ export default function Dashboard() {
                         setClassData({ ...classData, className });
                       }
                     }}
-                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
+                    required className={`w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
                 </div>
 
                 <div>
@@ -1390,7 +1392,7 @@ export default function Dashboard() {
                       onOtherChange={val => setClassData({ ...classData, categoryOther: val })}
                       placeholder={{ value: '', label: 'Select Category...', disabled: true }}
                       required
-                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen"
+                      className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen"
                     />
 
                     <select value={classData.studioName}
@@ -1409,7 +1411,7 @@ export default function Dashboard() {
                           bookingNote: s?.booking_note || '',
                         });
                       }}
-                      className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen appearance-none">
+                      className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen appearance-none">
                       <option value="" disabled>Select a Studio...</option>
                       {savedStudios.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                       <option value="custom">+ Add One Time Location</option>
@@ -1422,7 +1424,7 @@ export default function Dashboard() {
                   <input type="datetime-local" value={classData.dateTime}
                     disabled={isIcsLocked}
                     onChange={e => setClassData({ ...classData, dateTime: e.target.value })}
-                    required className={`w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
+                    required className={`w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 ${isIcsLocked ? 'bg-sand/40 text-stone cursor-not-allowed' : 'bg-linen'}`} />
                   {isIcsLocked && (
                     <p className="text-xs text-stone mt-1.5">Synced from your studio calendar. Contact your studio to change class times.</p>
                   )}
@@ -1434,7 +1436,7 @@ export default function Dashboard() {
                       <label className="block text-sm font-medium mb-1">Repeat</label>
                       <select value={classData.repeatFrequency}
                         onChange={e => setClassData({ ...classData, repeatFrequency: e.target.value })}
-                        className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
+                        className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
                         <option value="none">Does not repeat</option>
                         <option value="weekly">Weekly</option>
                         <option value="biweekly">Every 2 weeks</option>
@@ -1445,7 +1447,7 @@ export default function Dashboard() {
                         <label className="block text-sm font-medium mb-1">Ends</label>
                         <select value={classData.repeatDuration}
                           onChange={e => setClassData({ ...classData, repeatDuration: e.target.value })}
-                          className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
+                          className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
                           <option value="2weeks">Next 2 weeks</option>
                           <option value="4weeks">Next 4 weeks</option>
                           <option value="8weeks">Next 8 weeks</option>
@@ -1458,7 +1460,7 @@ export default function Dashboard() {
                         <label className="block text-sm font-medium mb-1">Repeat Until</label>
                         <input type="date" value={classData.repeatEndDate}
                           onChange={e => setClassData({ ...classData, repeatEndDate: e.target.value })}
-                          required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
+                          required className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
                       </div>
                     )}
                   </div>
@@ -1468,35 +1470,35 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium mb-1">Booking Link</label>
                   <input type="url" placeholder="https://..." value={classData.bookingUrl}
                     onChange={e => setClassData({ ...classData, bookingUrl: e.target.value })}
-                    required className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
+                    required className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
                 </div>
 
                 {/* Booking context: collapsible override */}
-                <div className="border border-sand rounded-lg p-4 bg-linen/50 space-y-3">
+                <div className="border border-sand rounded-[2px] p-4 bg-linen/50 space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-stone mb-1">Booking Note <span className="font-normal">(optional)</span></label>
                     <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
                       value={classData.bookingNote}
                       onChange={e => setClassData({ ...classData, bookingNote: e.target.value })}
-                      className="w-full border border-sand rounded-lg px-3 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
+                      className="w-full border border-sand rounded-[2px] px-3 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                   </div>
                 </div>
 
                 {isEditingDraft ? (
                   <div className="flex gap-3 mt-2">
                     <button type="button" onClick={handleSaveDraft} disabled={isSaving}
-                      className="flex-1 bg-white border border-sand text-bark font-medium py-3 rounded-lg transition-colors hover:bg-linen disabled:opacity-50">
+                      className="flex-1 bg-white border border-sand text-bark font-medium py-3 rounded-[2px] transition-colors hover:bg-linen disabled:opacity-50">
                       {isSaving ? "Saving..." : "Save Draft"}
                     </button>
                     <button type="submit" disabled={isSaving}
-                      className="flex-1 bg-clay text-white font-medium py-3 rounded-lg transition-colors hover:bg-clay-dark disabled:opacity-50">
-                      {isSaving ? "Saving..." : "Publish Draft Live"}
+                      className="ik-btn-primary-compact flex-1 bg-clay text-white font-medium py-3 rounded-[2px] disabled:opacity-50">
+                      <span>{isSaving ? "Saving..." : "Publish Draft Live"}</span>
                     </button>
                   </div>
                 ) : (
                   <button type="submit" disabled={isSaving}
-                    className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-2 transition-colors hover:bg-clay-dark disabled:opacity-50">
-                    {isSaving ? "Saving..." : (editingDraftId ? "Save Changes" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}
+                    className="ik-btn-primary-compact w-full bg-clay text-white font-medium py-3 rounded-[2px] mt-2 disabled:opacity-50">
+                    <span>{isSaving ? "Saving..." : (editingDraftId ? "Save Changes" : (classData.repeatFrequency !== 'none' ? "Create Draft Series" : "Publish Class"))}</span>
                   </button>
                 )}
               </form>
@@ -1507,7 +1509,7 @@ export default function Dashboard() {
 
         {/* ══ SETTINGS TAB ══ */}
         {activeTab === 'settings' && (
-          <div className="bg-white rounded-xl shadow-sm border border-sand p-6 max-w-2xl">
+          <div className="bg-white rounded-[2px] shadow-sm border border-sand p-6 max-w-2xl">
             <h2 className="text-xl font-bold mb-6">Instructor Profile</h2>
             <form onSubmit={handleSettingsSubmit} className="space-y-6">
 
@@ -1515,14 +1517,14 @@ export default function Dashboard() {
               <div data-tour="your-page-link">
                 <label className="block text-sm font-medium mb-1">Your Page</label>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 border border-sand rounded-lg px-4 py-2 bg-linen text-bark text-sm font-medium select-all overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div className="flex-1 border border-sand rounded-[2px] px-4 py-2 bg-linen text-bark text-sm font-medium select-all overflow-hidden text-ellipsis whitespace-nowrap">
                     instruktor.ca/{profile?.handle}
                   </div>
                   <div className="relative">
                     <button
                       type="button"
                       onClick={handleCopyLink}
-                      className="p-2.5 border border-sand rounded-lg bg-linen hover:bg-clay-light transition-colors"
+                      className="p-2.5 border border-sand rounded-[2px] bg-linen hover:bg-clay-light transition-colors"
                       aria-label="Copy link"
                     >
                       <svg className="w-4 h-4 text-stone" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1531,7 +1533,7 @@ export default function Dashboard() {
                       </svg>
                     </button>
                     {copiedLink && (
-                      <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-bark text-linen text-xs px-2.5 py-1.5 rounded-lg whitespace-nowrap pointer-events-none">
+                      <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-bark text-linen text-xs px-2.5 py-1.5 rounded-[2px] whitespace-nowrap pointer-events-none">
                         Copied!
                       </div>
                     )}
@@ -1553,7 +1555,7 @@ export default function Dashboard() {
                     }
                   </div>
                   <div>
-                    <label htmlFor="avatar-upload" className="cursor-pointer inline-block bg-linen border border-sand text-sm font-medium px-4 py-2 rounded-lg hover:bg-clay-light transition-colors">
+                    <label htmlFor="avatar-upload" className="cursor-pointer inline-block bg-linen border border-sand text-sm font-medium px-4 py-2 rounded-[2px] hover:bg-clay-light transition-colors">
                       {avatarPreview ? 'Change Photo' : 'Upload Photo'}
                     </label>
                     <input id="avatar-upload" type="file" accept="image/jpeg,image/png,image/webp"
@@ -1569,7 +1571,7 @@ export default function Dashboard() {
                 <textarea rows="4" value={settingsData.bio}
                   onChange={e => setSettingsData({ ...settingsData, bio: e.target.value })}
                   placeholder="Tell students about your teaching style..."
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen/50" />
+                  className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen/50" />
               </div>
 
               {/* Certifications */}
@@ -1577,7 +1579,7 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium mb-1">Certifications</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {settingsData.certifications.map(cert => (
-                    <span key={cert} className="flex items-center gap-1.5 bg-clay-light text-bark text-sm px-3 py-1 rounded-full border border-sand">
+                    <span key={cert} className="flex items-center gap-1.5 bg-clay-light text-bark text-sm px-3 py-1 rounded-[2px] border border-sand">
                       {cert}
                       <button type="button" onClick={() => handleRemoveCert(cert)} className="text-stone hover:text-bark leading-none">×</button>
                     </span>
@@ -1587,7 +1589,7 @@ export default function Dashboard() {
                   onChange={e => setCertInput(e.target.value)}
                   onKeyDown={handleAddCert}
                   placeholder="Type a certification and press Enter (e.g. STOTT Pilates)"
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
+                  className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen text-sm" />
                 <p className="text-xs text-stone mt-1">Press Enter or comma to add each certification.</p>
               </div>
 
@@ -1597,11 +1599,11 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium mb-1">Years of Experience</label>
                   <input type="number" min="0" max="60" value={settingsData.years_experience}
                     onChange={e => setSettingsData({ ...settingsData, years_experience: e.target.value })}
-                    placeholder="e.g. 8" className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
+                    placeholder="e.g. 8" className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Instagram Handle</label>
-                  <div className="flex items-center border border-sand rounded-lg bg-linen overflow-hidden focus-within:border-clay">
+                  <div className="flex items-center border border-sand rounded-[2px] bg-linen overflow-hidden focus-within:border-clay">
                     <span className="pl-3 text-stone text-sm select-none">@</span>
                     <input type="text" value={settingsData.instagram_handle}
                       onChange={e => setSettingsData({ ...settingsData, instagram_handle: e.target.value.replace(/^@/, '') })}
@@ -1615,15 +1617,15 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium mb-1">Your Timezone</label>
                 <select value={settingsData.timezone}
                   onChange={e => setSettingsData({ ...settingsData, timezone: e.target.value })}
-                  className="w-full border border-sand rounded-lg px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
+                  className="w-full border border-sand rounded-[2px] px-4 py-2 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-linen">
                   {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
                 </select>
                 <p className="text-xs text-stone mt-1">All your class times will display in this timezone.</p>
               </div>
 
               <button type="submit" disabled={isSaving || isUploadingAvatar}
-                className="w-full bg-clay text-white font-medium py-3 rounded-lg mt-4 hover:bg-clay-dark disabled:opacity-50">
-                {isUploadingAvatar ? "Uploading photo..." : isSaving ? "Saving..." : "Save Profile"}
+                className="ik-btn-primary-compact w-full bg-clay text-white font-medium py-3 rounded-[2px] mt-4 disabled:opacity-50">
+                <span>{isUploadingAvatar ? "Uploading photo..." : isSaving ? "Saving..." : "Save Profile"}</span>
               </button>
               </div>
             </form>
@@ -1642,7 +1644,7 @@ export default function Dashboard() {
                     const hasIcalLine = !!studio.calendar_url;
                     const hasSummaryContent = !!summaryLine || hasIcalLine;
                     return (
-                    <div key={studio.id} className="bg-linen border border-sand rounded-lg shadow-sm overflow-hidden">
+                    <div key={studio.id} className="bg-linen border border-sand rounded-[2px] shadow-sm overflow-hidden">
                       <button type="button" onClick={() => toggleStudioExpanded(studio.id)}
                         className={`w-full flex justify-between items-center text-left ${hasSummaryContent ? 'px-5 pt-5 pb-2' : 'p-5'}`}>
                         <span className="font-bold text-lg">{studio.name}</span>
@@ -1679,14 +1681,14 @@ export default function Dashboard() {
                       <div className="px-5 pb-5 space-y-4">
                       <div className="flex justify-end -mt-1">
                         <button onClick={() => handleDeleteStudio(studio.id)}
-                          className="text-stone hover:text-red-500 transition-all px-2 py-1 text-xs font-bold uppercase tracking-wider">
+                          className="text-stone hover:text-red-500 transition-all px-2 py-1 text-xs font-bold uppercase tracking-[0.14em]">
                           ✕ Remove
                         </button>
                       </div>
 
                       {/* Booking note */}
                       <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Booking Note <span className="font-normal normal-case">(optional)</span></label>
+                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-[0.14em]">Booking Note <span className="font-normal normal-case">(optional)</span></label>
                         <input type="text" placeholder="e.g. Membership required · Book via the MyAltea App · First class free"
                           defaultValue={studio.booking_note || ''}
                           onBlur={e => {
@@ -1694,7 +1696,7 @@ export default function Dashboard() {
                               handleUpdateStudio(studio.id, { booking_note: e.target.value }, `${studio.id}_booking_note`);
                             }
                           }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
+                          className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                         <div className="flex items-center gap-2 mt-1.5">
                           <p className="text-[11px] text-stone">Short note shown on each class card.</p>
                           {savedFields[`${studio.id}_booking_note`] && (
@@ -1705,7 +1707,7 @@ export default function Dashboard() {
 
                       {/* Default class type */}
                       <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Default Class Type</label>
+                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-[0.14em]">Default Class Type</label>
                         <CategorySelect
                           categories={categories}
                           value={studio.default_category_id || (studio.default_category_other ? 'other' : '')}
@@ -1716,14 +1718,14 @@ export default function Dashboard() {
                           })}
                           onOtherChange={val => handleUpdateStudio(studio.id, { default_category_other: val })}
                           placeholder={{ value: '', label: 'No default. Tag each class manually.', disabled: false }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm"
+                          className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm"
                         />
                         <p className="text-[11px] text-stone mt-1.5">Synced classes from this studio will be auto-tagged with this type.</p>
                       </div>
 
                       {/* Default booking URL */}
                       <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Default Booking Link</label>
+                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-[0.14em]">Default Booking Link</label>
                         <input type="url" placeholder="https://studiobooking.com/schedule"
                           defaultValue={studio.default_booking_url || ''}
                           onBlur={e => {
@@ -1731,7 +1733,7 @@ export default function Dashboard() {
                               handleUpdateStudio(studio.id, { default_booking_url: e.target.value }, `${studio.id}_default_booking_url`);
                             }
                           }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
+                          className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                         <div className="flex items-center gap-2 mt-1.5">
                           <p className="text-[11px] text-stone">Used for studios like Mindbody where all classes share one booking page.</p>
                           {savedFields[`${studio.id}_default_booking_url`] && (
@@ -1742,7 +1744,7 @@ export default function Dashboard() {
 
                       {/* iCal link */}
                       <div>
-                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-wider">Studio iCal Link</label>
+                        <label className="block text-xs font-bold text-stone mb-1.5 uppercase tracking-[0.14em]">Studio iCal Link</label>
                         <input type="url" placeholder="Paste specific studio .ics link here..."
                           defaultValue={studio.calendar_url || ''}
                           onBlur={e => {
@@ -1750,7 +1752,7 @@ export default function Dashboard() {
                               handleUpdateStudio(studio.id, { calendar_url: e.target.value }, `${studio.id}_calendar_url`);
                             }
                           }}
-                          className="w-full border border-sand rounded-lg px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
+                          className="w-full border border-sand rounded-[2px] px-4 py-2.5 outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white text-sm" />
                         {savedFields[`${studio.id}_calendar_url`] && (
                           <span key={savedFields[`${studio.id}_calendar_url`]} className="block text-[11px] text-sage font-semibold mt-1.5" style={{animation:'checkFade 1.5s ease-out forwards'}} onAnimationEnd={() => setSavedFields(prev => { const next = {...prev}; delete next[`${studio.id}_calendar_url`]; return next; })}>✓ Saved</span>
                         )}
@@ -1766,7 +1768,7 @@ export default function Dashboard() {
               {/* Add new studio */}
               <div data-tour="add-studio">
                 <button type="button" onClick={() => setShowAddStudioModal(true)}
-                  className="w-full sm:w-auto px-6 py-3 bg-clay text-white rounded-lg font-medium hover:bg-clay-dark transition-colors text-sm shadow-sm">
+                  className="w-full sm:w-auto px-6 py-3 bg-clay text-white rounded-[2px] font-medium hover:bg-clay-dark transition-colors text-sm shadow-sm">
                   + Add a New Studio
                 </button>
               </div>
@@ -1793,7 +1795,7 @@ export default function Dashboard() {
 
 function DraftRow({ c, tz, isSelected, onToggle, onDelete, onEdit }) {
   return (
-    <div className={`bg-white p-4 rounded-lg border text-sm flex justify-between items-center shadow-sm transition-colors ${isSelected ? 'border-clay ring-2 ring-clay/20' : 'border-sand'}`}>
+    <div className={`bg-white p-4 rounded-[2px] border text-sm flex justify-between items-center shadow-sm transition-colors ${isSelected ? 'border-clay ring-2 ring-clay/20' : 'border-sand'}`}>
       <div className="flex items-center gap-3 pr-4 min-w-0">
         <input type="checkbox" checked={isSelected} onChange={onToggle}
           className="w-4 h-4 shrink-0 accent-clay cursor-pointer" />
@@ -1807,11 +1809,11 @@ function DraftRow({ c, tz, isSelected, onToggle, onDelete, onEdit }) {
       </div>
       <div className="flex gap-2 shrink-0">
         <button onClick={onDelete}
-          className="text-xs font-medium text-red-600 bg-white border border-sand hover:bg-red-50 px-3 py-2 rounded-lg transition-colors">
+          className="text-xs font-medium text-red-600 bg-white border border-sand hover:bg-red-50 px-3 py-2 rounded-[2px] transition-colors">
           Delete
         </button>
         <button onClick={onEdit}
-          className="text-xs font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-lg transition-colors">
+          className="text-xs font-medium text-bark bg-white border border-sand hover:bg-linen px-4 py-2 rounded-[2px] transition-colors">
           Edit
         </button>
       </div>

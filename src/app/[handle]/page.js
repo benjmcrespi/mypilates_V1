@@ -192,7 +192,7 @@ export default function InstructorProfile() {
             : <span className="text-3xl font-bold text-smoke">{instructor.full_name?.charAt(0) || 'I'}</span>
           }
         </div>
-        <h1 className="font-serif text-4xl font-normal tracking-wide text-linen">{instructor.full_name}</h1>
+        <h1 className="font-serif font-semibold text-4xl tracking-[0.008em] text-linen">{instructor.full_name}</h1>
 
         {/* Meta row: years experience + Instagram */}
         {(instructor.years_experience || instructor.instagram_handle) && (
@@ -242,7 +242,7 @@ export default function InstructorProfile() {
         {instructor.certifications?.length > 0 && (
           <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md mx-auto">
             {instructor.certifications.map(cert => (
-              <span key={cert} className="bg-bark/60 text-linen text-xs font-medium px-3 py-1 rounded-full border border-white/10">
+              <span key={cert} className="bg-bark/60 text-linen text-xs font-medium px-3 py-1 rounded-[2px] border border-white/10">
                 {cert}
               </span>
             ))}
@@ -254,23 +254,23 @@ export default function InstructorProfile() {
       <div className="bg-linen border-b border-sand py-6 px-4">
         <div className="max-w-md mx-auto">
           {followState === 'done' ? (
-            <div className="bg-sage-light border border-sage/30 rounded-xl px-5 py-4 text-center">
+            <div className="bg-sage-light border border-sage/30 rounded-[2px] px-5 py-4 text-center">
               <p className="text-sage font-semibold text-sm">Check your inbox to confirm your follow.</p>
               <p className="text-stone text-xs mt-1">You'll get notified when {instructor.full_name?.split(' ')[0]} adds new classes.</p>
             </div>
           ) : followState === 'confirmed' ? (
-            <div className="bg-sage-light border border-sage/30 rounded-xl px-5 py-4 text-center">
+            <div className="bg-sage-light border border-sage/30 rounded-[2px] px-5 py-4 text-center">
               <p className="text-sage font-semibold text-sm">You're now following {instructor.full_name?.split(' ')[0]}!</p>
               <p className="text-stone text-xs mt-1">You'll get notified when {instructor.full_name?.split(' ')[0]} adds new classes.</p>
             </div>
           ) : followState === 'already' ? (
-            <div className="bg-sage-light border border-sage/30 rounded-xl px-5 py-4 text-center">
+            <div className="bg-sage-light border border-sage/30 rounded-[2px] px-5 py-4 text-center">
               <p className="text-sage font-semibold text-sm">You're already following {instructor.full_name?.split(' ')[0]}.</p>
             </div>
           ) : (
             <form onSubmit={handleFollow} className="flex flex-col sm:flex-row gap-2">
               <div className="flex-1">
-                <label className="block text-xs font-semibold text-stone uppercase tracking-wider mb-2">
+                <label className="block text-[10.5px] font-medium tracking-[0.14em] uppercase text-stone mb-2">
                   Follow {instructor.full_name?.split(' ')[0]} and get notified when new classes are added
                 </label>
                 <input
@@ -279,15 +279,15 @@ export default function InstructorProfile() {
                   placeholder="your@email.com"
                   value={followEmail}
                   onChange={e => setFollowEmail(e.target.value)}
-                  className="w-full border border-sand rounded-lg px-4 py-2.5 text-sm outline-none focus:border-clay bg-white"
+                  className="w-full border border-sand rounded-[2px] px-4 py-2.5 text-sm outline-none focus:border-clay focus:ring-2 focus:ring-clay/40 bg-white"
                 />
               </div>
               <button
                 type="submit"
                 disabled={followState === 'submitting'}
-                className="sm:self-end bg-clay text-white font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-clay-dark active:scale-95 transition-all disabled:opacity-60 whitespace-nowrap"
+                className="ik-btn-primary sm:self-end bg-clay text-white text-xs font-bold tracking-[0.16em] uppercase px-6 py-3 rounded-[2px] disabled:opacity-60 whitespace-nowrap"
               >
-                {followState === 'submitting' ? 'Sending...' : 'Follow'}
+                <span>{followState === 'submitting' ? 'Sending...' : 'Follow'}</span>
               </button>
             </form>
           )}
@@ -316,12 +316,12 @@ export default function InstructorProfile() {
                     placeholder="your@email.com"
                     value={unfollowEmail}
                     onChange={e => setUnfollowEmail(e.target.value)}
-                    className="border border-sand rounded-lg px-3 py-2 text-xs outline-none focus:border-stone bg-white w-48"
+                    className="border border-sand rounded-[2px] px-3 py-2 text-xs outline-none focus:border-stone bg-white w-48"
                   />
                   <button
                     type="submit"
                     disabled={unfollowState === 'submitting'}
-                    className="text-xs text-stone border border-sand bg-white px-3 py-2 rounded-lg hover:bg-sand/40 transition-colors disabled:opacity-60 whitespace-nowrap"
+                    className="text-xs text-stone border border-sand bg-white px-3 py-2 rounded-[2px] hover:bg-sand/40 transition-colors duration-[400ms] disabled:opacity-60 whitespace-nowrap"
                   >
                     {unfollowState === 'submitting' ? 'Removing…' : 'Unfollow'}
                   </button>
@@ -337,10 +337,10 @@ export default function InstructorProfile() {
 
       {/* SCHEDULE FEED */}
       <main className="max-w-4xl mx-auto py-10 px-4 sm:px-6">
-        <h2 className="text-xl font-bold mb-6">Upcoming Classes</h2>
+        <h2 className="text-[10.5px] font-medium tracking-[0.22em] uppercase text-clay-dark mb-8">Upcoming Classes</h2>
 
         {classes.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-sand p-10 text-center text-stone">
+          <div className="bg-white rounded-[2px] shadow-sm border border-sand p-10 text-center text-stone">
             No upcoming classes scheduled right now.
           </div>
         ) : (
@@ -352,7 +352,7 @@ export default function InstructorProfile() {
               <div className="space-y-8">
                 {thisWeek.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-stone uppercase tracking-wider">This Week</h3>
+                    <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">This Week</h3>
                     {thisWeek.map((c) => (
                       <ClassCard key={c.id} c={c} tz={tz} handleBookClick={handleBookClick} />
                     ))}
@@ -361,7 +361,7 @@ export default function InstructorProfile() {
 
                 {nextWeek.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Next Week</h3>
+                    <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">Next Week</h3>
                     {nextWeek.map((c) => (
                       <ClassCard key={c.id} c={c} tz={tz} handleBookClick={handleBookClick} />
                     ))}
@@ -370,7 +370,7 @@ export default function InstructorProfile() {
 
                 {later.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-stone uppercase tracking-wider">Later</h3>
+                    <h3 className="text-xs font-bold text-stone uppercase tracking-[0.14em]">Later</h3>
                     {showLater ? (
                       later.map((c) => (
                         <ClassCard key={c.id} c={c} tz={tz} handleBookClick={handleBookClick} />
@@ -378,7 +378,7 @@ export default function InstructorProfile() {
                     ) : (
                       <button
                         onClick={() => setShowLater(true)}
-                        className="w-full bg-white border border-sand text-stone font-semibold text-sm py-3 rounded-lg hover:bg-clay-light hover:text-bark transition-colors"
+                        className="w-full bg-white border border-sand text-stone font-semibold text-sm py-3 rounded-[2px] hover:bg-clay-light hover:text-bark transition-colors"
                       >
                         Show {later.length} more class{later.length !== 1 ? 'es' : ''}
                       </button>
@@ -411,11 +411,11 @@ export default function InstructorProfile() {
 
             <h3 className="text-xl font-bold mb-2 text-center sm:text-left">Studio Booking Instructions</h3>
 
-            <div className="bg-linen p-4 rounded-xl border border-sand mb-6">
+            <div className="bg-linen p-4 rounded-[2px] border border-sand mb-6">
               <p className="text-stone text-sm leading-relaxed text-center sm:text-left">
                 This studio uses a main schedule page. You will likely land on <strong>today's date</strong>. Please navigate to the date below:
               </p>
-              <div className="mt-4 p-4 bg-white border border-sand rounded-lg text-center shadow-sm">
+              <div className="mt-4 p-4 bg-white border border-sand rounded-[2px] text-center shadow-sm">
                 <span className="block text-bark font-bold text-lg sm:text-xl">
 {new Date(bookingClass.date_time).toLocaleDateString('en-US', {
   weekday: 'short', month: 'short', day: 'numeric',
@@ -435,13 +435,13 @@ export default function InstructorProfile() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setBookingClass(null)}
-                className="w-full bg-clay text-white font-bold py-4 sm:py-3 rounded-xl text-center hover:bg-clay-dark active:scale-[0.98] transition-all"
+                className="w-full bg-clay text-white font-bold py-4 sm:py-3 rounded-[2px] text-center hover:bg-clay-dark active:scale-[0.98] transition-all"
               >
                 Continue to Studio Schedule
               </a>
               <button
                 onClick={() => setBookingClass(null)}
-                className="w-full bg-linen border border-sand text-stone font-bold py-4 sm:py-3 rounded-xl hover:bg-clay-light active:scale-[0.98] transition-all"
+                className="w-full bg-linen border border-sand text-stone font-bold py-4 sm:py-3 rounded-[2px] hover:bg-clay-light active:scale-[0.98] transition-all"
               >
                 Cancel
               </button>
@@ -455,7 +455,7 @@ export default function InstructorProfile() {
 
 function ClassCard({ c, tz, handleBookClick }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-sand p-5 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-all">
+    <div className="bg-white rounded-[2px] shadow-sm border border-sand p-5 sm:p-6 flex flex-col sm:flex-row sm:justify-between sm:items-center transition-all">
       <div className="mb-4 sm:mb-0">
         <div className="flex items-center flex-wrap gap-2 mb-1.5">
           <h3 className="text-lg font-bold leading-tight">{c.class_name}</h3>
@@ -502,14 +502,14 @@ function ClassCard({ c, tz, handleBookClick }) {
       {c.is_waitlisted ? (
         <button
           onClick={() => handleBookClick(c)}
-          className="w-full sm:w-auto bg-sand text-stone font-bold py-3.5 px-8 rounded-lg hover:bg-sand/70 hover:text-bark active:scale-[0.98] transition-all"
+          className="w-full sm:w-auto bg-sand text-stone font-bold py-3.5 px-8 rounded-[2px] hover:bg-sand/70 hover:text-bark active:scale-[0.98] transition-all"
         >
           Join Waitlist
         </button>
       ) : (
         <button
           onClick={() => handleBookClick(c)}
-          className="w-full sm:w-auto bg-clay text-white font-bold py-3.5 px-8 rounded-lg hover:bg-clay-dark active:scale-[0.98] transition-all"
+          className="w-full sm:w-auto bg-clay text-white font-bold py-3.5 px-8 rounded-[2px] hover:bg-clay-dark active:scale-[0.98] transition-all"
         >
           Book Spot
         </button>
